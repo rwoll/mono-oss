@@ -1,0 +1,14 @@
+{
+  "name": "rwoll",
+  "owner": {
+    "name": "rwoll"
+  },
+  "plugins": [
+    {
+      "name": "canvas-kit",
+      "description": "Skills for building, testing, and publishing Copilot canvases with @rwoll/canvas-kit.",
+      "version": "0.3.0",
+      "source": "./plugins/canvas-kit"
+    }
+  ]
+}
