@@ -1,0 +1,25 @@
+packages:
+  - packages/*
+
+# --- shared with oss/pnpm-workspace.yaml ---
+# Supply-chain hardening. pnpm 11 reads only registry and auth settings from
+# .npmrc, so these live here.
+
+# Install only versions published at least 7 days ago, including transitive
+# dependencies, except our own @rwoll packages. Fail instead of skipping the
+# check when the registry cannot date a version.
+minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  - '@rwoll/*'
+minimumReleaseAgeIgnoreMissingTime: false
+
+# Never run dependency lifecycle scripts (preinstall, install, postinstall),
+# and fail the install if a dependency needs one.
+ignoreScripts: true
+strictDepBuilds: true
+
+catalog:
+  '@types/node': ^24.19.2
+  oxlint: ^1.89.0
+  typescript: ^7.0.2
+  vitest: ^5.0.5

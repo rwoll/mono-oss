@@ -1,0 +1,24 @@
+{
+  "name": "@rwoll/mono-oss",
+  "version": "0.0.0",
+  "private": true,
+  "description": "rwoll's open source tools and @rwoll npm packages.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@11.28.8",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck && tsc -p .",
+    "lint": "oxlint",
+    "test": "pnpm -r test",
+    "check": "pnpm build && pnpm typecheck && pnpm lint && pnpm test"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "oxlint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

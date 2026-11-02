@@ -1,0 +1,180 @@
+# Publish every package whose version is not on npm yet, then tag it
+# <folder>@<version> and create a GitHub release. See RELEASING.md.
+#
+# The publish credential never meets project or dependency code:
+# - plan lists what to release, without installing anything.
+# - build does a frozen install, compiles, and packs the tarballs.
+# - test runs every check.
+# - publish runs in the `npm` environment (required reviewer, main only) with
+#   `id-token: write` for npm trusted publishing. It downloads the build job's
+#   artifact by ID, checks each tarball's hash against the build job's output,
+#   and runs only `npm publish`, which adds provenance.
+# - tag creates the tags and releases after everything is published.
+# No job restores a dependency cache.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      releases: ${{ steps.plan.outputs.releases }}
+      any: ${{ steps.plan.outputs.any }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - id: plan
+        run: node scripts/publish-npm.ts plan
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      integrity: ${{ steps.pack.outputs.integrity }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - uses: pnpm/action-setup@v6.1.0
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      - name: Pack
+        id: pack
+        env:
+          PLAN: ${{ needs.plan.outputs.releases }}
+        run: node scripts/publish-npm.ts pack --out "$RUNNER_TEMP/npm-packages"
+
+      - uses: actions/upload-artifact@v7.0.2
+        id: upload
+        with:
+          name: npm-packages
+          path: ${{ runner.temp }}/npm-packages/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  test:
+    needs: plan
+    if: needs.plan.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - uses: pnpm/action-setup@v6.1.0
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm check
+
+  publish:
+    needs: [plan, build, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check the repository is public
+        if: github.event.repository.private
+        run: |
+          echo "::error::npm provenance needs a public repository. Make rwoll/mono-oss public first; see RELEASING.md."
+          exit 1
+
+      # The publish script only; nothing is installed or built here.
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/publish-npm.ts
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: ${{ runner.temp }}/npm-packages
+          merge-multiple: true
+
+      - name: Publish
+        env:
+          PLAN: ${{ needs.plan.outputs.releases }}
+          EXPECTED_INTEGRITY: ${{ needs.build.outputs.integrity }}
+        run: node scripts/publish-npm.ts publish --from "$RUNNER_TEMP/npm-packages"
+
+  tag:
+    needs: [plan, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Tag and create releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLAN: ${{ needs.plan.outputs.releases }}
+        run: |
+          jq -c '.[]' <<< "$PLAN" | while read -r release; do
+            folder=$(jq -r .folder <<< "$release")
+            version=$(jq -r .version <<< "$release")
+            tag=$(jq -r .tag <<< "$release")
+            if gh release view "$tag" > /dev/null 2>&1; then
+              echo "$tag already exists."
+              continue
+            fi
+            prerelease=()
+            [[ "$version" == *-* ]] && prerelease=(--prerelease)
+            node scripts/publish-npm.ts notes "$folder" "$version" > "$RUNNER_TEMP/notes.md"
+            gh release create "$tag" --target "$GITHUB_SHA" --title "$(jq -r .name <<< "$release")@$version" \
+              --notes-file "$RUNNER_TEMP/notes.md" "${prerelease[@]}"
+          done
