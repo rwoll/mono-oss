@@ -9,3 +9,6 @@ dist
 
 # Written while releasing; see scripts/publish-npm.ts.
 .npm-packages
+
+# Written while packing @rwoll/canvas-kit; see scripts/publish-npm.ts.
+packages/canvas-kit/cli/release.json

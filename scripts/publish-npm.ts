@@ -14,7 +14,7 @@
 // and published with npm. Locally: plan, pack, then `publish --dry-run`.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -26,6 +26,9 @@ const MIN_NPM = [11, 5, 1];
 // publishes, so anything else (a proxy, TLS settings, another registry) could
 // redirect the trusted publishing credential.
 const PUBLISH_CONFIG = { access: 'public', registry: REGISTRY, provenance: true };
+// Files written into a package while packing it: `canvas-kit init` pins new
+// marketplaces' publish workflow to the mono-oss commit the kit was released from.
+const STAMPS: Record<string, string> = { 'canvas-kit': 'cli/release.json' };
 const root = fileURLToPath(new URL('..', import.meta.url));
 
 interface Release {
@@ -50,6 +53,13 @@ function run(command: string, args: string[], options: { capture?: boolean; allo
 
 function output(name: string, value: string): void {
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${value}\n`);
+}
+
+/** The commit being released: the pushed commit in CI, or a clean local HEAD. */
+function releaseCommit(): string {
+  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA;
+  if (run('git', ['status', '--porcelain'], { capture: true }).stdout.trim()) throw new Error('commit your changes first');
+  return run('git', ['rev-parse', 'HEAD'], { capture: true }).stdout.trim();
 }
 
 function onNpm(name: string, version: string): boolean {
@@ -86,7 +96,13 @@ function pack(out: string): void {
     if (manifest.name !== release.name || manifest.version !== release.version) {
       throw new Error(`packages/${release.folder} is ${manifest.name}@${manifest.version}, but the plan says ${release.name}@${release.version}`);
     }
-    run('pnpm', ['pack', '--pack-destination', out], { cwd: dir });
+    const stamp = STAMPS[release.folder];
+    if (stamp) writeFileSync(join(dir, stamp), `${JSON.stringify({ commit: releaseCommit(), tag: release.tag }, null, 2)}\n`);
+    try {
+      run('pnpm', ['pack', '--pack-destination', out], { cwd: dir });
+    } finally {
+      if (stamp) rmSync(join(dir, stamp), { force: true });
+    }
   }
   const found = tarballs(out);
   const lines = found.map(entry => `- \`${entry.name}@${entry.version}\` \`${entry.integrity}\``);
@@ -169,7 +185,8 @@ function publish(dir: string): void {
 function notes(folder: string, version: string): string {
   const changelog = readFileSync(join(root, 'packages', folder, 'CHANGELOG.md'), 'utf8');
   const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const section = new RegExp(`^## ${escaped}\\b.*\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, 'm').exec(changelog);
+  // Keep a Changelog: "## [1.2.3] - 2026-11-02", up to the next heading or the link references.
+  const section = new RegExp(`^## \\[${escaped}\\].*\\n([\\s\\S]*?)(?=^## |^\\[[^\\]]+\\]: |(?![\\s\\S]))`, 'm').exec(changelog);
   return section?.[1]?.trim() || `Released ${version}.`;
 }
 

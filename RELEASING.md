@@ -16,7 +16,7 @@ pnpm release hello minor   # or patch, major, or an exact version like 1.0.0-bet
 git commit -am "Release hello@0.1.0"
 ```
 
-`pnpm release` bumps the version and turns `## Unreleased` in the package's
+`pnpm release` bumps the version and turns `## [Unreleased]` in the package's
 CHANGELOG.md into the new version's section. After it is merged and exported
 here, [Release](.github/workflows/release.yml) runs on the push to `main`:
 
@@ -35,6 +35,32 @@ here, [Release](.github/workflows/release.yml) runs on the push to `main`:
 Versions already on npm are skipped, so rerunning a failed release (**Run
 workflow** on Release) is safe. Prerelease versions such as `1.0.0-beta.1`
 publish to the `next` dist-tag.
+
+### canvas-kit and create-canvas
+
+`npm create @rwoll/canvas` runs `canvas-kit init` from the `@rwoll/canvas-kit`
+it depends on, so release `create-canvas` with each `canvas-kit` release that
+changes `init` or its templates (bump both, then merge once).
+
+While packing, the release writes `cli/release.json` into `@rwoll/canvas-kit`
+with this repository's commit and the `canvas-kit@<version>` tag. `canvas-kit
+init` pins new marketplaces' publish workflow to
+`rwoll/mono-oss/.github/workflows/marketplace.yml` at that commit, so a later
+change here never runs in their workflows until they update the pin.
+
+## Publish the marketplace
+
+[Publish marketplace](.github/workflows/publish-marketplace.yml) runs on every
+push to `main` and calls the same reusable
+[marketplace.yml](.github/workflows/marketplace.yml) that canvas-kit users pin:
+
+1. **build** (read-only token) installs with the frozen lockfile, runs
+   `marketplace/`'s `check` script in a clean worktree, and prepares the next
+   `stable` commit as a git bundle, only when the output changed.
+2. **push** runs in the `stable` environment (`main` only), checks the bundle
+   without running anything from it, and fast-forwards `stable`.
+
+Each plugin gets a `release.json` stamp with the source commit that last changed it.
 
 ## First publish of a new package
 
@@ -66,6 +92,7 @@ name once from your machine, then every release comes from CI.
 | Setting | What it does |
 | --- | --- |
 | `npm` environment | Only `main` deploys, and a maintainer approves each release. The only place an npm token can be requested. |
+| `stable` environment | Only `main` deploys; the only job that can push the `stable` branch. |
 | Pull requests | Turned off: this repository only changes through the export. |
 | Ruleset on `main` | Only the export's GitHub App can push; no force pushes or deletion. |
 | Tags | Created only by the release workflow after a successful publish. |

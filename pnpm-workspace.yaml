@@ -1,5 +1,6 @@
 packages:
   - packages/*
+  - marketplace
 
 # --- shared with oss/pnpm-workspace.yaml ---
 # Supply-chain hardening. pnpm 11 reads only registry and auth settings from
@@ -23,3 +24,37 @@ catalog:
   oxlint: ^1.89.0
   typescript: ^7.0.2
   vitest: ^5.0.5
+
+# canvas-kit stays on TypeScript 6 and the versions its templates write into new
+# projects; packages/canvas-kit/cli/lib.test.mjs checks they match VERSIONS.
+catalogs:
+  canvas-kit:
+    '@github/copilot-sdk': ^1.0.25
+    '@playwright/test': ^1.60.0
+    '@types/node': ^24.13.3
+    '@types/react': ^19.2.18
+    '@types/react-dom': ^19.2.7
+    '@vitejs/plugin-react': ^6.1.1
+    react: ^19.2.8
+    react-dom: ^19.2.8
+    typescript: ~6.0.2
+    vite: ^8.3.0
+    vitest: ^5.0.5
+    zod: ^4.6.7
+
+# The Copilot host supplies the SDK at runtime; canvas-kit needs it for types
+# only, so skip its large per-platform binaries.
+ignoredOptionalDependencies:
+  - '@github/copilot-sdk-darwin-arm64'
+  - '@github/copilot-sdk-darwin-x64'
+  - '@github/copilot-sdk-linux-arm64'
+  - '@github/copilot-sdk-linux-x64'
+  - '@github/copilot-sdk-linuxmusl-arm64'
+  - '@github/copilot-sdk-linuxmusl-x64'
+  - '@github/copilot-sdk-win32-arm64'
+  - '@github/copilot-sdk-win32-x64'
+
+# @github/copilot-sdk pins zod 4.3.6, which has a memory exhaustion advisory
+# (fixed in 4.6.6). It is only used for types here.
+overrides:
+  '@github/copilot-sdk>zod': 4.6.7

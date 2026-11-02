@@ -30,3 +30,28 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm check
+
+  # Every action the workflows use is locked to a reviewed commit in
+  # .github/workflows/actions.lock, which the runner enforces. This fails when the
+  # lockfile is out of date or a locked commit no longer verifies upstream.
+  actions-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      # An immutable, attested release; update it here and in packages/canvas-kit/cli/lib.mjs.
+      GH_ACTIONS_LOCK: v0.4.0
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install gh-actions-lock and check its build provenance
+        run: |
+          gh extension install github/gh-actions-lock --pin "$GH_ACTIONS_LOCK"
+          gh attestation verify "${XDG_DATA_HOME:-$HOME/.local/share}/gh/extensions/gh-actions-lock/gh-actions-lock" \
+            --repo github/gh-actions-lock \
+            --signer-workflow github/gh-actions-lock/.github/workflows/release.yml \
+            --source-ref "refs/tags/$GH_ACTIONS_LOCK"
+
+      - run: gh actions-lock --verify

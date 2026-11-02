@@ -1,0 +1,9 @@
+{
+  "name": "rwoll",
+  "owner": {
+    "name": "rwoll"
+  },
+  "repository": "rwoll/mono-oss",
+  "publishBranch": "stable",
+  "sourceBranch": "main"
+}

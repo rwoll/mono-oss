@@ -14,7 +14,8 @@
     "typecheck": "pnpm -r typecheck && tsc -p .",
     "lint": "oxlint",
     "test": "pnpm -r test",
-    "check": "pnpm build && pnpm typecheck && pnpm lint && pnpm test"
+    "check": "pnpm build && pnpm typecheck && pnpm lint && pnpm test",
+    "consumer-test": "node scripts/consumer-test.mjs"
   },
   "devDependencies": {
     "@types/node": "catalog:",

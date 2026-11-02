@@ -104,6 +104,9 @@ jobs:
 
       - run: pnpm check
 
+      # Pack the packages as npm would publish them and use them from a new project.
+      - run: pnpm consumer-test --no-e2e
+
   publish:
     needs: [plan, build, test]
     runs-on: ubuntu-latest
