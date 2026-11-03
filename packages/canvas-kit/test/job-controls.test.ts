@@ -197,7 +197,10 @@ describe('job controls', () => {
     await before.close();
 
     const later = defineCanvas({
-      ...{ id: board.id, title: 'Board', description: 'Notes that jobs add to.', input: z.object({ repo: z.string() }) },
+      id: board.id,
+      title: 'Board',
+      description: 'Notes that jobs add to.',
+      input: z.object({ repo: z.string() }),
       state: z.object({ notes: z.array(z.string()) }),
       init: () => ({ notes: [] }),
       persist: { key: ({ input }) => input.repo },

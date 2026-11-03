@@ -5,8 +5,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 
-const bin = fileURLToPath(new URL('./index.mjs', import.meta.url));
-let dir;
+const bin = fileURLToPath(new URL('../dist/index.js', import.meta.url));
+let dir: string;
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), 'create-canvas-'));
 });

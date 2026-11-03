@@ -4,13 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ACTIONS, CliError, GH_ACTIONS_LOCK, VERSIONS, addUi, buildMarketplace, initMarketplace, kitVersion, newCanvas, release, runJob } from './lib.mjs';
+import { ACTIONS, CliError, GH_ACTIONS_LOCK, VERSIONS, addUi, buildMarketplace, initMarketplace, kitVersion, newCanvas, release, runJob } from '../src/cli/lib.ts';
 
 const workspace = fileURLToPath(new URL('../../../pnpm-workspace.yaml', import.meta.url));
-const json = async path => JSON.parse(await readFile(path, 'utf8'));
-const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
+const json = async (path: string) => JSON.parse(await readFile(path, 'utf8'));
+const git = (cwd: string, ...args: string[]) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
 
-let dir;
+let dir: string;
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), 'canvas-kit-cli-'));
 });
@@ -57,6 +57,12 @@ describe('canvas-kit new and ui', () => {
     for (const [name, range] of Object.entries(VERSIONS)) {
       expect(yaml, name).toContain(`${name.startsWith('@') ? `'${name}'` : name}: ${range}`);
     }
+  });
+
+  it('pins new projects to the workspace pnpm version', async () => {
+    const root = await json(fileURLToPath(new URL('../../../package.json', import.meta.url)));
+    const template = await json(fileURLToPath(new URL('../templates/project/package.json', import.meta.url)));
+    expect(template.packageManager).toBe(root.packageManager);
   });
 });
 
@@ -110,7 +116,7 @@ describe('npx commands in docs, skills, templates, CLI messages, and workflows',
     const root = fileURLToPath(new URL('../../../', import.meta.url));
     const files = execFileSync(
       'git',
-      ['ls-files', '-z', '--', '*.md', '.github', 'packages/canvas-kit/templates', 'packages/canvas-kit/cli/*.mjs', 'packages/create-canvas/*.mjs', ':!*.test.mjs'],
+      ['ls-files', '-z', '--', '*.md', '.github', 'packages/canvas-kit/templates', 'packages/canvas-kit/src/cli/*.ts', 'packages/create-canvas/src/*.ts'],
       { cwd: root, encoding: 'utf8' },
     )
       .split('\0')
@@ -150,7 +156,7 @@ describe('scaffolded workflows', () => {
 
 describe('canvas-kit run', () => {
   // A plugin's canvas.mjs, as `vite build` writes it: its canvases and a runJob that picks one.
-  const plugin = async (folder, names) => {
+  const plugin = async (folder: string, names: string[]) => {
     const extension = join(dir, folder, 'extensions', 'ext');
     await mkdir(extension, { recursive: true });
     await writeFile(
@@ -208,7 +214,7 @@ describe('canvas-kit release', () => {
     await writeFile(join(market, 'plugins', 'skills', 'skills', 'hello', 'SKILL.md'), '# Hello\n');
     await writeFile(
       join(work, 'build.mjs'),
-      `import { buildMarketplace } from ${JSON.stringify(new URL('./lib.mjs', import.meta.url).href)};\nawait buildMarketplace(process.cwd());\n`,
+      `import { buildMarketplace } from ${JSON.stringify(new URL('../src/cli/lib.ts', import.meta.url).href)};\nawait buildMarketplace(process.cwd());\n`,
     );
     await writeFile(join(work, '.gitignore'), 'dist\n');
     git(work, 'add', '--all');
@@ -257,6 +263,7 @@ describe('canvas-kit release', () => {
     }
     expect(await readFile(outputs, 'utf8')).toBe(`commit=${prepared.commit}\nbranch=stable\n`);
     expect(prepared).toMatchObject({ published: false, reason: 'bundled', branch: 'stable', bundle: file });
+    const commit = prepared.commit as string;
     expect(git(work, 'ls-remote', 'origin', 'refs/heads/stable').split('\t')[0]).toBe(stableBefore);
 
     // As the reusable workflow's push job does: a depth-1 checkout of main, then the publish branch's tip in full.
@@ -265,11 +272,11 @@ describe('canvas-kit release', () => {
     git(pusher, 'fetch', '--quiet', '--depth=1', 'origin', '+refs/heads/stable:refs/remotes/origin/stable');
     git(pusher, 'bundle', 'verify', '--quiet', file);
     git(pusher, '-c', 'transfer.fsckObjects=true', 'fetch', '--quiet', file, 'HEAD:refs/canvas-kit/publish');
-    expect(git(pusher, 'rev-parse', 'refs/canvas-kit/publish')).toBe(prepared.commit);
-    expect(git(pusher, 'rev-list', '--parents', '-n', '1', prepared.commit).split(' ').slice(1)).toEqual([stableBefore]);
-    expect(git(pusher, 'log', '-1', '--format=%(trailers:key=Source-Commit,valueonly)', prepared.commit)).toBe(git(work, 'rev-parse', 'HEAD'));
-    git(pusher, 'push', '--quiet', 'origin', `${prepared.commit}:refs/heads/stable`);
-    expect(JSON.parse(git(work, 'show', `${prepared.commit}:plugins/skills/release.json`)).version).toBe('1.1.0');
-    expect(git(work, 'show', `${prepared.commit}:plugins/skills/skills/hello/SKILL.md`)).toBe('# Hello');
+    expect(git(pusher, 'rev-parse', 'refs/canvas-kit/publish')).toBe(commit);
+    expect(git(pusher, 'rev-list', '--parents', '-n', '1', commit).split(' ').slice(1)).toEqual([stableBefore]);
+    expect(git(pusher, 'log', '-1', '--format=%(trailers:key=Source-Commit,valueonly)', commit)).toBe(git(work, 'rev-parse', 'HEAD'));
+    git(pusher, 'push', '--quiet', 'origin', `${commit}:refs/heads/stable`);
+    expect(JSON.parse(git(work, 'show', `${commit}:plugins/skills/release.json`)).version).toBe('1.1.0');
+    expect(git(work, 'show', `${commit}:plugins/skills/skills/hello/SKILL.md`)).toBe('# Hello');
   });
 });

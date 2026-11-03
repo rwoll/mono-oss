@@ -1,12 +1,12 @@
-// Library behind the `canvas-kit` command and `@rwoll/create-canvas`. Plain ESM so it
-// runs without a build step, including from a workspace checkout of the kit.
-import { execFileSync, spawnSync } from 'node:child_process';
+// Library behind the `canvas-kit` command and `@rwoll/create-canvas`.
+import { execFileSync, spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { access, appendFile, cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const kitRoot = fileURLToPath(new URL('..', import.meta.url));
+// This file is src/cli/lib.ts in the repository and dist/cli/lib.js in the package.
+const kitRoot = fileURLToPath(new URL('../..', import.meta.url));
 const templateDir = join(kitRoot, 'templates', 'canvas');
 const uiTemplateDir = join(kitRoot, 'templates', 'ui');
 const projectTemplateDir = join(kitRoot, 'templates', 'project');
@@ -26,32 +26,118 @@ const REPOSITORY = /^[\w.-]+\/[\w.-]+$/;
  * Versions written into new projects. A test keeps them in step with the kit's
  * own workspace catalog.
  */
-export const VERSIONS = {
+export const VERSIONS: Record<string, string> = {
   '@playwright/test': '^1.60.0',
-  '@types/node': '^24.13.3',
+  '@types/node': '^24.19.2',
   '@types/react': '^19.2.18',
   '@types/react-dom': '^19.2.7',
   react: '^19.2.8',
   'react-dom': '^19.2.8',
-  typescript: '~6.0.2',
+  typescript: '^7.0.2',
   vite: '^8.3.0',
   vitest: '^5.0.5',
 };
 
 export class CliError extends Error {}
 
-const exists = path => access(path).then(() => true, () => false);
-const directories = async path =>
+/** marketplace.config.json, with defaults filled in by `loadConfig`. */
+export interface MarketplaceConfig {
+  name: string;
+  owner: { name: string };
+  repository: string;
+  publishBranch: string;
+  sourceBranch: string;
+  pluginsDir: string;
+  outDir: string;
+  checkScript: string;
+  metadata?: Record<string, unknown>;
+  installCommand?: string;
+  buildCommand?: string;
+  checkCommand?: string;
+}
+
+export interface NewCanvasOptions {
+  id?: string;
+  idPrefix?: string;
+  title?: string;
+  description?: string;
+  ui?: boolean;
+}
+
+export interface NewCanvasResult {
+  dir: string;
+  name: string;
+  id: string;
+  title: string;
+  ui: boolean;
+}
+
+export interface InitOptions {
+  name: string;
+  owner: string;
+  repository: string;
+  canvas?: string;
+  idPrefix?: string;
+}
+
+export interface PluginEntry {
+  name: string;
+  description: string;
+  version: string;
+  source: string;
+}
+
+export interface Catalog {
+  name: string;
+  owner: { name: string };
+  metadata?: Record<string, unknown>;
+  plugins: PluginEntry[];
+}
+
+export interface RunJobOptions {
+  plugin?: string;
+  canvas?: string;
+  key?: string;
+  force?: boolean;
+  dataRoot?: string;
+  log?: (message: string, level: string) => void;
+}
+
+export interface ReleaseOptions {
+  dryRun?: boolean;
+  skipChecks?: boolean;
+  footer?: string[];
+  remote?: string;
+  log?: (message: string) => void;
+  bundle?: string;
+  githubOutput?: boolean;
+}
+
+export interface ReleaseResult {
+  published: boolean;
+  reason?: 'behind' | 'unchanged' | 'dry-run' | 'bundled';
+  message?: string;
+  commit?: string;
+  branch?: string;
+  bundle?: string;
+}
+
+type Git = (args: string[], cwd?: string) => string;
+type TryGit = (args: string[], cwd?: string) => SpawnSyncReturns<string>;
+type PackageJson = { name?: string; version: string; scripts?: Record<string, string>; dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+
+const exists = (path: string): Promise<boolean> => access(path).then(() => true, () => false);
+const directories = async (path: string): Promise<string[]> =>
   (await exists(path))
     ? (await readdir(path, { withFileTypes: true })).filter(entry => entry.isDirectory()).map(entry => entry.name).sort()
     : [];
 
-export async function kitVersion() {
+export async function kitVersion(): Promise<string> {
   return JSON.parse(await readFile(join(kitRoot, 'package.json'), 'utf8')).version;
 }
 
 /** Written into the npm package at release: the commit it was built from. */
-const RELEASE_FILE = 'cli/release.json';
+const RELEASE_FILE = 'release.json';
 
 /**
  * The reference new marketplaces use for the kit's reusable workflow: the exact
@@ -59,7 +145,7 @@ const RELEASE_FILE = 'cli/release.json';
  * later change to the kit repository never runs in your publish workflow until
  * you update the pin. Unreleased builds use the release tag, `canvas-kit@<version>`.
  */
-export async function workflowRef() {
+export async function workflowRef(): Promise<string> {
   const version = await kitVersion();
   try {
     const { commit } = JSON.parse(await readFile(join(kitRoot, RELEASE_FILE), 'utf8'));
@@ -87,7 +173,7 @@ export const GH_ACTIONS_LOCK = 'v0.4.0';
 // ---------- configuration ----------
 
 /** Read and validate `marketplace.config.json`, filling in defaults. */
-export async function loadConfig(dir) {
+export async function loadConfig(dir: string): Promise<MarketplaceConfig> {
   const file = join(dir, CONFIG_FILE);
   if (!(await exists(file))) throw new CliError(`${file} not found; run \`canvas-kit init\` or create it`);
   const raw = JSON.parse(await readFile(file, 'utf8'));
@@ -108,7 +194,7 @@ export async function loadConfig(dir) {
 
 // ---------- canvases ----------
 
-const escapers = {
+const escapers: Record<string, (value: string) => string> = {
   '.json': value => JSON.stringify(value).slice(1, -1),
   '.ts': value => value.replace(/\\/g, '\\\\').replace(/'/g, "\\'"),
   '.tsx': value => value.replace(/\\/g, '\\\\').replace(/'/g, "\\'"),
@@ -118,12 +204,13 @@ const escapers = {
 };
 
 /** Fill the empty dependency ranges of a template package.json. */
-async function fillVersions(pkg) {
-  for (const field of ['dependencies', 'devDependencies']) {
-    for (const dependency of Object.keys(pkg[field] ?? {})) {
-      if (pkg[field][dependency]) continue;
-      if (dependency === '@rwoll/canvas-kit') pkg[field][dependency] = `^${await kitVersion()}`;
-      else if (VERSIONS[dependency]) pkg[field][dependency] = VERSIONS[dependency];
+async function fillVersions(pkg: PackageJson): Promise<PackageJson> {
+  for (const field of ['dependencies', 'devDependencies'] as const) {
+    const ranges = pkg[field] ?? {};
+    for (const dependency of Object.keys(ranges)) {
+      if (ranges[dependency]) continue;
+      if (dependency === '@rwoll/canvas-kit') ranges[dependency] = `^${await kitVersion()}`;
+      else if (VERSIONS[dependency]) ranges[dependency] = VERSIONS[dependency];
       else throw new CliError(`no version for template dependency ${dependency}`);
     }
   }
@@ -131,7 +218,7 @@ async function fillVersions(pkg) {
 }
 
 /** Copy a template folder, replacing placeholders and filling package.json ranges. */
-async function writeTemplate(from, target, replacements) {
+async function writeTemplate(from: string, target: string, replacements: Record<string, string>): Promise<void> {
   for (const source of await templateFiles(from)) {
     const escape = escapers[extname(source)];
     if (!escape) throw new CliError(`no escaping rule for template file ${relative(from, source)}`);
@@ -145,7 +232,7 @@ async function writeTemplate(from, target, replacements) {
 }
 
 /** Replace text that a template is known to contain, failing loudly if it changed. */
-async function patch(file, from, to) {
+async function patch(file: string, from: string, to: string): Promise<void> {
   const content = await readFile(file, 'utf8');
   if (!content.includes(from)) throw new CliError(`${file} no longer contains the text canvas-kit expected; update it by hand`);
   await writeFile(file, content.replace(from, to));
@@ -155,15 +242,15 @@ async function patch(file, from, to) {
  * Create a project's shared UI folder, `ui/`: React components and a theme that
  * every canvas imports, so canvases look the same and branding changes in one place.
  */
-export async function addUi(projectDir) {
+export async function addUi(projectDir: string): Promise<{ dir: string }> {
   const target = join(projectDir, 'ui');
   if (await exists(target)) throw new CliError(`${relative(projectDir, target) || target} already exists`);
   await writeTemplate(uiTemplateDir, target, {});
   return { dir: target };
 }
 
-async function templateFiles(dir) {
-  const files = [];
+async function templateFiles(dir: string): Promise<string[]> {
+  const files: string[] = [];
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) files.push(...(await templateFiles(path)));
@@ -176,7 +263,7 @@ async function templateFiles(dir) {
  * Add a canvas to a project: `canvases/<name>/` with `canvas.ts`, `App.tsx`, and
  * tests. It uses the project's shared `ui/` when there is one.
  */
-export async function newCanvas(projectDir, name, options = {}) {
+export async function newCanvas(projectDir: string, name: string, options: NewCanvasOptions = {}): Promise<NewCanvasResult> {
   if (!KEBAB.test(name)) throw new CliError(`"${name}" must be kebab-case, for example release-board`);
   const id = options.id ?? (options.idPrefix ? `${options.idPrefix}-${name}` : name);
   if (!KEBAB.test(id)) throw new CliError(`canvas id "${id}" must be kebab-case`);
@@ -206,7 +293,7 @@ export async function newCanvas(projectDir, name, options = {}) {
  * tsconfig.json, playwright.config.ts, a shared ui/ folder, and canvases/), the
  * publish workflow, and optionally a first canvas.
  */
-export async function initMarketplace(dir, options) {
+export async function initMarketplace(dir: string, options: InitOptions): Promise<{ dir: string; ui: { dir: string }; canvas: NewCanvasResult | undefined }> {
   const { name, owner, repository } = options;
   if (!KEBAB.test(name)) throw new CliError(`marketplace name "${name}" must be kebab-case`);
   if (!owner) throw new CliError('owner is required');
@@ -375,7 +462,7 @@ export async function initMarketplace(dir, options) {
   return { dir, ui, canvas };
 }
 
-async function readManifest(pluginDir, name) {
+async function readManifest(pluginDir: string, name: string): Promise<{ name: string; version: string; description: string }> {
   for (const candidate of MANIFESTS) {
     const file = join(pluginDir, candidate);
     if (!(await exists(file))) continue;
@@ -393,10 +480,10 @@ async function readManifest(pluginDir, name) {
  * Assemble the installable marketplace: content plugins from `plugins/`, the plugins
  * `vite build` wrote to `dist/plugins/`, and a catalog from their manifests.
  */
-export async function buildMarketplace(dir) {
+export async function buildMarketplace(dir: string): Promise<{ catalog: Catalog; outDir: string }> {
   const config = await loadConfig(dir);
   const outDir = join(dir, config.outDir);
-  const sources = new Map();
+  const sources = new Map<string, string>();
   for (const name of await directories(join(dir, config.pluginsDir))) sources.set(name, join(dir, config.pluginsDir, name));
   const builtDir = join(dir, 'dist', 'plugins');
   for (const name of await directories(builtDir)) {
@@ -409,10 +496,10 @@ export async function buildMarketplace(dir) {
 
   await rm(outDir, { recursive: true, force: true });
   await mkdir(join(outDir, '.github', 'plugin'), { recursive: true });
-  const plugins = [];
+  const plugins: PluginEntry[] = [];
   for (const [name, from] of [...sources].sort(([a], [b]) => a.localeCompare(b))) {
     const target = join(outDir, 'plugins', name);
-    await cp(from, target, { recursive: true, filter: source => !SKIPPED.has(source.split(/[\\/]/).at(-1)) });
+    await cp(from, target, { recursive: true, filter: source => !SKIPPED.has(source.split(/[\\/]/).at(-1) ?? '') });
     if (await exists(join(target, STAMP_FILE))) throw new CliError(`${name}/${STAMP_FILE} is written by \`canvas-kit release\`; remove it from the source`);
     const { version, description } = await readManifest(target, name);
     plugins.push({ name, description, version, source: `./plugins/${name}` });
@@ -447,11 +534,36 @@ export async function buildMarketplace(dir) {
  * plugin in `dist/plugins`. `canvas` picks a canvas by folder name or canvas ID when
  * there are several.
  */
-export async function runJob(dir, job, options = {}) {
+/** What `runJob` reports for each saved document, as the canvas's own runJob returns it. */
+export interface JobOutcome {
+  key: string;
+  id?: string;
+  job?: string;
+  ran?: boolean;
+  paused?: boolean;
+  error?: string;
+}
+
+/** A built canvas module: what canvas.mjs exports. */
+interface CanvasModule {
+  canvases?: { name: string; canvas?: { id?: string } }[];
+  default?: { id?: string };
+  runJob: (job: string | undefined, options: Record<string, unknown>) => Promise<JobOutcome[]>;
+}
+
+interface FoundCanvas {
+  name: string;
+  id: string | undefined;
+  single?: boolean;
+  module: CanvasModule;
+  file: string;
+}
+
+export async function runJob(dir: string, job: string | undefined, options: RunJobOptions = {}): Promise<JobOutcome[]> {
   const pluginDirs = options.plugin ? [resolve(dir, options.plugin)] : (await directories(join(dir, 'dist', 'plugins'))).map(name => join(dir, 'dist', 'plugins', name));
   if (pluginDirs.length === 0) throw new CliError(`no built plugins in ${join(dir, 'dist', 'plugins')}; build the project first or pass --plugin <folder>`);
   // Each extension's canvas.mjs lists its canvases; one built before projects holds one canvas.
-  const found = [];
+  const found: FoundCanvas[] = [];
   for (const pluginDir of pluginDirs) {
     const extensions = join(pluginDir, 'extensions');
     if (!(await exists(extensions))) {
@@ -461,17 +573,17 @@ export async function runJob(dir, job, options = {}) {
     for (const extension of await directories(extensions)) {
       const file = join(extensions, extension, 'canvas.mjs');
       if (!(await exists(file))) continue;
-      const module = await import(pathToFileURL(file).href);
+      const module = (await import(pathToFileURL(file).href)) as CanvasModule;
       if (typeof module.runJob !== 'function') throw new CliError(`${file} has no runJob; rebuild it with the current canvas-kit`);
       const canvases = Array.isArray(module.canvases)
-        ? module.canvases.map(entry => ({ name: entry.name, id: entry.canvas?.id }))
+        ? module.canvases.map((entry): { name: string; id: string | undefined; single?: boolean } => ({ name: entry.name, id: entry.canvas?.id }))
         : [{ name: extension, id: module.default?.id, single: true }];
       for (const canvas of canvases) found.push({ ...canvas, module, file });
     }
   }
   const names = found.map(canvas => canvas.name).join(', ');
   if (found.length === 0) throw new CliError(`${pluginDirs.join(', ')} has no canvas.mjs; rebuild it with the current canvas-kit`);
-  let target;
+  let target: FoundCanvas | undefined;
   if (options.canvas !== undefined) {
     target = found.find(canvas => canvas.name === options.canvas || canvas.id === options.canvas);
     if (!target) throw new CliError(`no canvas ${options.canvas}; the built canvases are ${names}`);
@@ -485,7 +597,8 @@ export async function runJob(dir, job, options = {}) {
     return await target.module.runJob(job, target.single ? jobOptions : { ...jobOptions, canvas: target.name });
   } catch (error) {
     // The canvas bundles its own copy of the kit, so check the error's shape rather than its class.
-    if (error && typeof error.code === 'string' && typeof error.message === 'string') throw new CliError(error.message);
+    const shaped = error as { code?: unknown; message?: unknown } | null;
+    if (shaped && typeof shaped.code === 'string' && typeof shaped.message === 'string') throw new CliError(shaped.message);
     throw error;
   }
 }
@@ -496,7 +609,7 @@ export async function runJob(dir, job, options = {}) {
 // code, which must not set this step's outputs, summary, or later steps' env.
 const ACTIONS_FILES = ['GITHUB_OUTPUT', 'GITHUB_STEP_SUMMARY', 'GITHUB_ENV', 'GITHUB_PATH', 'GITHUB_STATE'];
 
-function shell(command, cwd, log) {
+function shell(command: string, cwd: string, log: (message: string) => void): void {
   log(`\n$ ${command}`);
   const env = { ...process.env };
   for (const name of ACTIONS_FILES) delete env[name];
@@ -504,13 +617,13 @@ function shell(command, cwd, log) {
   if (result.status !== 0) throw new CliError(`${command} failed`);
 }
 
-async function packageManager(top) {
+async function packageManager(top: string): Promise<{ install: string; run: string }> {
   if (await exists(join(top, 'pnpm-lock.yaml'))) return { install: 'pnpm install --frozen-lockfile', run: 'pnpm run' };
   if (await exists(join(top, 'package-lock.json'))) return { install: 'npm ci --ignore-scripts', run: 'npm run' };
   throw new CliError('no pnpm-lock.yaml or package-lock.json at the repository root');
 }
 
-async function scriptCommand(marketplaceDir, runner, preferred) {
+async function scriptCommand(marketplaceDir: string, runner: string, preferred: string): Promise<string> {
   const pkg = JSON.parse(await readFile(join(marketplaceDir, 'package.json'), 'utf8').catch(() => '{}'));
   const script = pkg.scripts?.[preferred] ? preferred : 'build';
   if (!pkg.scripts?.[script]) throw new CliError(`${join(marketplaceDir, 'package.json')} needs a "${preferred}" or "build" script`);
@@ -523,14 +636,14 @@ async function scriptCommand(marketplaceDir, runner, preferred) {
  * output changed, and only moves the publish branch forward. Each plugin gets a
  * `release.json` stamp with the time and source commit of the release that last changed it.
  */
-export async function release(dir, options = {}) {
+export async function release(dir: string, options: ReleaseOptions = {}): Promise<ReleaseResult> {
   const { dryRun = false, skipChecks = false, footer = [], remote = 'origin', log = console.log, bundle, githubOutput = false } = options;
   const config = await loadConfig(dir);
   const top = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: dir, encoding: 'utf8' }).trim();
   const subdir = relative(top, resolve(dir));
-  const git = (args, cwd = top) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
-  const tryGit = (args, cwd = top) => spawnSync('git', args, { cwd, encoding: 'utf8' });
-  const isAncestor = (ancestor, descendant) => tryGit(['merge-base', '--is-ancestor', ancestor, descendant]).status === 0;
+  const git: Git = (args, cwd = top) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
+  const tryGit: TryGit = (args, cwd = top) => spawnSync('git', args, { cwd, encoding: 'utf8' });
+  const isAncestor = (ancestor: string, descendant: string): boolean => tryGit(['merge-base', '--is-ancestor', ancestor, descendant]).status === 0;
   const { publishBranch, sourceBranch } = config;
 
   if (git(['status', '--porcelain'])) throw new CliError('commit or stash your changes first so the release matches a commit');
@@ -593,7 +706,7 @@ export async function release(dir, options = {}) {
     const stat = git(['diff', '--cached', '--stat'], output);
     log(`\nChanges for ${publishBranch}:\n${stat}`);
     // Git reads trailers only from the last paragraph, so trailer-style footers join Source-Commit.
-    const isTrailer = text => /^[A-Za-z][\w-]*: \S/.test(text);
+    const isTrailer = (text: string): boolean => /^[A-Za-z][\w-]*: \S/.test(text);
     const message = [
       `Publish ${sha.slice(0, 7)}: ${subject}`,
       `Built from https://github.com/${config.repository}/commit/${sha}`,
@@ -630,7 +743,20 @@ export async function release(dir, options = {}) {
  * With `githubOutput`, also writes the step outputs and summary the reusable
  * workflow's push job reads.
  */
-async function writeBundle({ output, file, base, branch, sha, stat, git, tryGit, log, githubOutput }) {
+interface BundleOptions {
+  output: string;
+  file: string;
+  base: string | undefined;
+  branch: string;
+  sha: string;
+  stat: string;
+  git: Git;
+  tryGit: TryGit;
+  log: (message: string) => void;
+  githubOutput: boolean;
+}
+
+async function writeBundle({ output, file, base, branch, sha, stat, git, tryGit, log, githubOutput }: BundleOptions): Promise<ReleaseResult> {
   await mkdir(dirname(file), { recursive: true });
   const created = tryGit(['bundle', 'create', file, 'HEAD', ...(base ? [`^refs/remotes/${base}`] : [])], output);
   if (created.status !== 0) throw new CliError(`git bundle failed: ${created.stderr}`);
@@ -648,10 +774,10 @@ async function writeBundle({ output, file, base, branch, sha, stat, git, tryGit,
 
 // Restamp plugins whose content changed since the last release; restore the
 // previous stamp for the rest so an unchanged snapshot produces no commit.
-async function stampPlugins(output, sourceCommit, git, tryGit) {
+async function stampPlugins(output: string, sourceCommit: string, git: Git, tryGit: TryGit): Promise<void> {
   const hasHead = tryGit(['rev-parse', '--verify', '--quiet', 'HEAD'], output).status === 0;
   const changed = hasHead ? git(['diff', '--cached', '--name-only', 'HEAD'], output).split('\n').filter(Boolean) : [];
-  const catalog = JSON.parse(await readFile(join(output, '.github', 'plugin', 'marketplace.json'), 'utf8'));
+  const catalog = JSON.parse(await readFile(join(output, '.github', 'plugin', 'marketplace.json'), 'utf8')) as Catalog;
   const publishedAt = new Date().toISOString();
   for (const { name, version } of catalog.plugins) {
     const stamp = `plugins/${name}/${STAMP_FILE}`;

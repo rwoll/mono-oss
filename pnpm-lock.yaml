@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 catalogs:
-  canvas-kit:
+  default:
     '@github/copilot-sdk':
       specifier: ^1.0.25
       version: 1.0.26
@@ -13,7 +13,7 @@ catalogs:
       specifier: ^1.60.0
       version: 1.64.1
     '@types/node':
-      specifier: ^24.13.3
+      specifier: ^24.19.2
       version: 24.19.2
     '@types/react':
       specifier: ^19.2.18
@@ -21,12 +21,15 @@ catalogs:
     '@vitejs/plugin-react':
       specifier: ^6.1.1
       version: 6.1.2
+    oxlint:
+      specifier: ^1.89.0
+      version: 1.89.0
     react:
       specifier: ^19.2.8
       version: 19.3.1
     typescript:
-      specifier: ~6.0.2
-      version: 6.0.3
+      specifier: ^7.0.2
+      version: 7.0.2
     vite:
       specifier: ^8.3.0
       version: 8.3.5
@@ -36,19 +39,6 @@ catalogs:
     zod:
       specifier: ^4.6.7
       version: 4.6.7
-  default:
-    '@types/node':
-      specifier: ^24.19.2
-      version: 24.19.2
-    oxlint:
-      specifier: ^1.89.0
-      version: 1.89.0
-    typescript:
-      specifier: ^7.0.2
-      version: 7.0.2
-    vitest:
-      specifier: ^5.0.5
-      version: 5.0.5
 
 overrides:
   '@github/copilot-sdk>zod': 4.6.7
@@ -76,35 +66,35 @@ importers:
   packages/canvas-kit:
     dependencies:
       '@vitejs/plugin-react':
-        specifier: catalog:canvas-kit
+        specifier: 'catalog:'
         version: 6.1.2(vite@8.3.5(@types/node@24.19.2))
       zod:
-        specifier: catalog:canvas-kit
+        specifier: 'catalog:'
         version: 4.6.7
     devDependencies:
       '@github/copilot-sdk':
-        specifier: catalog:canvas-kit
+        specifier: 'catalog:'
         version: 1.0.26
       '@playwright/test':
-        specifier: catalog:canvas-kit
+        specifier: 'catalog:'
         version: 1.64.1
       '@types/node':
-        specifier: catalog:canvas-kit
+        specifier: 'catalog:'
         version: 24.19.2
       '@types/react':
-        specifier: catalog:canvas-kit
+        specifier: 'catalog:'
         version: 19.3.0
       react:
-        specifier: catalog:canvas-kit
+        specifier: 'catalog:'
         version: 19.3.1
       typescript:
-        specifier: catalog:canvas-kit
-        version: 6.0.3
+        specifier: 'catalog:'
+        version: 7.0.2
       vite:
-        specifier: catalog:canvas-kit
+        specifier: 'catalog:'
         version: 8.3.5(@types/node@24.19.2)
       vitest:
-        specifier: catalog:canvas-kit
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2))
 
   packages/create-canvas:
@@ -113,8 +103,14 @@ importers:
         specifier: workspace:^
         version: link:../canvas-kit
     devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
       vitest:
-        specifier: catalog:canvas-kit
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2))
 
   packages/hello:
@@ -819,11 +815,6 @@ packages:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
 
-  typescript@6.0.3:
-    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
   typescript@7.0.2:
     resolution: {integrity: sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==}
     engines: {node: '>=16.20.0'}
@@ -1386,8 +1377,6 @@ snapshots:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.7)
       picomatch: 4.0.7
-
-  typescript@6.0.3: {}
 
   typescript@7.0.2:
     optionalDependencies:

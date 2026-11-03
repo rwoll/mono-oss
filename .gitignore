@@ -11,4 +11,4 @@ dist
 .npm-packages
 
 # Written while packing @rwoll/canvas-kit; see scripts/publish-npm.ts.
-packages/canvas-kit/cli/release.json
+packages/canvas-kit/release.json

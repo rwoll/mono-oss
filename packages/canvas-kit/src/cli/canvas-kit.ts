@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { basename, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { CliError, addUi, buildMarketplace, initMarketplace, kitVersion, newCanvas, release, runJob } from './lib.mjs';
+import { CliError, addUi, buildMarketplace, initMarketplace, kitVersion, newCanvas, release, runJob } from './lib.ts';
 
 const USAGE = `Usage: canvas-kit <command> [options]
 
@@ -33,7 +33,7 @@ Options:
 
 The marketplace folder holds marketplace.config.json.`;
 
-async function main(argv) {
+async function main(argv: string[]): Promise<void> {
   const { values, positionals } = parseArgs({
     args: argv,
     allowPositionals: true,
@@ -105,7 +105,7 @@ async function main(argv) {
         key: values.key,
         force: values.force,
         dataRoot: values['data-root'],
-        log: (message, level) => console.error(`[${level}] ${message}`),
+        log: (message: string, level: string) => console.error(`[${level}] ${message}`),
       });
       if (outcomes.length === 0) console.log('Nothing to run: no saved document has this job yet.');
       for (const outcome of outcomes) {

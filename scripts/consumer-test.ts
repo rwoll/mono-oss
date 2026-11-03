@@ -1,9 +1,8 @@
-#!/usr/bin/env node
 // Test the packages the way someone outside this repository gets them: pack
 // @rwoll/canvas-kit and @rwoll/create-canvas as npm would publish them, create a
 // marketplace with the packed create-canvas, install the packed kit, and run the
 // new marketplace's checks and browser tests.
-//   node scripts/consumer-test.mjs [--keep] [--no-e2e]
+//   pnpm consumer-test [--keep] [--no-e2e]
 import { spawnSync } from 'node:child_process';
 import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -14,7 +13,7 @@ import { parseArgs } from 'node:util';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const { values } = parseArgs({ options: { keep: { type: 'boolean' }, 'no-e2e': { type: 'boolean' } } });
 
-function run(command, args, cwd) {
+function run(command: string, args: string[], cwd: string): void {
   console.log(`\n$ ${command} ${args.join(' ')}   (in ${cwd})`);
   const result = spawnSync(command, args, { cwd, stdio: 'inherit' });
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed`);
@@ -22,14 +21,20 @@ function run(command, args, cwd) {
 
 const work = await mkdtemp(join(tmpdir(), 'canvas-kit-consumer-'));
 try {
+  run('pnpm', ['--filter', '@rwoll/canvas-kit', '--filter', '@rwoll/create-canvas', 'build'], root);
   const tarballs = join(work, 'tarballs');
   await mkdir(tarballs);
   for (const name of ['canvas-kit', 'create-canvas']) {
     run('pnpm', ['pack', '--pack-destination', tarballs], join(root, 'packages', name));
   }
   const files = await readdir(tarballs);
-  const kit = join(tarballs, files.find(file => file.startsWith('rwoll-canvas-kit-')));
-  const create = join(tarballs, files.find(file => file.startsWith('rwoll-create-canvas-')));
+  const tarball = (prefix: string): string => {
+    const file = files.find(name => name.startsWith(prefix));
+    if (!file) throw new Error(`no ${prefix}*.tgz in ${tarballs}`);
+    return join(tarballs, file);
+  };
+  const kit = tarball('rwoll-canvas-kit-');
+  const create = tarball('rwoll-create-canvas-');
 
   // Run the packed create-canvas with the packed kit, as `npm create` would.
   const runner = join(work, 'runner');

@@ -42,7 +42,7 @@ publish to the `next` dist-tag.
 it depends on, so release `create-canvas` with each `canvas-kit` release that
 changes `init` or its templates (bump both, then merge once).
 
-While packing, the release writes `cli/release.json` into `@rwoll/canvas-kit`
+While packing, the release writes `release.json` into `@rwoll/canvas-kit`
 with this repository's commit and the `canvas-kit@<version>` tag. `canvas-kit
 init` pins new marketplaces' publish workflow to
 `rwoll/mono-oss/.github/workflows/marketplace.yml` at that commit, so a later

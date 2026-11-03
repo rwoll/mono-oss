@@ -19,24 +19,29 @@
   "bugs": "https://github.com/rwoll/mono-oss/issues",
   "type": "module",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=24"
   },
   "bin": {
-    "create-canvas": "./index.mjs"
+    "create-canvas": "./dist/index.js"
   },
   "files": [
-    "index.mjs",
+    "dist",
+    "!dist/**/*.tsbuildinfo",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
   },
   "dependencies": {
     "@rwoll/canvas-kit": "workspace:^"
   },
   "devDependencies": {
-    "vitest": "catalog:canvas-kit"
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "publishConfig": {
     "access": "public",

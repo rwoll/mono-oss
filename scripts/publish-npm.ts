@@ -28,7 +28,7 @@ const MIN_NPM = [11, 5, 1];
 const PUBLISH_CONFIG = { access: 'public', registry: REGISTRY, provenance: true };
 // Files written into a package while packing it: `canvas-kit init` pins new
 // marketplaces' publish workflow to the mono-oss commit the kit was released from.
-const STAMPS: Record<string, string> = { 'canvas-kit': 'cli/release.json' };
+const STAMPS: Record<string, string> = { 'canvas-kit': 'release.json' };
 const root = fileURLToPath(new URL('..', import.meta.url));
 
 interface Release {

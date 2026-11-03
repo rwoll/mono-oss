@@ -21,10 +21,10 @@
   "bugs": "https://github.com/rwoll/mono-oss/issues",
   "type": "module",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=24"
   },
   "bin": {
-    "canvas-kit": "./cli/canvas-kit.mjs"
+    "canvas-kit": "./bin/canvas-kit.js"
   },
   "exports": {
     ".": {
@@ -59,15 +59,18 @@
       "types": "./dist/vite.d.ts",
       "default": "./dist/vite.js"
     },
-    "./cli": "./cli/lib.mjs",
+    "./cli": {
+      "types": "./dist/cli/lib.d.ts",
+      "default": "./dist/cli/lib.js"
+    },
     "./styles.css": "./styles.css",
     "./tsconfig/*": "./tsconfig/*",
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
-    "cli",
-    "!cli/*.test.mjs",
+    "bin",
+    "release.json",
     "templates",
     "styles.css",
     "tsconfig",
@@ -80,8 +83,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "catalog:canvas-kit",
-    "zod": "catalog:canvas-kit"
+    "@vitejs/plugin-react": "catalog:",
+    "zod": "catalog:"
   },
   "peerDependencies": {
     "@github/copilot-sdk": "^1.0.25",
@@ -101,14 +104,14 @@
     }
   },
   "devDependencies": {
-    "@github/copilot-sdk": "catalog:canvas-kit",
-    "@playwright/test": "catalog:canvas-kit",
-    "@types/node": "catalog:canvas-kit",
-    "@types/react": "catalog:canvas-kit",
-    "react": "catalog:canvas-kit",
-    "typescript": "catalog:canvas-kit",
-    "vite": "catalog:canvas-kit",
-    "vitest": "catalog:canvas-kit"
+    "@github/copilot-sdk": "catalog:",
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   },
   "publishConfig": {
     "access": "public",

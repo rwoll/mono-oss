@@ -21,6 +21,12 @@ things.
   `copilot plugin marketplace add rwoll/mono-oss#stable`, then
   `copilot plugin install canvas-kit@rwoll`. The example canvases (release board,
   flaky tests, Session summary) are no longer published.
+- **Breaking:** canvas-kit needs Node.js 24 or later, and new projects require it
+  too.
+- New projects use TypeScript 7 (`typescript: ^7.0.2`), `@types/node` ^24.19.2,
+  and pnpm 11.28.8.
+- The `canvas-kit` command and `@rwoll/canvas-kit/cli` are written in TypeScript
+  and published compiled, with type declarations.
 
 ## [0.2.1] - 2026-11-01
 

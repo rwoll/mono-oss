@@ -12,6 +12,8 @@ with [`@rwoll/canvas-kit`](../canvas-kit), whose
 - Moved to [rwoll/mono-oss](https://github.com/rwoll/mono-oss) and released on its
   own, tagged `create-canvas@<version>`. Release it with each `@rwoll/canvas-kit`
   release that changes `canvas-kit init`, so `npm create @rwoll/canvas` uses it.
+- **Breaking:** needs Node.js 24 or later.
+- Written in TypeScript and published compiled.
 
 ## [0.2.1] - 2026-11-01
 
