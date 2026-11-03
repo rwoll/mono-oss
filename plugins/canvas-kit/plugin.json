@@ -1,4 +1,5 @@
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "canvas-kit",
   "version": "0.3.0",
   "description": "Skills for building, testing, and publishing Copilot canvases with @rwoll/canvas-kit.",

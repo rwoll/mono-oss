@@ -9,6 +9,12 @@
       "description": "Skills for building, testing, and publishing Copilot canvases with @rwoll/canvas-kit.",
       "version": "0.3.0",
       "source": "./plugins/canvas-kit"
+    },
+    {
+      "name": "pr-descriptions",
+      "description": "Write short, reader-first pull request titles and descriptions.",
+      "version": "0.2.0",
+      "source": "./plugins/pr-descriptions"
     }
   ]
 }
