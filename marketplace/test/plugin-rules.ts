@@ -70,7 +70,10 @@ export function describePlugins(pluginsDir: string): void {
       for (const [, link] of (body as string).matchAll(/\]\((references\/[^)#]+)\)/g)) {
         expect(existsSync(join(skillDir, link as string)), link).toBe(true);
       }
-      expect(text, 'attribution stays out of file contents').not.toMatch(/Authored with GitHub Copilot/);
+      // Attribution belongs in commits and PRs, not in files: no footer signs the skill.
+      // A skill may still quote the footer, for example as the instruction to add it.
+      const lastLine = text.trimEnd().split('\n').at(-1) ?? '';
+      expect(lastLine, 'the skill does not end with an attribution footer').not.toMatch(/Authored with GitHub Copilot/);
     });
   });
 }
