@@ -74,7 +74,7 @@ files per canvas: `canvas.ts` for state and actions, and `App.tsx` for the UI.
   JSON body. This route exists only in the dev server.
 - **Version footer**: every page has a small footer pinned to the bottom of the
   viewport, such as
-  `changeset-review v0.3.0 · Published Oct 22, 2026, 7:41 PM`. The version comes from
+  `release-board v0.1.0 · Published Oct 22, 2026, 7:41 PM`. The version comes from
   `package.json`, and the publish time and source commit (in the tooltip) come from
   the `release.json` stamp that `canvas-kit release` writes. Unpublished builds say
   `Local build, not published`; the dev server says `Dev server`.
