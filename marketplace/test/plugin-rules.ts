@@ -52,6 +52,11 @@ export function describePlugins(pluginsDir: string): void {
       for (const [name, server] of servers) {
         expect(Object.keys(server).filter(field => !MCP_FIELDS.has(field)), `${name} has only reviewed fields`).toEqual([]);
         if (server.headers !== undefined) expect(server.headers, `${name} stores no headers`).toEqual({});
+        if (server.url !== undefined) {
+          const url = new URL(server.url as string);
+          expect(url.protocol, `${name} uses https`).toBe('https:');
+          expect(url.username + url.password + url.search + url.hash, `${name} keeps no credentials or query in its URL`).toBe('');
+        }
         if (server.tools !== undefined) expect(server.tools).toEqual(['*']);
       }
     });
