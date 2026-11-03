@@ -12,6 +12,7 @@ copilot plugin install canvas-kit@rwoll
 | Plugin | What it is |
 | --- | --- |
 | [`canvas-kit`](plugins/canvas-kit) | Skills for building, testing, and publishing Copilot canvases with [`@rwoll/canvas-kit`](../packages/canvas-kit). |
+| [`pr-descriptions`](plugins/pr-descriptions) | A skill for short, reader-first pull request titles and descriptions. |
 
 Each folder in [plugins/](plugins) is a plugin with its own `plugin.json`.
 Canvases built with canvas-kit go in `canvases/`, with a `vite.config.ts`, once

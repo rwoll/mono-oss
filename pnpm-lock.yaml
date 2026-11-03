@@ -62,6 +62,15 @@ importers:
       '@rwoll/canvas-kit':
         specifier: workspace:*
         version: link:../packages/canvas-kit
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2))
 
   packages/canvas-kit:
     dependencies:

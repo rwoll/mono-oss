@@ -46,6 +46,7 @@ copilot plugin install canvas-kit@rwoll
 | Plugin | Description |
 | --- | --- |
 | [`canvas-kit`](marketplace/plugins/canvas-kit) | Skills for building, testing, and publishing canvases with canvas-kit. |
+| [`pr-descriptions`](marketplace/plugins/pr-descriptions) | A skill for short, reader-first pull request titles and descriptions. |
 
 ## Development
 
