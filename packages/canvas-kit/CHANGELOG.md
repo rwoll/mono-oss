@@ -11,6 +11,8 @@ things.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-04
+
 ### Added
 
 - `files(ctx, id)` in `defineCanvas` and `getCanvasClient().fileUrl(id)` let a
@@ -115,6 +117,7 @@ First release: typed canvas state and actions with Zod, a secure local host, Rea
 hooks, saved documents shared across chats, scheduled jobs, Vitest and Playwright
 helpers, the `canvas-kit` command, and `npm create @rwoll/canvas`.
 
+[0.3.0]: https://github.com/rwoll/mono-oss/releases/tag/canvas-kit@0.3.0
 [0.2.1]: https://github.com/rwoll/canvas-kit/compare/v0.1.1...v0.2.1
 [0.1.1]: https://github.com/rwoll/canvas-kit/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/rwoll/canvas-kit/releases/tag/v0.1.0

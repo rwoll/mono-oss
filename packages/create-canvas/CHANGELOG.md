@@ -7,6 +7,8 @@ with [`@rwoll/canvas-kit`](../canvas-kit), whose
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-04
+
 ### Changed
 
 - Moved to [rwoll/mono-oss](https://github.com/rwoll/mono-oss) and released on its
@@ -18,3 +20,5 @@ with [`@rwoll/canvas-kit`](../canvas-kit), whose
 ## [0.2.1] - 2026-11-01
 
 See [`@rwoll/canvas-kit` 0.2.1](../canvas-kit/CHANGELOG.md#021---2026-11-01).
+
+[0.3.0]: https://github.com/rwoll/mono-oss/releases/tag/create-canvas@0.3.0
