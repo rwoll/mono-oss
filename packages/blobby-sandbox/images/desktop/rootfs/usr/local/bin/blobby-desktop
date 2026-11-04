@@ -1,0 +1,39 @@
+#!/bin/sh
+# The image's command. It starts nothing by default, so the image runs the same way whether a
+# container runtime starts it under tini (Docker) or a machine boots it and runs commands in it
+# (Azure sandboxes). blobby-sandbox copies its guest runtime in and runs
+# `/opt/blobby/runtime/boot.sh <resolution>` as root to start the desktop session.
+#
+#   blobby-desktop [idle]                waits until it's stopped (the default)
+#   blobby-desktop session [resolution]  starts the session with the runtime already in the image, then waits
+#   blobby-desktop check                 checks that the image has everything the runtime needs
+set -eu
+
+idle() {
+  trap 'exit 0' TERM INT
+  while :; do
+    sleep 3600 &
+    wait $! || true
+  done
+}
+
+case "${1:-idle}" in
+  idle)
+    idle
+    ;;
+  session)
+    if [ ! -x /opt/blobby/runtime/boot.sh ]; then
+      echo "blobby-desktop: /opt/blobby/runtime/boot.sh is missing. Copy blobby-sandbox's runtime/ folder there first." >&2
+      exit 1
+    fi
+    bash /opt/blobby/runtime/boot.sh "${2:-1280x800}"
+    idle
+    ;;
+  check)
+    exec /opt/blobby/image/bin/check
+    ;;
+  *)
+    echo "blobby-desktop: say idle, session [resolution], or check, not $1." >&2
+    exit 2
+    ;;
+esac

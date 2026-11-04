@@ -1,0 +1,4 @@
+{
+  "apiVersion": 1,
+  "description": "VS Code Insiders, updated at every start. Sign it in with `blobby-sandbox exec <name> --secret github -- vscode-signin`."
+}

@@ -1,0 +1,76 @@
+# Builds @rwoll/blobby-sandbox's desktop image (packages/blobby-sandbox/images/desktop) for amd64 and runs
+# its smoke test: the session starts, and screenshots, the accessibility tree, the viewer, the command
+# sandbox, and recording work. Heavy, so it runs only for pushes to main that change the image or the
+# guest runtime it runs, and by hand. Read-only token, no secrets.
+name: blobby-sandbox desktop image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/blobby-sandbox/images/**'
+      - 'packages/blobby-sandbox/runtime/**'
+      - '.github/workflows/blobby-desktop-image.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blobby-desktop-image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: packages/blobby-sandbox
+    env:
+      # The BuildKit that can export a layer cache, pinned by digest (v0.34.1).
+      BUILDKIT_IMAGE: moby/buildkit:v0.34.1@sha256:99368f3e46177c6405b9740e4461d91cee004128daeecca78d4ceac50ec1da5c
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      # Docker's layers from the last build of the same files, or of the newest earlier ones. Only pushes
+      # to main write this cache.
+      - uses: actions/cache@v6.1.0
+        with:
+          path: ${{ runner.temp }}/desktop-image-cache
+          key: blobby-desktop-image-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packages/blobby-sandbox/images/desktop/**') }}
+          restore-keys: blobby-desktop-image-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Build the image
+        run: |
+          docker buildx create --name blobby-desktop --driver docker-container --driver-opt "image=$BUILDKIT_IMAGE" --bootstrap
+          node images/desktop/build.ts --builder blobby-desktop \
+            --cache-from "type=local,src=$RUNNER_TEMP/desktop-image-cache" \
+            --cache-to "type=local,dest=$RUNNER_TEMP/desktop-image-cache-new,mode=max" --json
+          # Replace the cache instead of adding to it, so it doesn't grow with every build.
+          rm -rf "$RUNNER_TEMP/desktop-image-cache"
+          mv "$RUNNER_TEMP/desktop-image-cache-new" "$RUNNER_TEMP/desktop-image-cache"
+          docker buildx rm blobby-desktop
+          docker images blobby-desktop
+
+      # Ubuntu's AppArmor setup stops the command sandbox in containers: Docker's docker-default profile
+      # denies the mounts bubblewrap makes, and unconfined processes get no capabilities in the user
+      # namespaces they create. These opt-ins are for this throwaway runner (images/desktop/README.md).
+      - name: Let the command sandbox run on this AppArmor host
+        run: |
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+
+      - name: Smoke test
+        run: node images/desktop/smoke.ts --apparmor-unconfined --json
+
+      - name: Smoke test without the image's entry point
+        run: node images/desktop/smoke.ts --apparmor-unconfined --without-entrypoint --only session,screenshot

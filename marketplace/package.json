@@ -23,6 +23,7 @@
     "vitest": "catalog:"
   },
   "dependencies": {
+    "@novnc/novnc": "^1.7.0",
     "@rwoll/annotate": "workspace:*",
     "@rwoll/canvas-kit": "workspace:*",
     "react": "catalog:",

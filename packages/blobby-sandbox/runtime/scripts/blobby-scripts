@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+# blobby: Lists the scripts that come with every sandbox, with what each does. --json prints JSON.
+import json
+import os
+import sys
+
+here = os.path.dirname(os.path.realpath(__file__))
+scripts = []
+for name in sorted(os.listdir(here)):
+    path = os.path.join(here, name)
+    if not os.path.isfile(path) or not os.access(path, os.X_OK):
+        continue
+    about = ""
+    with open(path, errors="replace") as file:
+        for line in file.readlines()[:5]:
+            if line.startswith("# blobby:"):
+                about = line[len("# blobby:"):].strip()
+                break
+    scripts.append({"name": name, "description": about})
+if "--json" in sys.argv[1:]:
+    print(json.dumps(scripts))
+else:
+    width = max(len(script["name"]) for script in scripts)
+    for script in scripts:
+        print(f"{script['name'].ljust(width)}  {script['description']}")

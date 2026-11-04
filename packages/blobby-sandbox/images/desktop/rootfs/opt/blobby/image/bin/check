@@ -1,0 +1,72 @@
+#!/bin/bash
+# Checks that the image has everything blobby-sandbox's guest runtime, the command sandbox, and features
+# rely on, and none of the apps that features install (they aren't redistributable). The image build
+# runs it, and so does the smoke test. Prints what's wrong to stderr, then `blobby-check: ok, <n> checks`
+# or exits 1.
+set -uo pipefail
+# shellcheck source=/dev/null
+. /etc/blobby/image
+checks=0
+failures=0
+pass() { checks=$((checks + 1)); }
+fail() {
+  checks=$((checks + 1))
+  failures=$((failures + 1))
+  echo "blobby-check: $*" >&2
+}
+check() {
+  local what=$1
+  shift
+  if "$@" >/dev/null 2>&1; then pass; else fail "$what"; fi
+}
+at_least() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n 1)" = "$2" ]; }
+
+# In order: the session (runtime/boot.sh and session.sh) and the viewer; desktop operations
+# (runtime/guest.py); the command sandbox; developer tools and what fetches vendor keys.
+for command in Xvnc vncpasswd websockify gnome-session gnome-shell dbus-daemon dconf gdbus runuser setsid \
+  pgrep mountpoint flock tini sudo \
+  python3 scrot xdotool xrandr wmctrl ffmpeg ffprobe gst-launch-1.0 gst-inspect-1.0 \
+  bwrap socat slirp4netns iptables ip6tables iptables-restore ip6tables-restore unshare nsenter \
+  git ssh curl wget gpg jq rg make gcc; do
+  check "the $command command is missing" command -v "$command"
+done
+check "noVNC's web app is missing from /usr/share/novnc" test -f /usr/share/novnc/vnc.html
+check "the session's system bus has no configuration" test -f /etc/blobby/system-bus.conf
+check "the dconf defaults aren't compiled" test -f /etc/dconf/db/local
+check "/etc/sudoers.d/blobby is invalid" visudo -cf /etc/sudoers.d/blobby
+check "the desktop user isn't ubuntu with uid 1000" test "$(id -u ubuntu)" = 1000
+for group in sudo video render; do
+  check "the desktop user isn't in the $group group" sh -c "id -nG ubuntu | tr ' ' '\n' | grep -qx $group"
+done
+check "the image has a viewer password; every sandbox must make its own" test ! -e /etc/blobby/vnc-password
+
+check "Node.js isn't $BLOBBY_NODE_VERSION in /opt/blobby/node" test "$(/opt/blobby/node/bin/node --version)" = "v$BLOBBY_NODE_VERSION"
+check "playwright-core isn't $BLOBBY_PLAYWRIGHT_CORE_VERSION in /opt/blobby/node_modules" test \
+  "$(/opt/blobby/node/bin/node -p 'require("/opt/blobby/node_modules/playwright-core/package.json").version')" = "$BLOBBY_PLAYWRIGHT_CORE_VERSION"
+
+check "python3 can't import pyatspi" python3 -c 'import pyatspi'
+check "GStreamer lacks an element that screen capture needs" python3 -c '
+import gi
+gi.require_version("Gst", "1.0")
+from gi.repository import Gst
+Gst.init(None)
+missing = [e for e in ("ximagesrc", "videoconvert", "pngenc", "vp8enc", "webmmux") if Gst.ElementFactory.find(e) is None]
+raise SystemExit(", ".join(missing) if missing else 0)'
+check "ffmpeg can't encode H.264 (libx264)" sh -c "ffmpeg -hide_banner -encoders 2>/dev/null | grep -q ' libx264 '"
+check "ffmpeg can't capture X11 (x11grab)" sh -c "ffmpeg -hide_banner -devices 2>/dev/null | grep -q ' x11grab '"
+check "bubblewrap is older than 0.5.0" at_least "$(bwrap --version | awk '{ print $2 }')" 0.5.0
+check "util-linux is older than 2.35" at_least "$(unshare --version | awk '{ print $NF }')" 2.35
+
+# Apps that aren't redistributable are installed by features, never baked into the image.
+for package in code-insiders google-chrome-stable; do
+  check "$package is installed; features install it, never the image" sh -c "! dpkg-query -W -f '\${db:Status-Abbrev}' $package 2>/dev/null | grep -q '^ii'"
+done
+for path in /usr/share/code-insiders /opt/google /etc/apt/sources.list.d/vscode.sources /etc/apt/sources.list.d/google-chrome.sources; do
+  check "$path exists; features add it, never the image" test ! -e "$path"
+done
+
+if [ "$failures" -gt 0 ]; then
+  echo "blobby-check: $failures of $checks checks failed" >&2
+  exit 1
+fi
+echo "blobby-check: ok, $checks checks"

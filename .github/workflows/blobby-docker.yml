@@ -1,0 +1,81 @@
+# Runs @rwoll/blobby-sandbox's docker backend conformance suite, and its command sandbox check, against
+# real Docker on a GitHub-hosted runner, and drives a desktop sandbox end to end without signing in.
+# Read-only token, no secrets. It costs Actions minutes, so it runs only for pushes to main that change
+# the package, and by hand.
+name: blobby-sandbox on Docker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/blobby-sandbox/**'
+      - '.github/workflows/blobby-docker.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blobby-docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - uses: pnpm/action-setup@v6.1.0
+
+      - run: pnpm install --frozen-lockfile
+
+      # The runner is thrown away after the job. Ubuntu's restriction gives unconfined processes no
+      # capabilities in their user namespaces, so the command sandbox check fails with it even when the
+      # test opts its machine out of AppArmor (docs/reference.md, "The docker backend").
+      - name: Let unconfined processes use user namespaces on this runner
+        run: |
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+
+      # What the backend sees of this Docker host: its version, seccomp, tun, and AppArmor. Informational;
+      # doctor also fails here because no test-account secret is set.
+      - name: Show what doctor says about Docker
+        run: node packages/blobby-sandbox/src/cli.ts doctor --backend docker || true
+
+      - name: Run the conformance suite and the command sandbox check on real Docker
+        env:
+          BLOBBY_SANDBOX_CONFORMANCE_DOCKER: '1'
+        run: pnpm --filter @rwoll/blobby-sandbox exec vitest run docker
+
+  e2e:
+    runs-on: ubuntu-latest
+    # The first desktop sandbox installs its recipe's base, which takes several minutes on a runner.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - uses: pnpm/action-setup@v6.1.0
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Drive a desktop sandbox end to end, without signing in
+        env:
+          # Runners may have /dev/kvm, which would pick smolvm; this job is about Docker.
+          BLOBBY_SANDBOX_BACKEND: docker
+        run: pnpm --filter @rwoll/blobby-sandbox e2e

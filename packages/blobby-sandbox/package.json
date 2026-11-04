@@ -1,0 +1,106 @@
+{
+  "name": "@rwoll/blobby-sandbox",
+  "version": "0.0.0",
+  "description": "Disposable sandboxes with features, such as a desktop that agents can drive and VS Code Insiders signed in to a test account, on local or remote backends.",
+  "keywords": [
+    "sandbox",
+    "disposable",
+    "agents",
+    "computer-use",
+    "desktop",
+    "testing",
+    "docker",
+    "smolvm",
+    "novnc"
+  ],
+  "license": "MIT",
+  "author": "Ross A. Wollman",
+  "homepage": "https://github.com/rwoll/mono-oss/tree/main/packages/blobby-sandbox#readme",
+  "bugs": "https://github.com/rwoll/mono-oss/issues",
+  "type": "module",
+  "bin": {
+    "blobby-sandbox": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./smolvm": {
+      "types": "./dist/smolvm.d.ts",
+      "default": "./dist/smolvm.js"
+    },
+    "./docker": {
+      "types": "./dist/docker/index.d.ts",
+      "default": "./dist/docker/index.js"
+    },
+    "./azure": {
+      "types": "./dist/azure/index.d.ts",
+      "default": "./dist/azure/index.js"
+    },
+    "./callbacks": {
+      "types": "./dist/callbacks/index.d.ts",
+      "default": "./dist/callbacks/index.js"
+    },
+    "./tools": {
+      "types": "./dist/tools/index.d.ts",
+      "default": "./dist/tools/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.tsbuildinfo",
+    "runtime",
+    "recipes",
+    "seccomp",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node -e \"fs.chmodSync('dist/cli.js', 0o755)\"",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "e2e": "BLOBBY_SANDBOX_E2E=1 vitest run e2e"
+  },
+  "devDependencies": {
+    "@azure/containerapps-sandbox": "1.0.0-beta.1",
+    "@types/node": "catalog:",
+    "smolmachines": "1.31.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@trpc/client": "catalog:",
+    "@trpc/server": "catalog:",
+    "playwright-core": "1.58.2",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@azure/containerapps-sandbox": "1.0.0-beta.1",
+    "smolmachines": "1.31.0"
+  },
+  "peerDependenciesMeta": {
+    "@azure/containerapps-sandbox": {
+      "optional": true
+    },
+    "smolmachines": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rwoll/mono-oss.git",
+    "directory": "packages/blobby-sandbox"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

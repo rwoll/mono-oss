@@ -1,0 +1,49 @@
+#!/bin/sh
+# Updates VS Code Insiders to the newest build in Microsoft's signed repository. Insiders gets a new
+# build every weekday, so the vscode-insiders feature's start phase runs this as root each time a
+# sandbox starts, before anything opens VS Code. The launchers wait for it (after-code-update).
+#
+# It reads only Microsoft's repository, with package lists of its own, so it takes about a second when
+# Insiders is current and leaves the system's lists alone. It leaves a running VS Code alone, since
+# replacing its files could break its windows. A sandbox stopped during an earlier update can leave the
+# package half installed, so it repairs that first.
+#
+# Prints `blobby-info: insiders <version>`, and last `blobby-update: <state> <before> <after>`, where
+# <state> is updated, current, or skipped (VS Code was running). Any other ending is a failure, with
+# apt's output above it.
+set -eu
+export DEBIAN_FRONTEND=noninteractive
+lock=/var/lib/blobby/code-insiders.lock
+sources=/etc/blobby/code-insiders-sources
+lists=/var/lib/blobby/code-insiders-lists
+
+if [ "$(id -u)" != 0 ]; then
+  echo "update-code-insiders: run it as root." >&2
+  exit 1
+fi
+if [ ! -e "$sources/vscode.sources" ] || ! dpkg-query -W code-insiders >/dev/null 2>&1; then
+  echo "update-code-insiders: VS Code Insiders isn't installed. Run /opt/blobby/image/bin/install-app vscode-insiders first." >&2
+  exit 1
+fi
+install -d -m 0755 "$lists/partial"
+exec 9>"$lock"
+flock 9
+version() { dpkg-query -W -f '${Version}' code-insiders; }
+before=$(version)
+if pgrep -x code-insiders >/dev/null 2>&1; then
+  echo "blobby-info: insiders $before"
+  echo "blobby-update: skipped $before $before"
+  exit 0
+fi
+dpkg --configure -a
+set -- -o Dir::Etc::sourcelist=/dev/null -o Dir::Etc::sourceparts="$sources" \
+  -o Dir::State::Lists="$lists" -o APT::Get::List-Cleanup=0
+apt-get "$@" update
+case "$(dpkg-query -W -f '${db:Status-Abbrev}' code-insiders)" in
+  ii*) apt-get "$@" install -y --only-upgrade --no-install-recommends code-insiders ;;
+  *) before=interrupted; apt-get "$@" install -y --reinstall --no-install-recommends code-insiders ;;
+esac
+after=$(version)
+if [ "$after" = "$before" ]; then state=current; else state=updated; fi
+echo "blobby-info: insiders $after"
+echo "blobby-update: $state $before $after"

@@ -1,0 +1,9 @@
+#!/bin/sh
+# Runs a command once any update of VS Code Insiders has finished, so VS Code never starts from an old
+# or half-installed build. update-code-insiders holds the lock exclusively; this waits for a shared
+# lock, for up to 10 minutes, then runs the command anyway.
+lock=/var/lib/blobby/code-insiders.lock
+if [ -e "$lock" ]; then
+  flock --shared --wait 600 "$lock" true 2>/dev/null || true
+fi
+exec "$@"

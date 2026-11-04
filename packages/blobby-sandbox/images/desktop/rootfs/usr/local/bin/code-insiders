@@ -1,0 +1,9 @@
+#!/bin/sh
+# VS Code Insiders, as the terminal starts it, once any update has finished. Features install it; the
+# image never contains it. Its Chromium sandbox needs kernel namespaces that a container usually
+# doesn't allow, so it runs without it: the sandbox itself is the boundary.
+if [ ! -x /usr/bin/code-insiders ]; then
+  echo "code-insiders: VS Code Insiders isn't installed. A feature installs it with /opt/blobby/image/bin/install-app vscode-insiders." >&2
+  exit 127
+fi
+exec /opt/blobby/image/bin/after-code-update /usr/bin/code-insiders --no-sandbox "$@"

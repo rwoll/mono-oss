@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  html, body { margin: 0; width: 512px; height: 512px; background: transparent; }
+  .icon { position: absolute; inset: 16px; border-radius: 108px; overflow: hidden;
+    background: radial-gradient(120% 120% at 25% 15%, #1d5266 0%, #123a4b 45%, #0b2533 100%); }
+  /* Everything sits on Blobby's pixel grid: one sprite pixel is 8 px at 1x, 24 px here. */
+  svg { position: absolute; inset: 0; width: 480px; height: 480px; shape-rendering: crispEdges; }
+  img { position: absolute; image-rendering: pixelated; width: 288px; height: 288px; left: 96px; top: 60px; }
+</style></head><body>
+<div class="icon">
+  <svg viewBox="0 0 480 480">
+    <!-- the box's inside back wall, behind Blobby -->
+    <rect x="72" y="300" width="336" height="48" fill="#b9772c"/>
+    <!-- sparkle -->
+    <g fill="#f8d59a"><rect x="372" y="60" width="24" height="72"/><rect x="348" y="84" width="72" height="24"/></g>
+  </svg>
+  <img src="buddy-idle-insiders-96.png" alt="">
+  <svg viewBox="0 0 480 480">
+    <!-- flaps, stepped like pixel art -->
+    <g fill="#f6c77a"><rect x="24" y="300" width="48" height="24"/><rect x="48" y="324" width="48" height="24"/>
+      <rect x="408" y="300" width="48" height="24"/><rect x="384" y="324" width="48" height="24"/></g>
+    <!-- front panel, lip, and shadow -->
+    <rect x="72" y="348" width="336" height="96" fill="#efb04f"/>
+    <rect x="72" y="348" width="336" height="24" fill="#f6c77a"/>
+    <rect x="72" y="420" width="336" height="24" fill="#d8933a"/>
+    <!-- tape -->
+    <rect x="216" y="372" width="48" height="48" fill="#f8d59a"/>
+  </svg>
+</div>
+</body></html>

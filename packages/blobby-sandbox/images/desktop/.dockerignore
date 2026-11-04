@@ -1,0 +1,3 @@
+# Only the Dockerfile and the files it copies go into the build context.
+*
+!rootfs

@@ -1,0 +1,175 @@
+body {
+  padding: 24px;
+}
+
+main {
+  display: grid;
+  gap: 16px;
+  max-width: 1400px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+header p,
+h2 {
+  margin: 4px 0 0;
+}
+
+h2 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.problems {
+  margin: 0;
+  padding: 8px 12px 8px 28px;
+  border-left: 2px solid var(--danger, #d1242f);
+}
+
+.new {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.new input[type='text'],
+.new input:not([type]) {
+  width: 16rem;
+}
+
+.hint {
+  color: var(--muted);
+}
+
+ul.sandboxes,
+ul.tasks,
+ul.captures {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sandboxes li {
+  display: grid;
+  grid-template-columns: minmax(8rem, 14rem) 7rem 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.sandboxes li.selected .name {
+  font-weight: 600;
+}
+
+.sandboxes .name {
+  justify-self: start;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+}
+
+.sandboxes .name:disabled {
+  color: inherit;
+  cursor: default;
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Row and toolbar actions are flat text buttons; only Start is filled. */
+.actions button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  padding: 4px 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.actions button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.actions button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.viewer {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar .actions {
+  margin-left: auto;
+}
+
+.actions button.recording {
+  color: var(--danger, #d1242f);
+  font-weight: 600;
+}
+
+.screen {
+  height: min(72vh, 900px);
+  min-height: 360px;
+  background: #000;
+  overflow: hidden;
+}
+
+.tasks li,
+.captures li {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.tasks summary {
+  cursor: pointer;
+}
+
+.tasks .failed .state {
+  color: var(--danger, #d1242f);
+}
+
+.tasks pre {
+  margin: 6px 0 4px 20px;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  color: var(--muted);
+}
+
+.captures code {
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.footnote {
+  font-size: 0.8rem;
+}

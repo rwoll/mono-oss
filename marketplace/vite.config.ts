@@ -15,6 +15,13 @@ export default defineConfig({
           skills: ['annotate'],
         },
         {
+          name: 'blobby-sandbox',
+          version: '0.1.0',
+          description: 'See, start, drive, screenshot, and record Blobby sandboxes in Copilot: the blobby-sandbox skill, and a canvas over its CLI.',
+          canvases: ['blobby-sandbox'],
+          skills: ['blobby-sandbox'],
+        },
+        {
           name: 'session-summary',
           version: '0.7.0',
           description: "An executive summary of this chat's work that the agent keeps up to date on a schedule.",

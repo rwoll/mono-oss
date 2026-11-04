@@ -1,0 +1,3 @@
+#!/bin/sh
+# blobby: Signs VS Code Insiders in to a GitHub test account. Run with `exec <name> --secret github -- vscode-signin`.
+exec /opt/blobby/node/bin/node "$(dirname "$(readlink -f "$0")")/lib/vscode-signin.mjs" "$@"

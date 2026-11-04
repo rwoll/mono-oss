@@ -1,0 +1,12 @@
+#!/bin/sh
+# Google Chrome, as the dock, the app grid, links, and the terminal start it. Features install Chrome;
+# the image never contains it. Chrome's own sandbox needs kernel namespaces that a container usually
+# doesn't allow, so it runs without it: the sandbox itself is the boundary. It publishes web pages'
+# accessibility trees, so agents can read them, and keeps passwords in its own store, as there's no
+# unlocked keyring.
+if [ ! -x /usr/bin/google-chrome-stable ]; then
+  echo "google-chrome: Google Chrome isn't installed. A feature installs it with /opt/blobby/image/bin/install-app google-chrome." >&2
+  exit 127
+fi
+exec /usr/bin/google-chrome-stable --no-sandbox --no-first-run --no-default-browser-check --password-store=basic \
+  --force-renderer-accessibility "$@"

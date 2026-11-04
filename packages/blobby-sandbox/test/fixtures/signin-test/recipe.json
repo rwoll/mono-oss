@@ -1,0 +1,16 @@
+{
+  "apiVersion": 1,
+  "description": "A test recipe with a step that signs in to a GitHub test account through callbacks.",
+  "callbacks": {
+    "github.login": {},
+    "github.password": { "sensitive": true },
+    "github.otp": { "sensitive": true }
+  },
+  "steps": [
+    {
+      "name": "Sign in to the test account",
+      "run": "signin.mjs",
+      "uses": ["github.login", "github.password", "github.otp"]
+    }
+  ]
+}

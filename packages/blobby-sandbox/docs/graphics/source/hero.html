@@ -1,0 +1,171 @@
+<!doctype html>
+<!--
+  The README hero for blobby-sandbox, in light and dark. Render each at 1920x1080 with any headless
+  Chrome, for example with Playwright:
+    page.setViewportSize({ width: 1920, height: 1080 }); page.goto('file://.../hero.html#light'); page.screenshot(...)
+  Blobby sprites: microsoft/vscode, MIT (see LICENSE-blobby-sprites.txt).
+-->
+<html><head><meta charset="utf-8"><title>blobby-sandbox</title>
+<style>
+  :root {
+    --bg: #f6f8f8; --fg: #0f1a1f; --muted: #5a676e; --faint: #8b979c; --panel: #ffffff; --border: #e1e6e7;
+    --accent: #0b8f80; --accent-strong: #08796c; --accent-soft: #e3f5f2; --sand: #c9821f; --sand-soft: #fcf0dc;
+    --code: #f0f3f3; --chip: #eef5f4; --ok: #1a7f37; --shadow: 0 1px 2px rgba(15, 26, 31, .06), 0 8px 24px rgba(15, 26, 31, .06);
+    --wall-a: #1d5266; --wall-b: #0b2533;
+  }
+  :root.dark {
+    --bg: #0e1416; --fg: #edf3f3; --muted: #9ba8ad; --faint: #6f7d83; --panel: #151d20; --border: #263337;
+    --accent: #2dd4bf; --accent-strong: #5ee6d3; --accent-soft: rgba(45, 212, 191, .12); --sand: #f4c27a; --sand-soft: rgba(244, 194, 122, .14);
+    --code: #1a2427; --chip: #1c2a2d; --ok: #3fb950; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1920px; height: 1080px; background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, sans-serif; -webkit-font-smoothing: antialiased; }
+  .mono, code { font-family: "SF Mono", Menlo, ui-monospace, monospace; }
+  .pixel { image-rendering: pixelated; }
+  .page { position: absolute; inset: 0 84px; }
+
+  header { position: absolute; top: 60px; display: flex; align-items: center; gap: 16px; }
+  header img { width: 50px; height: 50px; }
+  header span { font-size: 29px; font-weight: 600; letter-spacing: -.01em; }
+  h1 { position: absolute; top: 118px; margin: 0; font-size: 66px; font-weight: 800; letter-spacing: -.035em; white-space: nowrap; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .sub { position: absolute; top: 205px; margin: 0; font-size: 26px; color: var(--muted); }
+
+  .window { position: absolute; top: 270px; left: 0; right: 0; height: 422px; border: 1px solid var(--border); border-radius: 16px;
+    background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+  .titlebar { height: 46px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 600; color: var(--muted); position: relative; }
+  .dots { position: absolute; left: 18px; display: flex; gap: 9px; }
+  .dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--border); }
+  .columns { display: grid; grid-template-columns: 424px 1fr 1fr 1fr; height: 376px; }
+  .chat { border-right: 1px solid var(--border); padding: 18px 22px; position: relative; }
+  .chat h3 { margin: 0 0 14px; font-size: 18px; font-weight: 600; color: var(--muted); padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .bubble { background: var(--accent-soft); border-radius: 12px; padding: 11px 15px; font-size: 18px; line-height: 1.45; margin-left: 52px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .chip { font-size: 15px; padding: 4px 10px; border-radius: 7px; background: var(--chip); color: var(--accent-strong); font-weight: 600; }
+  .chip b { color: var(--faint); font-weight: 500; }
+  .answer { font-size: 18px; line-height: 1.45; display: flex; gap: 10px; align-items: flex-start; }
+  .answer img { height: 60px; flex: none; margin-top: 2px; }
+
+  .sandbox { border-right: 1px solid var(--border); padding: 0 0 16px; display: flex; flex-direction: column; }
+  .sandbox:last-child { border-right: none; }
+  .sb-head { height: 48px; padding: 0 18px; display: flex; align-items: center; gap: 10px; font-size: 17px; color: var(--muted);
+    border-bottom: 1px solid var(--border); }
+  .sb-head .live { margin-left: auto; font-size: 15px; color: var(--faint); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); }
+  .sb-title { padding: 14px 18px 0; font-size: 24px; font-weight: 700; letter-spacing: -.01em; }
+  .sb-meta { padding: 4px 18px 0; font-size: 17px; color: var(--muted); }
+
+  .desktop { margin: 12px 18px 0; height: 186px; border-radius: 10px; position: relative; overflow: hidden;
+    background: radial-gradient(130% 120% at 20% 10%, var(--wall-a), var(--wall-b)); border: 2px solid var(--accent); }
+  .desktop .topbar { height: 16px; background: rgba(0, 0, 0, .55); display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: #cfd8da; }
+  .desktop .dock { position: absolute; left: 0; top: 16px; bottom: 0; width: 28px; background: rgba(0, 0, 0, .35);
+    display: flex; flex-direction: column; align-items: center; gap: 7px; padding-top: 8px; }
+  .dock i { width: 16px; height: 16px; border-radius: 4px; display: block; }
+  .agents { position: absolute; left: 40px; right: 12px; top: 26px; bottom: 10px; background: #1e1f22; border-radius: 6px;
+    border: 1px solid #34373c; display: grid; grid-template-columns: 74px 1fr; overflow: hidden; }
+  .agents .side { background: #18191b; border-right: 1px solid #2c2e32; padding: 8px 7px; font-size: 9px; color: #9da3a8; line-height: 1.9; }
+  .agents .side b { color: #e3e6e8; font-weight: 600; }
+  .agents .main { padding: 10px 12px; font-size: 12px; color: #d9dde0; position: relative; }
+  .agents .me { margin-left: auto; width: max-content; background: #2f3237; border-radius: 6px; padding: 4px 9px; }
+  .agents .note { font-size: 9.5px; color: #8b9298; margin: 10px 0 4px; }
+  .agents .input { position: absolute; left: 12px; right: 12px; bottom: 8px; height: 20px; border: 1px solid #3a3d42; border-radius: 5px;
+    font-size: 9.5px; color: #7d848a; padding: 3px 7px; }
+  .sb-foot { margin-top: auto; padding: 0 18px; font-size: 17px; color: var(--accent); display: flex; gap: 8px; align-items: center; }
+  .sb-foot .tag { font-size: 14px; padding: 2px 8px; border-radius: 6px; background: var(--sand-soft); color: var(--sand); font-weight: 600; }
+
+  .caption { position: absolute; top: 708px; left: 0; right: 0; text-align: center; font-size: 19px; color: var(--muted); }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 7px; background: var(--accent); color: #fff; font-weight: 600; font-size: 17px; }
+  :root.dark .pill { color: #062421; }
+
+  .label { position: absolute; top: 760px; left: 0; right: 0; display: flex; align-items: center; gap: 18px; font-size: 16px;
+    letter-spacing: .12em; font-weight: 600; color: var(--muted); }
+  .label::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .cols { position: absolute; top: 786px; left: 0; right: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; }
+  .col { padding: 0 34px; border-right: 1px solid var(--border); }
+  .col:first-child { padding-left: 0; } .col:last-child { padding-right: 0; border-right: none; }
+  .col h4 { margin: 0 0 12px; font-size: 21px; font-weight: 700; display: flex; align-items: center; gap: 10px; height: 60px; }
+  .col h4 img { height: 60px; }
+  .col h4 span { font-weight: 400; color: var(--muted); }
+  pre { margin: 0; background: var(--code); border-radius: 10px; padding: 14px 18px; font-size: 17px; line-height: 1.55; height: 166px; white-space: pre; overflow: hidden; }
+  .p { color: var(--faint); } .ok { color: var(--ok); } .c { color: var(--faint); } .a { color: var(--accent-strong); } .s { color: var(--sand); }
+</style></head>
+<body>
+<div class="page">
+  <header><img src="../logo.png" alt=""><span>blobby-sandbox</span></header>
+  <h1>Disposable desktops your agent can <em>see, drive, and record</em>.</h1>
+  <p class="sub">Fresh Linux machines set up by recipes, like VS Code Insiders signed in to a test account that isn't yours, on your Mac, in Docker, or on Azure.</p>
+
+  <div class="window">
+    <div class="titlebar"><div class="dots"><i></i><i></i><i></i></div>✦ Copilot · vscode-agents-qa</div>
+    <div class="columns">
+      <div class="chat">
+        <h3>Chat</h3>
+        <div class="bubble">Check that a fresh Insiders build answers in the Agents window, on every backend.</div>
+        <div class="chips"><span class="chip">start qa <b>×3</b></span><span class="chip">vscode-signin <b>×3</b></span><span class="chip">record <b>×3</b></span></div>
+        <div class="answer"><img class="pixel" src="buddy-typing-insiders-96.png" alt="">
+          <div>All three answered “Hi! What can I help you with?” in about 20 seconds. Recordings attached.</div></div>
+        <div class="chips"><span class="chip">rm qa <b>×3</b></span></div>
+      </div>
+      <!-- one sandbox per backend -->
+      <div class="sandbox">
+        <div class="sb-head"><span class="dot"></span>qa · smolvm<span class="live">Live</span></div>
+        <div class="sb-title">Micro-VM on your computer</div>
+        <div class="sb-meta">VS Code Insiders · sign-in 23 s</div>
+        <div class="desktop"><div class="topbar">Nov 3 20:32</div><div class="dock"><i style="background:#e8a33d"></i><i style="background:#2dd4bf"></i><i style="background:#8b979c"></i></div>
+          <div class="agents"><div class="side"><b>New Session</b><br>Sessions<br>· Greeting</div>
+            <div class="main"><div class="me">Hi</div><div class="note">Completed in 6 s</div>Hi! What can I help you with?<div class="input">Chat with Copilot</div></div></div></div>
+        <div class="sb-foot">Recording · 4:24<span class="tag">smolvm</span></div>
+      </div>
+      <div class="sandbox">
+        <div class="sb-head"><span class="dot"></span>qa · docker<span class="live">Live</span></div>
+        <div class="sb-title">Container on any host</div>
+        <div class="sb-meta">VS Code Insiders · sign-in 22 s</div>
+        <div class="desktop"><div class="topbar">Nov 3 20:23</div><div class="dock"><i style="background:#e8a33d"></i><i style="background:#2dd4bf"></i><i style="background:#8b979c"></i></div>
+          <div class="agents"><div class="side"><b>New Session</b><br>Sessions<br>· Greeting</div>
+            <div class="main"><div class="me">Hi</div><div class="note">Completed in 6 s</div>Hi! What can I help you with?<div class="input">Chat with Copilot</div></div></div></div>
+        <div class="sb-foot">Recording · 7:29<span class="tag">docker</span></div>
+      </div>
+      <div class="sandbox">
+        <div class="sb-head"><span class="dot"></span>qa · azure<span class="live">Live</span></div>
+        <div class="sb-title">Azure sandbox in the cloud</div>
+        <div class="sb-meta">VS Code Insiders · sign-in 28 s</div>
+        <div class="desktop"><div class="topbar">Nov 3 20:38</div><div class="dock"><i style="background:#e8a33d"></i><i style="background:#2dd4bf"></i><i style="background:#8b979c"></i></div>
+          <div class="agents"><div class="side"><b>New Session</b><br>Sessions<br>· Hello</div>
+            <div class="main"><div class="me">Hi</div><div class="note">Completed in 6 s</div>Hi! What can I help you with?<div class="input">Chat with Copilot</div></div></div></div>
+        <div class="sb-foot">Recording · 3:59<span class="tag">azure</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="caption">The same <span class="pill">blobby-sandbox</span> commands on every backend, from your terminal, your agent, or TypeScript</div>
+
+  <div class="label">FROM YOUR TERMINAL</div>
+  <div class="cols">
+    <div class="col">
+      <h4><img class="pixel" src="buddy-waking-insiders-96.png" alt="">A clean desktop <span>· from a cached base</span></h4>
+      <pre class="mono"><span class="p">$</span> blobby-sandbox start qa
+Created qa <span class="c">(vscode-insiders,</span>
+<span class="c">  VS Code Insiders 1.146.0)</span>.  <span class="c"># seconds</span>
+<span class="p">$</span> blobby-sandbox rm qa
+Removed qa.</pre>
+    </div>
+    <div class="col">
+      <h4><img class="pixel" src="buddy-cool-insiders-96.png" alt="">Your test account <span>· never your own</span></h4>
+      <pre class="mono"><span class="p">$</span> blobby-sandbox exec qa <span class="a">--secret github</span> \
+    -- vscode-signin
+<span class="ok">✓</span> qa: signed in to the github test
+  account <span class="s">(allowlisted)</span>.</pre>
+    </div>
+    <div class="col">
+      <h4><img class="pixel" src="buddy-painting-insiders-96.png" alt="">Evidence to show <span>· screenshots and video</span></h4>
+      <pre class="mono"><span class="p">$</span> blobby-sandbox ui qa --match "Agents"
+<span class="p">$</span> blobby-sandbox screenshot qa -o reply.png
+<span class="p">$</span> blobby-sandbox record qa stop -o qa.mp4
+qa.mp4  <span class="c"># checked by size and SHA-256</span></pre>
+    </div>
+  </div>
+</div>
+<script>if (location.hash === '#dark') document.documentElement.classList.add('dark')</script>
+</body></html>

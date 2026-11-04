@@ -1,0 +1,87 @@
+#!/bin/bash
+# Installs an app from its vendor's signed apt repository, for a feature's install phase. The image
+# never contains these apps, because they aren't redistributable; features install them when a sandbox
+# is set up. Runs as root, and can run again.
+#
+#   install-app vscode-insiders   VS Code Insiders, from packages.microsoft.com
+#   install-app google-chrome     Google Chrome, from dl.google.com
+#
+# It fetches the vendor's signing key over HTTPS, as the vendor's install guide does, and refuses it
+# unless its primary key has the fingerprint below. Then it enables the repository, installs the app,
+# and points the dock, the app grid, and links at the launchers in /usr/local/bin, which start the app
+# without Chromium's sandbox. Lines that start with `blobby-setup: ` are progress, and the last line is
+# `blobby-info: <app> <version>`.
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8
+here=/opt/blobby/image
+step() { echo "blobby-setup: $*"; }
+fail() { echo "install-app: $*" >&2; exit 1; }
+
+case "${1:-}" in
+  vscode-insiders)
+    name='VS Code Insiders'
+    key_url=https://packages.microsoft.com/keys/microsoft.asc
+    fingerprint=BC528686B50D79E339D3721CEB3E94ADBE1229CF
+    keyring=/usr/share/keyrings/microsoft.gpg
+    sources=vscode.sources
+    package=code-insiders
+    ;;
+  google-chrome)
+    name='Google Chrome'
+    key_url=https://dl.google.com/linux/linux_signing_key.pub
+    fingerprint=EB4C1BFD4F042F6DDDCCEC917721F63BD38B4796
+    keyring=/usr/share/keyrings/google-chrome.gpg
+    sources=google-chrome.sources
+    package=google-chrome-stable
+    ;;
+  *)
+    echo "install-app: say vscode-insiders or google-chrome." >&2
+    exit 2
+    ;;
+esac
+[ "$(id -u)" = 0 ] || fail "run it as root."
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+log=$work/apt.log
+quiet() { "$@" >"$log" 2>&1 || { tail -n 40 "$log" >&2; fail "$* failed."; }; }
+
+step "Adding the $name repository"
+curl -fsSL --proto '=https' --tlsv1.2 --retry 3 -o "$work/key" "$key_url"
+mkdir -m 0700 "$work/gnupg"
+primary=$(gpg --homedir "$work/gnupg" --batch --show-keys --with-colons "$work/key" 2>/dev/null \
+  | awk -F: '$1 == "pub" { want = 1; next } want && $1 == "fpr" { print $10; want = 0 }')
+[ "$primary" = "$fingerprint" ] || fail "the signing key at $key_url has primary key ${primary:-none}, not $fingerprint. Check the vendor's install guide before trusting a new key."
+gpg --homedir "$work/gnupg" --batch --yes --dearmor -o "$keyring" "$work/key"
+chmod 0644 "$keyring"
+install -m 0644 "$here/apt/$sources" "/etc/apt/sources.list.d/$sources"
+if [ "$package" = code-insiders ]; then
+  # update-code-insiders reads only this repository, with package lists of its own.
+  install -d -m 0755 /etc/blobby/code-insiders-sources /var/lib/blobby/code-insiders-lists/partial
+  install -m 0644 "$here/apt/$sources" /etc/blobby/code-insiders-sources/vscode.sources
+  touch /var/lib/blobby/code-insiders.lock && chmod 0644 /var/lib/blobby/code-insiders.lock
+  # The package would otherwise add a second entry for the same repository.
+  echo "code-insiders code-insiders/add-microsoft-repo boolean false" | debconf-set-selections
+fi
+
+step "Installing $name"
+quiet apt-get update
+quiet apt-get install -y --no-install-recommends "$package"
+# Chrome's package adds its own entry for its repository; two entries with different keyrings break apt.
+if [ "$package" = google-chrome-stable ] && [ -e /etc/apt/sources.list.d/google-chrome.list ]; then
+  rm -f "/etc/apt/sources.list.d/$sources"
+fi
+rm -rf /var/lib/apt/lists/*
+
+# The dock, the app grid, and links start apps from their .desktop files. Copies in
+# /usr/local/share/applications come first in XDG_DATA_DIRS, so these start the launchers instead.
+install -d -m 0755 /usr/local/share/applications
+for file in /usr/share/applications/*.desktop; do
+  if grep -qE '^Exec=(/usr/bin/google-chrome-stable|/usr/share/code-insiders/code-insiders)( |$)' "$file"; then
+    sed -E 's#^Exec=/usr/bin/google-chrome-stable#Exec=/usr/local/bin/google-chrome-stable#; s#^Exec=/usr/share/code-insiders/code-insiders#Exec=/opt/blobby/image/bin/after-code-update /usr/share/code-insiders/code-insiders --no-sandbox#' \
+      "$file" >"/usr/local/share/applications/$(basename "$file")"
+  fi
+done
+
+step "Installed $name"
+echo "blobby-info: $1 $(dpkg-query -W -f '${Version}' "$package")"

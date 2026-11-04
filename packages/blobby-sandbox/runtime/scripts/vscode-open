@@ -1,0 +1,42 @@
+#!/bin/bash
+# blobby: Opens VS Code Insiders, with any paths or code-insiders options, and waits for its window.
+set -uo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage: blobby-sandbox exec <name> -- vscode-open [--no-wait] [code-insiders options] [paths...]
+
+Opens VS Code Insiders in the desktop, in its own session so it keeps running after this returns, and
+waits up to 60 seconds for a window. Paths are in the sandbox, such as '~/repo' or '~/repo/README.md':
+quote a leading ~ so your own shell leaves it for the sandbox, where it means the desktop user's home.
+With VS Code already open, they open in it, as code-insiders does, and VS Code may first ask whether to
+trust files outside the folders it trusts. --no-wait returns at once.
+USAGE
+}
+
+wait=1
+args=()
+for arg in "$@"; do
+  case "$arg" in
+    -h | --help) usage; exit 0 ;;
+    --no-wait) wait=0 ;;
+    '~') args+=("$HOME") ;;
+    '~/'*) args+=("$HOME/${arg#'~/'}") ;;
+    *) args+=("$arg") ;;
+  esac
+done
+command -v code-insiders >/dev/null || { echo "vscode-open: VS Code Insiders isn't installed here. Make a sandbox with --recipe vscode-insiders." >&2; exit 1; }
+
+# Managed windows only; VS Code's class is its desktop file's name, com.microsoft.VSCodeInsiders.
+windows() { wmctrl -lx 2>/dev/null | grep -c -i -E 'vscodeinsiders|code-insiders' || true; }
+open_already=$(windows)
+setsid code-insiders "${args[@]}" >/dev/null 2>&1 < /dev/null &
+[ "$wait" = 1 ] || { echo 'Opening VS Code Insiders.'; exit 0; }
+# An open VS Code takes the paths, or comes to the front, in its own window.
+[ "$open_already" -gt 0 ] && { sleep 1; echo 'VS Code Insiders is open.'; exit 0; }
+for _ in $(seq 120); do
+  [ "$(windows)" -gt 0 ] && { echo 'VS Code Insiders is open.'; exit 0; }
+  sleep 0.5
+done
+echo 'vscode-open: no VS Code Insiders window showed in 60 seconds. Take a screenshot to see why.' >&2
+exit 1

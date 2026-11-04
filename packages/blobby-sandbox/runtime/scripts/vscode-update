@@ -1,0 +1,65 @@
+#!/bin/bash
+# blobby: Updates VS Code Insiders to the newest build. Run as root: `exec <name> --root -- vscode-update`.
+set -uo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage: blobby-sandbox exec <name> --root -- vscode-update [--json]
+
+Updates VS Code Insiders to the newest build from Microsoft's repository. A sandbox of the vscode-insiders
+recipe does this at every start; run it to update one that has run for a while. A running VS Code keeps
+its old build until it starts again: quit it, then run vscode-open.
+
+--json prints {"before", "after", "updated", "running"}.
+USAGE
+}
+
+json=0 boot=0
+for arg in "$@"; do
+  case "$arg" in
+    -h | --help) usage; exit 0 ;;
+    --json) json=1 ;;
+    # The recipe's boot.sh: progress for blobby-sandbox, and never a failed boot.
+    --boot) boot=1 ;;
+    *) usage >&2; exit 2 ;;
+  esac
+done
+
+fail() {
+  if [ "$boot" = 1 ]; then echo "blobby-boot: $1" >&2; else echo "vscode-update: $1" >&2; exit 1; fi
+}
+[ "$(id -u)" = 0 ] || { echo 'vscode-update: run it as root: blobby-sandbox exec <name> --root -- vscode-update' >&2; exit 2; }
+[ -d /etc/blobby/code-insiders-sources ] || { echo "vscode-update: VS Code Insiders isn't installed here. Make a sandbox with --recipe vscode-insiders." >&2; exit 1; }
+
+export DEBIAN_FRONTEND=noninteractive
+version() { dpkg-query -W -f '${Version}' code-insiders 2>/dev/null || echo none; }
+before=$(version)
+# Only Microsoft's repository, with its own package lists, so this is quick and leaves the rest alone.
+set -- -o Dir::Etc::sourcelist=/dev/null -o Dir::Etc::sourceparts=/etc/blobby/code-insiders-sources \
+  -o Dir::State::Lists=/var/lib/blobby/code-insiders-lists -o APT::Get::List-Cleanup=0
+if apt-get "$@" -qq update >/tmp/blobby-update.log 2>&1; then
+  case "$(dpkg-query -W -f '${db:Status-Abbrev}' code-insiders)" in
+    ii*) apt-get "$@" -qq install -y --only-upgrade --no-install-recommends code-insiders >>/tmp/blobby-update.log 2>&1 ;;
+    *) apt-get "$@" -qq install -y --reinstall --no-install-recommends code-insiders >>/tmp/blobby-update.log 2>&1 ;;
+  esac || fail "could not update VS Code Insiders; see /tmp/blobby-update.log"
+else
+  fail "could not check for a VS Code Insiders update; see /tmp/blobby-update.log"
+fi
+after=$(version)
+
+if [ "$boot" = 1 ]; then
+  echo "blobby-info: insiders $after"
+  exit 0
+fi
+running=false
+pgrep -x code-insiders >/dev/null && running=true
+updated=false
+[ "$before" != "$after" ] && updated=true
+if [ "$json" = 1 ]; then
+  printf '{"before":"%s","after":"%s","updated":%s,"running":%s}\n' "$before" "$after" "$updated" "$running"
+elif [ "$updated" = true ]; then
+  echo "Updated VS Code Insiders from $before to $after."
+  [ "$running" = true ] && echo 'VS Code is running its old build: quit it, then run vscode-open.'
+else
+  echo "VS Code Insiders $after is the newest build."
+fi
