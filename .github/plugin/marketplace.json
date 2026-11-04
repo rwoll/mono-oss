@@ -7,7 +7,7 @@
     {
       "name": "canvas-kit",
       "description": "Skills for building, testing, and publishing Copilot canvases with @rwoll/canvas-kit.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "source": "./plugins/canvas-kit"
     },
     {

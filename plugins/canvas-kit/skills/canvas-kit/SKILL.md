@@ -161,18 +161,30 @@ export default function App() {
 ## 4. Reuse the shared components and theme
 
 Projects made with `canvas-kit init` have a `ui/` folder. New canvases already
-import its `theme.css` and use its `Header`. Prefer its components over one-off
-markup so canvases look alike:
+import its `theme.css`, start with its `Header`, and put the page in
+`<main className="page">`. Prefer its components and classes over one-off markup
+so canvases look alike:
 
 ```tsx
-import { Checklist, Header, Markdown, TextButton } from '../../ui'
+import { Header, Markdown, RefreshIcon } from '../../ui'
 import '../../ui/theme.css'
 
-<Header title="Flaky tests" meta={`${state.repo} · ${open} to triage`} />
-<Checklist label="Flaky tests" items={items} onToggle={(id, done) => setTriaged({ id, triaged: done })} />
-<Markdown label="Triage notes">{state.notes}</Markdown>
-<TextButton onClick={() => askToFix()}>Ask the agent to fix it</TextButton>
+<Header title="Flaky tests" badge={<span className="pill status-working">Triaging</span>}>
+  <button type="button" className="icon-button" aria-label="Refresh" onClick={refresh}><RefreshIcon /></button>
+</Header>
+<main className="page">
+  <section className="block attention">
+    <h2 className="label">Needs your attention</h2>
+    <ul className="bullets">{blockers.map((b) => <li key={b.id}>{b.title}</li>)}</ul>
+  </section>
+  <Markdown label="Triage notes">{state.notes}</Markdown>
+  <button type="button" onClick={() => askToFix()}>Ask the agent to fix it</button>
+</main>
 ```
+
+- The classes are in `ui/theme.css` and its README: `pill`/`badge` with
+  `status-*`/`state-*`, `label`, `block`, `executive`, `attention`, `bullets`,
+  `rows`, `columns`, `menu`, `dialog`, `banner`, and `notice`.
 
 - To show text the agent writes, keep it as Markdown in state (for example a
   `notes` string set by an agent-only `set_notes` action) and render it with
