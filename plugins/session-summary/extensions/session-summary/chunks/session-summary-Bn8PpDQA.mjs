@@ -1,8 +1,8 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { mkdirSync, watch } from "node:fs";
+import { createReadStream, mkdirSync, watch } from "node:fs";
 import { link, mkdir, open, readFile, readdir, rename, stat, unlink, utimes, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
-import { basename, extname, join, resolve, sep } from "node:path";
+import { basename, extname, isAbsolute, join, resolve, sep } from "node:path";
 import { homedir } from "node:os";
 // ../packages/canvas-kit/dist/errors.js
 var STATUS_BY_CODE = {
@@ -5899,6 +5899,7 @@ function defineCanvas(spec) {
 			key: spec.persist.key,
 			version: spec.persist.version ?? 1
 		} : void 0,
+		files: spec.files,
 		init: spec.init,
 		reopen: (ctx) => spec.reopen?.(ctx),
 		status: (state) => spec.status?.(state)
@@ -6323,6 +6324,20 @@ var MAX_BODY_BYTES = 1048576;
 var HEARTBEAT_MS = 15e3;
 var HISTORY_WAIT_MS = 5e3;
 var INSTANCE_PATH = /^\/c\/([0-9a-f]{32})(\/.*)?$/;
+/** What `files` may serve: images and videos only, so a served file can never run as a page. */
+var FILE_TYPES = {
+	".png": "image/png",
+	".jpg": "image/jpeg",
+	".jpeg": "image/jpeg",
+	".gif": "image/gif",
+	".webp": "image/webp",
+	".avif": "image/avif",
+	".mp4": "video/mp4",
+	".m4v": "video/mp4",
+	".webm": "video/webm",
+	".mov": "video/quicktime"
+};
+var FILE_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/;
 var CONTENT_TYPES = {
 	".html": "text/html; charset=utf-8",
 	".js": "text/javascript; charset=utf-8",
@@ -6646,7 +6661,12 @@ var CanvasHost = class {
 	async handleApi(instanceId, path, request, response) {
 		const instance = this.#instances.get(instanceId);
 		if (!instance) throw new CanvasKitError("not_found", "This canvas was closed; ask the agent to reopen it");
-		if (!tokenMatches(request.headers["x-canvas-token"], instance.token)) throw new CanvasKitError("forbidden", "Canvas token required; reload the canvas");
+		const file = /^__canvas\/files\/([^/]+)$/.exec(path);
+		if (!tokenMatches((file ? new URL(request.url ?? "/", "http://canvas").searchParams.get("token") : request.headers["x-canvas-token"]) ?? void 0, instance.token)) throw new CanvasKitError("forbidden", "Canvas token required; reload the canvas");
+		if (file && (request.method === "GET" || request.method === "HEAD")) {
+			await this.#sendFile(instance, file[1], request, response);
+			return;
+		}
 		if (path === "__canvas/state" && request.method === "GET") {
 			sendJson(response, 200, this.#snapshotOf(instance.slot));
 			return;
@@ -6670,6 +6690,71 @@ var CanvasHost = class {
 			return;
 		}
 		throw new CanvasKitError("not_found", "Route not found");
+	}
+	async #sendFile(instance, id, request, response) {
+		const resolver = this.canvas.files;
+		if (!resolver || !FILE_ID.test(id)) throw new CanvasKitError("not_found", "File not found");
+		const slot = instance.slot;
+		const found = await resolver({
+			canvasId: this.canvas.id,
+			instanceId: instance.instanceId,
+			get state() {
+				return slot.state;
+			},
+			dataDir: this.#dataDir,
+			log: (message, level) => this.log(message, level)
+		}, id);
+		const type = found && FILE_TYPES[extname(found.path).toLowerCase()];
+		if (!found || !isAbsolute(found.path) || !type) throw new CanvasKitError("not_found", "File not found");
+		let size;
+		try {
+			const info = await stat(found.path);
+			if (!info.isFile()) throw new Error("not a file");
+			size = info.size;
+		} catch {
+			throw new CanvasKitError("not_found", "File not found");
+		}
+		const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.range ?? "");
+		const partial = Boolean(range && (range[1] || range[2]));
+		let start = 0;
+		let end = size - 1;
+		if (range && partial) {
+			start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]));
+			end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+			if (start > end || start >= size) {
+				response.writeHead(416, { "Content-Range": `bytes */${size}` });
+				response.end();
+				return;
+			}
+		}
+		response.writeHead(partial ? 206 : 200, {
+			"Content-Type": type,
+			"Content-Length": String(end - start + 1),
+			"Accept-Ranges": "bytes",
+			"Cache-Control": "no-store",
+			"X-Content-Type-Options": "nosniff",
+			...partial && { "Content-Range": `bytes ${start}-${end}/${size}` }
+		});
+		if (request.method === "HEAD" || size === 0) {
+			response.end();
+			return;
+		}
+		await new Promise((done) => {
+			const stream = createReadStream(found.path, {
+				start,
+				end
+			});
+			stream.once("error", () => {
+				response.destroy();
+				done();
+			});
+			stream.once("end", done);
+			response.once("close", () => {
+				stream.destroy();
+				done();
+			});
+			stream.pipe(response);
+		});
 	}
 	/**
 	* Run an action as the agent would through the Copilot host. Only the Vite
