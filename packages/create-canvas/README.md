@@ -1,3 +1,5 @@
+<img src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/canvas-kit/logo.png" alt="canvas-kit logo: a chat bubble opening a canvas panel with a checklist" width="96" align="right">
+
 # @rwoll/create-canvas
 
 Create a Copilot plugin marketplace repository with a TypeScript and React canvas,

@@ -1,4 +1,4 @@
-<img src="docs/graphics/logo.png" alt="Blobby Sandbox logo: Blobby, the VS Code chat pet, peeking out of a cardboard box" width="96" align="right">
+<img src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/blobby-sandbox/logo.png" alt="Blobby Sandbox logo: Blobby, the VS Code chat pet, peeking out of a cardboard box" width="96" align="right">
 
 # Blobby Sandbox
 
@@ -8,8 +8,8 @@ brings VS Code Insiders and a script that signs it in to a throwaway test accoun
 app.**
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/graphics/hero-dark.png">
-  <img src="docs/graphics/hero-light.png" alt="Disposable desktops your agent can see, drive, and record, set up by recipes. An agent asks for the same check on three sandboxes, on smolvm, Docker, and Azure; in each, VS Code Insiders' Agents window answers Hi, and the run is recorded. Below, blobby-sandbox commands that start a sandbox, sign in to a test account, and save screenshots and video.">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/blobby-sandbox/hero-dark.png">
+  <img src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/blobby-sandbox/hero-light.png" alt="Disposable desktops your agent can see, drive, and record, set up by recipes. An agent asks for the same check on three sandboxes, on smolvm, Docker, and Azure; in each, VS Code Insiders' Agents window answers Hi, and the run is recorded. Below, blobby-sandbox commands that start a sandbox, sign in to a test account, and save screenshots and video.">
 </picture>
 
 Agents can write code, but checking a UI change means clicking through an app the way a person would: open
@@ -54,7 +54,7 @@ blobby-sandbox rm demo
 The default recipe, `vscode-insiders`, adds VS Code Insiders, and a built-in script signs it in to a GitHub
 test account. Set the account up once, yourself. Use a **dedicated test account with an authenticator app
 for its 2FA**, never your own: anything in the sandbox can use its session. Read the warning at the top
-of the [reference](docs/reference.md) first.
+of the [reference](https://github.com/rwoll/mono-oss/blob/main/packages/blobby-sandbox/docs/reference.md) first.
 
 ```sh
 mkdir -p ~/.config/blobby
@@ -91,8 +91,8 @@ blobby-sandbox exec art -- inkscape --version
 
 A recipe can also have a `boot.sh`, which runs at every start, and steps, which run when a sandbox is new
 and can ask for a test account's secret to sign in. It all runs inside the sandbox, never on your computer,
-so recipes are safe to share. See [Recipes](docs/reference.md#recipes), and the built-in
-[`vscode-insiders`](recipes/vscode-insiders) recipe.
+so recipes are safe to share. See [Recipes](https://github.com/rwoll/mono-oss/blob/main/packages/blobby-sandbox/docs/reference.md#recipes), and the built-in
+[`vscode-insiders`](https://github.com/rwoll/mono-oss/tree/main/packages/blobby-sandbox/recipes/vscode-insiders) recipe.
 
 ## Let your agent drive it
 
@@ -128,7 +128,7 @@ await sb.remove()
 |---|---|---|
 | **smolvm** | macOS on Apple silicon, or Linux with `/dev/kvm` | The default where it runs. Micro-VMs on your computer. |
 | **docker** | Docker Desktop, or Docker Engine 20.10 or later | The default elsewhere. Needs 8 GB of memory and 20 GB of disk for Docker. |
-| **azure** | Azure Container Apps sandboxes | Set up once with [`infra/azure`](infra/azure/README.md). No live viewer yet. |
+| **azure** | Azure Container Apps sandboxes | Set up once with [`infra/azure`](https://github.com/rwoll/mono-oss/blob/main/packages/blobby-sandbox/infra/azure/README.md). No live viewer yet. |
 
 Pick one with `--backend <name>` or `BLOBBY_SANDBOX_BACKEND`. Each backend has its own sandboxes.
 
@@ -149,11 +149,11 @@ reply. Beyond that:
 
 ## Learn more
 
-- [The reference](docs/reference.md): test accounts and secrets, recipes and scripts, desktop control, the
+- [The reference](https://github.com/rwoll/mono-oss/blob/main/packages/blobby-sandbox/docs/reference.md): test accounts and secrets, recipes and scripts, desktop control, the
   SDK, each backend, and error codes.
-- The [`blobby-sandbox` skill](../../marketplace/skills/blobby-sandbox/SKILL.md) and
-  [canvas](../../marketplace/canvases/blobby-sandbox/README.md).
+- The [`blobby-sandbox` skill](https://github.com/rwoll/mono-oss/blob/main/marketplace/skills/blobby-sandbox/SKILL.md) and
+  [canvas](https://github.com/rwoll/mono-oss/blob/main/marketplace/canvases/blobby-sandbox/README.md).
 
-[RELEASING.md](../../RELEASING.md) covers how releases are made. [MIT](LICENSE) licensed. The Blobby sprites in
+[RELEASING.md](https://github.com/rwoll/mono-oss/blob/main/RELEASING.md) covers how releases are made. [MIT](https://github.com/rwoll/mono-oss/blob/main/packages/blobby-sandbox/LICENSE) licensed. The Blobby sprites in
 the logo and graphics come from [Visual Studio Code](https://github.com/microsoft/vscode), also MIT licensed;
-see [docs/graphics](docs/graphics/LICENSE-blobby-sprites.txt).
+see [their license](https://github.com/rwoll/mono-oss/blob/main/docs/blobby-sandbox/LICENSE-blobby-sprites.txt).

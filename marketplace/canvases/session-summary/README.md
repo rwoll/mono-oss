@@ -1,7 +1,7 @@
 # Session summary
 
 An executive summary of this chat's work that the agent keeps up to date on a
-schedule. Built with [`@rwoll/canvas-kit`](../../../packages/canvas-kit).
+schedule. Built with [`@rwoll/canvas-kit`](https://github.com/rwoll/mono-oss/tree/main/packages/canvas-kit).
 
 ```sh
 copilot plugin marketplace add rwoll/mono-oss#stable

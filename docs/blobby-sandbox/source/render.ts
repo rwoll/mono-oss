@@ -1,6 +1,10 @@
 // Renders logo.png, hero-light.png, and hero-dark.png from the pages here, with the installed Chrome.
-// Run from this package after `pnpm install`: node docs/graphics/source/render.ts
-import { chromium } from 'playwright-core'
+// Run from oss/ after `pnpm install`: node docs/blobby-sandbox/source/render.ts
+import { createRequire } from 'node:module'
+
+// playwright-core is a dependency of @rwoll/blobby-sandbox, not of this folder.
+const require = createRequire(new URL('../../../packages/blobby-sandbox/package.json', import.meta.url))
+const { chromium } = require('playwright-core') as typeof import('playwright-core')
 
 const pages = [
   { page: 'logo.html', out: 'logo.png', width: 512, height: 512, transparent: true },
@@ -18,7 +22,7 @@ try {
     const path = new URL(`../${out}`, import.meta.url)
     await page.screenshot({ path: path.pathname, omitBackground: transparent })
     await page.close()
-    console.log(`Wrote docs/graphics/${out}.`)
+    console.log(`Wrote docs/blobby-sandbox/${out}.`)
   }
 } finally {
   await browser.close()

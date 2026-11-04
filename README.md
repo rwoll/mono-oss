@@ -1,39 +1,48 @@
 # rwoll/mono-oss
 
-Open source tools and `@rwoll` npm packages by [@rwoll](https://github.com/rwoll).
+Open source tools, `@rwoll` npm packages, and Copilot plugins by [@rwoll](https://github.com/rwoll).
 
-> [!NOTE]
-> This repository is a read-only mirror. It is published from a private
-> monorepo, so pull requests are turned off and every commit here is an
-> automated export. Bug reports and ideas are welcome as issues.
+## What's here
 
-## Packages
+Tools for working with coding agents, especially GitHub Copilot: give the agent a safe place to try
+things, have it show you what it found, and build the panels you and it work in together.
 
-| Package | Description |
-| --- | --- |
-| [`@rwoll/annotate`](packages/annotate) | Annotate screenshots and screen recordings from one JSON document: zoom, marks, captions, before/after, and redaction, rendered to PNG, MP4, or an interactive player. |
-| [`@rwoll/canvas-kit`](packages/canvas-kit) | Build Copilot canvas extensions with TypeScript and React: typed state and actions, a secure local host, a Vite build, test helpers, and marketplace publishing. |
-| [`@rwoll/create-canvas`](packages/create-canvas) | `npm create @rwoll/canvas`: start a canvas marketplace with canvas-kit. |
-| [`@rwoll/hello`](packages/hello) | Example package: shows the layout every `@rwoll` package starts from. |
+| Project | What it does for you | Get it |
+| --- | --- | --- |
+| [**Blobby Sandbox**](packages/blobby-sandbox#readme) | Gives your agent a disposable Linux desktop to test on, set up by a recipe, that it can see, drive, and record, away from your own apps and accounts. | Early: [build from source](packages/blobby-sandbox#try-it) |
+| [**annotate**](packages/annotate#readme) | Turns screenshots and recordings into ones that explain themselves: numbered steps, zoom, captions, before/after, and redaction, from one JSON document. | [`@rwoll/annotate`](https://www.npmjs.com/package/@rwoll/annotate) |
+| [**canvas-kit**](packages/canvas-kit#readme) | Builds Copilot canvases, the interactive panels you and your agent share, in TypeScript and React, with tests and one-push publishing. | [`@rwoll/canvas-kit`](https://www.npmjs.com/package/@rwoll/canvas-kit), [`@rwoll/create-canvas`](packages/create-canvas#readme) |
 
-## canvas-kit
+Each one also comes as a Copilot plugin, and there are two more plugins for everyday chats; see
+[Copilot plugins](#copilot-plugins).
 
-<img src="docs/canvas-kit/logo.png" alt="canvas-kit logo: a chat bubble opening a canvas panel with a checklist" width="96" align="right">
+They work together. An agent reproduces a bug in a Blobby sandbox and records it, annotate turns the
+recording into a clip that explains itself for the pull request, and both have canvases, built with
+canvas-kit, where you watch and adjust their work.
 
-**Copilot canvases you can change, test, and share.** Build the release boards,
-triage queues, and review tools that you and your agent work in together: state
-and actions in TypeScript, UI in React, and canvas-kit handles the rest.
+## Blobby Sandbox
+
+<img src="docs/blobby-sandbox/logo.png" alt="Blobby Sandbox logo: Blobby, the VS Code chat pet, peeking out of a cardboard box" width="96" align="right">
+
+**Give your agent a real desktop to test on.** Checking a UI change means clicking through an app the way a
+person would. Doing that on your own computer puts your apps, accounts, and tokens within the agent's reach.
+Each Blobby sandbox is a fresh Linux machine instead: set up the same way every time by a recipe, signed in
+only to a test account you allowlist, and thrown away when the agent is done. It runs as micro-VMs on your
+Mac or Linux box, on Docker, or on Azure.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/canvas-kit/hero-dark.png">
-  <img alt="A Copilot window where the chat opens canvases that render the agent's notes with a shared React component, next to the canvas's React code, a Playwright test passing in light, dark, and high-contrast, and git push publishing the canvases for a teammate to install." src="docs/canvas-kit/hero-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/blobby-sandbox/hero-dark.png">
+  <img alt="Disposable desktops your agent can see, drive, and record, set up by recipes. An agent asks for the same check on three sandboxes, on smolvm, Docker, and Azure; in each, VS Code Insiders' Agents window answers Hi, and the run is recorded. Below, blobby-sandbox commands that start a sandbox, sign in to a test account, and save screenshots and video." src="docs/blobby-sandbox/hero-light.png">
 </picture>
 
 ```sh
-npm create @rwoll/canvas my-canvases -- --repository me/my-canvases --canvas board
+blobby-sandbox start demo --recipe desktop    # a clean GNOME desktop
+blobby-sandbox screenshot demo -o demo.png    # what the agent sees
+blobby-sandbox view demo                      # or watch it live in your browser
 ```
 
-See the [canvas-kit guide](packages/canvas-kit#readme) for the API.
+It's early and not on npm yet. See the [Blobby Sandbox guide](packages/blobby-sandbox#readme) to build it
+and sign VS Code Insiders in to a test account.
 
 ## annotate
 
@@ -55,21 +64,47 @@ npx @rwoll/annotate render bug.annotate.json -o bug.png
 
 See the [annotate guide](packages/annotate#readme) for examples and the format.
 
-## Plugin marketplace
+## canvas-kit
 
-Copilot plugins from this repository, published to its `stable` branch:
+<img src="docs/canvas-kit/logo.png" alt="canvas-kit logo: a chat bubble opening a canvas panel with a checklist" width="96" align="right">
+
+**Copilot canvases you can change, test, and share.** Build the release boards,
+triage queues, and review tools that you and your agent work in together: state
+and actions in TypeScript, UI in React, and canvas-kit handles the rest.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/canvas-kit/hero-dark.png">
+  <img alt="A Copilot window where the chat opens canvases that render the agent's notes with a shared React component, next to the canvas's React code, a Playwright test passing in light, dark, and high-contrast, and git push publishing the canvases for a teammate to install." src="docs/canvas-kit/hero-light.png">
+</picture>
+
+```sh
+npm create @rwoll/canvas my-canvases -- --repository me/my-canvases --canvas board
+```
+
+See the [canvas-kit guide](packages/canvas-kit#readme) for the API.
+
+## Copilot plugins
+
+Add the marketplace once, then install any of these:
 
 ```sh
 copilot plugin marketplace add rwoll/mono-oss#stable
-copilot plugin install canvas-kit@rwoll
+copilot plugin install annotate@rwoll
 ```
 
-| Plugin | Description |
+| Plugin | What you get |
 | --- | --- |
-| [`annotate`](marketplace/canvases/annotate) | A canvas and skill for annotated screenshots and screen recordings. |
-| [`canvas-kit`](marketplace/plugins/canvas-kit) | Skills for building, testing, and publishing canvases with canvas-kit. |
+| [`annotate`](marketplace/canvases/annotate) | A canvas to play, adjust, and export annotated screenshots and recordings, and a skill that teaches the agent the format. |
+| [`blobby-sandbox`](marketplace/canvases/blobby-sandbox) | A canvas to start, watch, and drive sandboxes, and a skill for the `blobby-sandbox` CLI. Needs the CLI installed. |
+| [`canvas-kit`](marketplace/plugins/canvas-kit) | Skills for building, testing, and publishing your own canvases. |
+| [`session-summary`](marketplace/canvases/session-summary) | A canvas with an executive summary of the chat that the agent keeps up to date, so you can check on long work at a glance. |
 | [`pr-descriptions`](marketplace/plugins/pr-descriptions) | A skill for short, reader-first pull request titles and descriptions. |
-| [`session-summary`](marketplace/canvases/session-summary) | A canvas with an executive summary of the chat that the agent keeps up to date. |
+
+## Issues and contributions
+
+This repository is a read-only mirror, published from a private monorepo, so
+pull requests are turned off and every commit here is an automated export. Bug
+reports and ideas are welcome as [issues](https://github.com/rwoll/mono-oss/issues).
 
 ## Development
 
@@ -83,6 +118,9 @@ pnpm check   # build, typecheck, lint, and test every package
 Dependencies come from the public npm registry. pnpm installs only versions
 published at least 7 days ago (`@rwoll` packages excepted) and never runs
 dependency install scripts; see [pnpm-workspace.yaml](pnpm-workspace.yaml).
+
+New packages start from [`packages/hello`](packages/hello), which shows the
+layout every `@rwoll` package uses.
 
 ## Releases
 

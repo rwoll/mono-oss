@@ -1,8 +1,15 @@
+<img src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/canvas-kit/logo.png" alt="canvas-kit logo: a chat bubble opening a canvas panel with a checklist" width="96" align="right">
+
 # @rwoll/canvas-kit
 
 **Copilot canvases you can change, test, and share.** Build the release boards,
 triage queues, and review tools that you and your agent work in together: state
 and actions in TypeScript, UI in React, and canvas-kit handles the rest.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/canvas-kit/hero-dark.png">
+  <img alt="A Copilot window where the chat opens canvases that render the agent's notes with a shared React component, next to the canvas's React code, a Playwright test passing in light, dark, and high-contrast, and git push publishing the canvases for a teammate to install." src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/canvas-kit/hero-light.png">
+</picture>
 
 - **React components.** Typed hooks wire your components to live state; share them
   across canvases to stay on brand.
