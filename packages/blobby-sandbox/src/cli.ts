@@ -48,10 +48,11 @@ Sandboxes:
   cp <from> <to>               Copy a file into or out of a sandbox, streamed. Write the sandbox's side as
                                <name>:/path, such as \`cp report.txt qa:/tmp/\` or \`cp qa:/tmp/x.log .\`.
   gc                           Delete expired sandboxes and older cached bases that nothing needs.
-  doctor                       Check the backend (which one, and why), the desktop image, free disk,
-                               secrets, and the allowlist. --reap also cleans up: expired
+  doctor                       Check the backend (which one, and why), free disk, secrets, and the
+                               allowlist. --reap also cleans up: expired
                                sandboxes, starts that were killed, and older cached bases.
-  image build                  Build the desktop image that the docker backend runs.
+  image build                  Build the optional blobby-desktop image with Docker, from this package's
+                               files. Sandboxes don't need it; nothing is published.
 
 Driving a sandbox's desktop (needs the desktop feature):
   screenshot <name> -o <file>  Save a PNG of the screen.

@@ -773,6 +773,7 @@ for scripts and agents.
 | `unauthorized`, `server_unreachable` | The server refused the token, or can't be reached | Check `BLOBBY_SANDBOX_SERVER` and `BLOBBY_SANDBOX_TOKEN` |
 | `no_browser` | `view` couldn't open a browser | `blobby-sandbox view <name> --print` |
 | `invalid_input`, `root_not_allowed` | A `/tools` handler got invalid arguments, or root without `allowRoot` | Read the message |
+| `docker_unavailable`, `image_build_failed`, `image_files_missing`, `unsupported_platform` | `image build` couldn't reach Docker, the build failed, the package's build files are missing, or the platform isn't amd64 or arm64 | Read the message; it ends with Docker's output when the build failed |
 | `internal` | Something unexpected failed | Report it, with the message |
 
 ## License

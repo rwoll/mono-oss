@@ -1,7 +1,7 @@
 import { access } from 'node:fs/promises'
 import { join } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
 import { SandboxError } from './backend.ts'
+import { buildDesktopImage, IMAGE_DIR, ImageError } from './desktop-image.ts'
 
 /** What `image build` takes. */
 export interface ImageBuildOptions {
@@ -31,27 +31,20 @@ export interface ImageBuild {
   seconds?: number
 }
 
-/** The desktop image's build files, in the package next to `dist/` or `src/`. */
+/** The desktop image's build files, which the package ships in `images/desktop`, or null if they're missing. */
 export async function desktopImageDir(): Promise<string | null> {
-  const dir = fileURLToPath(new URL('../images/desktop/', import.meta.url))
-  if (await access(join(dir, 'build.ts')).then(() => true, () => false)) return dir
-  return null
+  return (await access(join(IMAGE_DIR, 'Dockerfile')).then(() => true, () => false)) ? IMAGE_DIR : null
 }
 
-type BuildModule = {
-  buildDesktopImage(options: Record<string, unknown>): Promise<ImageBuild>
-  ImageError: new (...args: never[]) => Error & { code: string }
-}
-
-/** Builds the desktop image with Docker, as `images/desktop/build.ts` does. */
+/**
+ * Builds the desktop image with Docker, from the build files in the package. Nothing is pulled from or
+ * pushed to a registry except the Ubuntu base image and the packages the Dockerfile installs.
+ */
 export async function buildImage(options: ImageBuildOptions = {}): Promise<ImageBuild> {
   const dir = await desktopImageDir()
-  if (!dir) {
-    throw new SandboxError('image_files_missing', "This install of blobby-sandbox has no desktop image build files. Build the image from a checkout of rwoll/mono-oss: `node packages/blobby-sandbox/images/desktop/build.ts`.")
-  }
-  const build = (await import(pathToFileURL(join(dir, 'build.ts')).href)) as BuildModule
+  if (!dir) throw new SandboxError('image_files_missing', 'This install of @rwoll/blobby-sandbox has no desktop image build files in images/desktop. Reinstall it.')
   try {
-    return await build.buildDesktopImage({
+    return await buildDesktopImage({
       dir,
       ...(options.platform ? { platform: options.platform } : {}),
       noCache: options.noCache ?? false,
@@ -60,7 +53,7 @@ export async function buildImage(options: ImageBuildOptions = {}): Promise<Image
       env: options.env ?? process.env,
     })
   } catch (error) {
-    if (error instanceof build.ImageError) throw new SandboxError(error.code, error.message, { cause: error })
+    if (error instanceof ImageError) throw new SandboxError(error.code, error.message, { cause: error })
     throw error
   }
 }

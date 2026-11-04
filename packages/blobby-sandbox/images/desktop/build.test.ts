@@ -4,7 +4,7 @@ import { chmod, cp, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buildCommand, contentDigest, contentHash, IMAGE_DIR, imageFiles, imageTags, ImageError, npmRegistry, PLATFORMS } from './build.ts'
+import { buildCommand, contentDigest, contentHash, IMAGE_DIR, imageFiles, imageTags, ImageError, npmRegistry, PLATFORMS } from '../../src/desktop-image.ts'
 import { commandSandboxProfile, DOCKER_PROFILE_SHA256, dockerDefaultProfile, NAMESPACE_SYSCALLS } from './seccomp/command-sandbox.ts'
 import { CHECKS, mp4Boxes, parseEnv, pngSize } from './smoke.ts'
 import { afterAll, describe, expect, test } from 'vitest'
@@ -31,15 +31,21 @@ function heredoc(script: string, path: string): string {
 }
 
 describe('content hash', () => {
-  test('covers every file in the folder, sorted', async () => {
+  test('covers the build context, sorted, and nothing else in the folder', async () => {
     const files = await imageFiles()
-    for (const file of ['Dockerfile', '.dockerignore', 'README.md', 'build.ts', 'smoke.ts', 'seccomp/LICENSE', 'seccomp/docker-default.json']) {
-      expect(files.includes(file), file).toBeTruthy()
-    }
+    for (const file of ['Dockerfile', '.dockerignore', 'rootfs/etc/sudoers.d/blobby']) expect(files.includes(file), file).toBeTruthy()
+    for (const file of ['README.md', 'build.ts', 'smoke.ts', 'seccomp/LICENSE']) expect(files.includes(file), file).toBeFalsy()
+    expect(files.every((file) => file === 'Dockerfile' || file === '.dockerignore' || file.startsWith('rootfs/'))).toBeTruthy()
     expect(files).toEqual([...files].sort())
+    expect(await readFile(join(IMAGE_DIR, '.dockerignore'), 'utf8')).toMatch(/^\*\n!rootfs\n$/m)
   })
 
-  test('changes with any file, its executable bit, or a new file, and ignores .DS_Store', async () => {
+  test('the package ships the build context', async () => {
+    const { files } = JSON.parse(await read('package.json')) as { files: string[] }
+    for (const name of ['.dockerignore', 'Dockerfile', 'rootfs']) expect(files, name).toContain(`images/desktop/${name}`)
+  })
+
+  test('changes with any context file, its executable bit, or a new file, and ignores .DS_Store and other files', async () => {
     const dir = await copyOfImage()
     const before = await contentDigest(dir)
     expect(await contentDigest(dir)).toBe(before)
@@ -49,6 +55,9 @@ describe('content hash', () => {
     expect(await contentDigest(dir)).toBe(before)
 
     await writeFile(join(dir, 'README.md'), `${await readFile(join(dir, 'README.md'), 'utf8')}\n`)
+    expect(await contentDigest(dir)).toBe(before)
+
+    await writeFile(join(dir, 'Dockerfile'), `${await readFile(join(dir, 'Dockerfile'), 'utf8')}\n`)
     const edited = await contentDigest(dir)
     expect(edited).not.toBe(before)
 

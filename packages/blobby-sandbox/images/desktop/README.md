@@ -1,18 +1,25 @@
 # Desktop image
 
-`blobby-desktop` is the one image that desktop sandboxes run: Ubuntu 24.04 with GNOME 46's "Ubuntu"
+`blobby-desktop` is the sandbox desktop as a Docker image: Ubuntu 24.04 with GNOME 46's "Ubuntu"
 session on TigerVNC, a browser viewer (noVNC), VS Code's command sandbox, developer tools, screen
-capture, accessibility, and Node.js with playwright-core for recipe steps. The Docker backend runs it
-as a container.
+capture, accessibility, and Node.js with playwright-core for recipe steps.
+
+It's optional. Sandboxes don't need it: every backend installs the same software into a recipe's base
+with `runtime/setup.sh`. No prebuilt image is published; you build it locally, on demand, from the
+files `@rwoll/blobby-sandbox` ships, to run the desktop with plain Docker.
 
 It holds **redistributable software only**. Google Chrome and VS Code Insiders aren't in
 it: they're installed when a sandbox is set up (see
 [Installing Chrome and VS Code](#installing-chrome-and-vs-code)).
 
-From the package folder, `packages/blobby-sandbox`:
+```sh
+blobby-sandbox image build          # build blobby-desktop:<hash> and :latest for this machine
+```
+
+In a checkout, from `packages/blobby-sandbox`:
 
 ```sh
-node images/desktop/build.ts        # build blobby-desktop:<hash> and :latest for this machine
+node images/desktop/build.ts        # the same build, with the options below
 node images/desktop/smoke.ts        # start it with plain Docker and check the desktop works
 ```
 
@@ -55,12 +62,14 @@ node images/desktop/build.ts [--json] [--platform linux/amd64|linux/arm64] [--no
   [--builder <name>] [--cache-from <spec>]... [--cache-to <spec>]... [--verbose] [--dry-run] [--hash]
 ```
 
-It needs Docker with BuildKit (Docker Engine 23 or later, or Docker Desktop) and no npm packages.
+It needs Docker with BuildKit (Docker Engine 23 or later, or Docker Desktop). `blobby-sandbox image
+build` runs the same build, with `--platform` and `--no-cache`; `buildImage()` does it from code.
 
 - **Tags:** `blobby-desktop:<hash>` and `blobby-desktop:latest`, where `<hash>` is the first 12 hex
-  digits of a SHA-256 over every file in this folder: its path, executable bit, and contents. A change
-  to any file here makes a new tag; unchanged steps still come from Docker's cache. `--hash` prints the
-  hash without building.
+  digits of a SHA-256 over the build context (`Dockerfile`, `.dockerignore`, and `rootfs/`): each
+  file's path, executable bit, and contents. The package ships exactly those files, so a checkout and an
+  npm install build the same tag. A change to any of them makes a new tag; unchanged steps still come
+  from Docker's cache. `--hash` prints the hash without building.
 - **Platform:** the Docker host's architecture by default, so it runs natively on Apple silicon.
   `--platform` builds another one (amd64 or arm64) with emulation, tagged `blobby-desktop:<hash>-<arch>`
   only, so it never replaces the image this machine runs.
@@ -68,7 +77,8 @@ It needs Docker with BuildKit (Docker Engine 23 or later, or Docker Desktop) and
   (`https://github.com/rwoll/mono-oss`), `.licenses` (`MIT`), `.version` (the hash), `.revision` (the
   git commit, when there is one), `.base.name`, and `.base.digest`.
 - **npm registry:** playwright-core comes from `pnpm_config_registry` or `npm_config_registry` when set,
-  otherwise from the `registry=` line of the repository's `.npmrc`, otherwise from the public registry.
+  otherwise, in a checkout, from the `registry=` line of the repository's `.npmrc`, otherwise from the
+  public registry.
   Only that line is read. The Dockerfile never names a registry: the build gets it as a BuildKit secret,
   so the host stays out of the image's history, and the pinned SHA-512 decides what's installed.
 - **Caches and builders:** `--builder`, `--cache-from`, and `--cache-to` switch to `docker buildx build
@@ -84,7 +94,7 @@ It needs Docker with BuildKit (Docker Engine 23 or later, or Docker Desktop) and
 
   `size` is what `docker images` shows. Errors go to stderr as `{ "error": { "code", "message" } }`, with
   exit code 1. Codes: `docker_unavailable`, `image_build_failed`, `unsupported_platform`,
-  `invalid_image_files`, `cancelled`, and `usage`.
+  `image_files_missing`, `invalid_image_files`, `cancelled`, and `usage`.
 
 From code, `buildDesktopImage(options)` resolves with the same object and throws `ImageError`.
 

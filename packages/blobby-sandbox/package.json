@@ -58,6 +58,9 @@
     "runtime",
     "recipes",
     "seccomp",
+    "images/desktop/.dockerignore",
+    "images/desktop/Dockerfile",
+    "images/desktop/rootfs",
     "README.md"
   ],
   "engines": {

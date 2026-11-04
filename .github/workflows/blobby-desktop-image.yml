@@ -10,6 +10,7 @@ on:
     paths:
       - 'packages/blobby-sandbox/images/**'
       - 'packages/blobby-sandbox/runtime/**'
+      - 'packages/blobby-sandbox/src/desktop-image.ts'
       - '.github/workflows/blobby-desktop-image.yml'
   workflow_dispatch:
 
