@@ -126,7 +126,7 @@ If you are over budget, cut sections before you cut examples.
 2. Is there at least one concrete example: a screenshot, value, quoted message, or table?
 3. Delete every line in [Leave out](#leave-out).
 4. Is the prose within the length budget?
-5. If a tool for proposing PR drafts is available, such as a Session summary
-   canvas's `propose_pr`, save the draft there before creating or updating the PR.
+5. If a tool for proposing PR drafts is available, save the draft there before
+   creating or updating the PR.
 
 For full examples, see [references/examples.md](references/examples.md).

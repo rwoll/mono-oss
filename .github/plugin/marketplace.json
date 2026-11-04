@@ -13,8 +13,14 @@
     {
       "name": "pr-descriptions",
       "description": "Write short, reader-first pull request titles and descriptions.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "source": "./plugins/pr-descriptions"
+    },
+    {
+      "name": "session-summary",
+      "description": "An executive summary of this chat's work that the agent keeps up to date on a schedule.",
+      "version": "0.7.0",
+      "source": "./plugins/session-summary"
     }
   ]
 }
