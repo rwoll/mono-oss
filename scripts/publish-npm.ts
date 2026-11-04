@@ -1,14 +1,16 @@
 // Publish every package whose version is not on npm yet. .github/workflows/release.yml runs:
 //   node scripts/publish-npm.ts plan                  # which packages to release
 //   node scripts/publish-npm.ts pack --out <dir>      # build job, no npm credentials
-//   node scripts/publish-npm.ts publish --from <dir>  # publish job, npm trusted publishing
+//   node scripts/publish-npm.ts publish --from <dir>  # publish job: stage on npm with trusted publishing
 //   node scripts/publish-npm.ts notes <folder> <version>
 //
 // A package is released when it is not "private", its version is not 0.0.0
 // (unreleased), and that version is not on npm. pack and publish read the plan
 // from the PLAN environment variable. In GitHub Actions, pack writes the
 // tarballs' hashes as the step output `integrity`, and publish refuses tarballs
-// whose hashes differ from EXPECTED_INTEGRITY, then publishes with provenance.
+// whose hashes differ from EXPECTED_INTEGRITY, then stages them with
+// `npm stage publish` through trusted publishing (with provenance from a public
+// repository). A maintainer approves each staged version on npm, with 2FA.
 // Versions already on npm are skipped, so a rerun after a partial failure is safe.
 // Packages are packed with pnpm, which replaces workspace: and catalog: ranges,
 // and published with npm. Locally: plan, pack, then `publish --dry-run`.
@@ -21,11 +23,12 @@ import { parseArgs } from 'node:util';
 
 const REGISTRY = 'https://registry.npmjs.org/';
 // Trusted publishing needs npm 11.5.1 or later.
-const MIN_NPM = [11, 5, 1];
+// The first npm with `npm stage`.
+const MIN_NPM = [11, 15, 0];
 // The only publishConfig a tarball may carry. npm applies publishConfig while it
 // publishes, so anything else (a proxy, TLS settings, another registry) could
 // redirect the trusted publishing credential.
-const PUBLISH_CONFIG = { access: 'public', registry: REGISTRY, provenance: true };
+const PUBLISH_CONFIG = { access: 'public', registry: REGISTRY };
 // Files written into a package while packing it: `canvas-kit init` pins new
 // marketplaces' publish workflow to the mono-oss commit the kit was released from.
 const STAMPS: Record<string, string> = { 'canvas-kit': 'release.json' };
@@ -163,21 +166,33 @@ function checkNpmVersion(): void {
   const current = run('npm', ['--version'], { capture: true }).stdout.trim().split('.').map(Number);
   const index = current.findIndex((part, position) => part !== MIN_NPM[position]);
   if (index !== -1 && (current[index] as number) < (MIN_NPM[index] as number)) {
-    throw new Error(`npm ${current.join('.')} cannot use trusted publishing; use npm ${MIN_NPM.join('.')} or later`);
+    throw new Error(`npm ${current.join('.')} cannot stage packages; use npm ${MIN_NPM.join('.')} or later`);
   }
 }
 
 function publish(dir: string): void {
   if (process.env.GITHUB_ACTIONS) checkNpmVersion();
+  const staged: string[] = [];
   for (const { file, name, version, integrity } of tarballs(dir)) {
     if (onNpm(name, version)) {
       console.log(`${name}@${version} is already on npm; skipping.`);
       continue;
     }
-    console.log(`Publishing ${name}@${version} (${integrity})`);
+    console.log(`Staging ${name}@${version} (${integrity})`);
     const tagArgs = version.includes('-') ? ['--tag', 'next'] : [];
-    const provenanceArgs = process.env.GITHUB_ACTIONS ? ['--provenance'] : [];
-    run('npm', ['publish', file, '--access', 'public', '--ignore-scripts', '--registry', REGISTRY, ...provenanceArgs, ...tagArgs, ...(values['dry-run'] ? ['--dry-run'] : [])]);
+    run('npm', ['stage', 'publish', file, '--access', 'public', '--ignore-scripts', '--registry', REGISTRY, ...tagArgs, ...(values['dry-run'] ? ['--dry-run'] : [])]);
+    staged.push(`${name}@${version}`);
+  }
+  if (staged.length && process.env.GITHUB_STEP_SUMMARY) {
+    appendFileSync(
+      process.env.GITHUB_STEP_SUMMARY,
+      [
+        `Staged on npm, waiting for approval: ${staged.join(', ')}.`,
+        '',
+        'Approve each with 2FA on npmjs.com, or run `npm stage list <package>` and `npm stage approve <stage-id>`.',
+        '',
+      ].join('\n'),
+    );
   }
 }
 

@@ -8,8 +8,10 @@
 # - publish runs in the `npm` environment (required reviewer, main only) with
 #   `id-token: write` for npm trusted publishing. It downloads the build job's
 #   artifact by ID, checks each tarball's hash against the build job's output,
-#   and runs only `npm publish`, which adds provenance.
-# - tag creates the tags and releases after everything is published.
+#   and runs only `npm stage publish`. Nothing is public until a maintainer
+#   approves the staged version on npm with 2FA. npm adds provenance when this
+#   repository is public, and stages without it while it is private.
+# - tag creates the tags and releases after everything is staged.
 # No job restores a dependency cache.
 name: Release
 
@@ -116,12 +118,6 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - name: Check the repository is public
-        if: github.event.repository.private
-        run: |
-          echo "::error::npm provenance needs a public repository. Make rwoll/mono-oss public first; see RELEASING.md."
-          exit 1
-
       # The publish script only; nothing is installed or built here.
       - uses: actions/checkout@v7.0.1
         with:
@@ -140,7 +136,7 @@ jobs:
           path: ${{ runner.temp }}/npm-packages
           merge-multiple: true
 
-      - name: Publish
+      - name: Stage on npm
         env:
           PLAN: ${{ needs.plan.outputs.releases }}
           EXPECTED_INTEGRITY: ${{ needs.build.outputs.integrity }}

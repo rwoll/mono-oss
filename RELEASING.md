@@ -2,8 +2,7 @@
 
 Every package in [packages/](packages) is versioned and released on its own.
 Releases are published to npm from this repository by
-[release.yml](.github/workflows/release.yml), with
-[provenance](https://docs.npmjs.com/generating-provenance-statements), and
+[release.yml](.github/workflows/release.yml) with npm trusted publishing, and
 tagged `<folder>@<version>` (for example `hello@0.1.0`).
 
 ## Release a package
@@ -27,14 +26,25 @@ here, [Release](.github/workflows/release.yml) runs on the push to `main`:
 3. **test** runs `pnpm check`.
 4. **publish** waits for approval of the `npm` environment, downloads the build
    job's artifact by ID, checks every tarball against the recorded hashes, and
-   publishes with provenance. Nothing is installed or built in this job, and only
+   [stages](https://docs.npmjs.com/cli/v12/commands/npm-stage) them with
+   `npm stage publish`. npm adds
+   [provenance](https://docs.npmjs.com/generating-provenance-statements) only when
+   this repository is public. Nothing is installed or built in this job, and only
    it can request an npm token.
 5. **tag** creates the `<folder>@<version>` tag and a GitHub release with the
    changelog section.
+6. **You approve** each staged version with 2FA, on the package's page on
+   npmjs.com or from your machine. Until then nobody can install it:
 
-Versions already on npm are skipped, so rerunning a failed release (**Run
-workflow** on Release) is safe. Prerelease versions such as `1.0.0-beta.1`
-publish to the `next` dist-tag.
+   ```sh
+   npm stage list @rwoll/canvas-kit
+   npm stage approve <stage-id>
+   ```
+
+Versions already on npm are skipped. A version that is staged but not approved
+cannot be staged again, so approve or reject it (`npm stage reject <stage-id>`)
+before rerunning a failed release (**Run workflow** on Release). Prerelease
+versions such as `1.0.0-beta.1` publish to the `next` dist-tag.
 
 ### canvas-kit and create-canvas
 
@@ -64,8 +74,7 @@ Each plugin gets a `release.json` stamp with the source commit that last changed
 
 ## First publish of a new package
 
-npm trusted publishing can only be set up for a package name that exists, and
-provenance needs a public repository. No npm token goes into GitHub: claim the
+npm trusted publishing can only be set up for a package name that exists. No npm token goes into GitHub: claim the
 name once from your machine, then every release comes from CI.
 
 1. Claim the name with a placeholder, with 2FA:
@@ -78,12 +87,12 @@ name once from your machine, then every release comes from CI.
 
 2. On npmjs.com, in the package's settings:
    - **Trusted publishing**: GitHub Actions, repository `rwoll/mono-oss`,
-     workflow `release.yml`, environment `npm`. Under **Allowed actions**, also
-     allow `npm publish`.
+     workflow `release.yml`, environment `npm`. Under **Allowed actions**, allow
+     only `npm stage publish`, so every release waits for your approval.
    - **Publishing access**: "Require two-factor authentication and disallow
      tokens". Trusted publishing keeps working.
 
-   A new trusted publisher must publish within 2 days or npm drops it, so add
+   A new trusted publisher must publish within 2 days or npm expires it, so add
    it when the release is ready.
 3. Release the package as above.
 
@@ -92,10 +101,11 @@ name once from your machine, then every release comes from CI.
 | Setting | What it does |
 | --- | --- |
 | `npm` environment | Only `main` deploys, and a maintainer approves each release. The only place an npm token can be requested. |
+| Staged publishing | Trusted publishing may only stage; a maintainer approves each version on npm with 2FA before it is public. Tokens cannot publish. |
 | `stable` environment | Only `main` deploys; the only job that can push the `stable` branch. |
 | Pull requests | Turned off: this repository only changes through the export. |
 | Ruleset on `main` | Only the export's GitHub App can push; no force pushes or deletion. |
-| Tags | Created only by the release workflow after a successful publish. |
+| Tags | Created only by the release workflow after the packages are staged. |
 | [`actions.lock`](.github/workflows/actions.lock) | Every action runs at the commit the lockfile records, checked again by the runner. |
 | Dependencies | pnpm installs only versions published at least 7 days ago (`@rwoll` packages excepted), never runs dependency install scripts, and CI installs with the frozen lockfile. |
 
