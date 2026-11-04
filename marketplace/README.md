@@ -11,6 +11,7 @@ copilot plugin install canvas-kit@rwoll
 
 | Plugin | What it is |
 | --- | --- |
+| [`annotate`](canvases/annotate) | A canvas and skill for annotated screenshots and screen recordings, made with [`@rwoll/annotate`](../packages/annotate). |
 | [`canvas-kit`](plugins/canvas-kit) | Skills for building, testing, and publishing Copilot canvases with [`@rwoll/canvas-kit`](../packages/canvas-kit). |
 | [`pr-descriptions`](plugins/pr-descriptions) | A skill for short, reader-first pull request titles and descriptions. |
 | [`session-summary`](canvases/session-summary) | A canvas with an executive summary of the chat that the agent keeps up to date. |

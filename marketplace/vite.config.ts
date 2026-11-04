@@ -2,11 +2,18 @@ import { canvasKit } from '@rwoll/canvas-kit/vite'
 import { defineConfig } from 'vite'
 
 // Content plugins (skills, MCP servers) live in plugins/. Canvases live in
-// canvases/, and each ships as its own plugin, listed here.
+// canvases/, and each ships as its own plugin, listed here with its skills.
 export default defineConfig({
   plugins: [
     canvasKit({
       plugins: [
+        {
+          name: 'annotate',
+          version: '0.1.0',
+          description: 'Annotate screenshots and screen recordings with the agent: zoom, marks, captions, before/after, and redaction, exported to PNG, MP4, or GIF.',
+          canvases: ['annotate'],
+          skills: ['annotate'],
+        },
         {
           name: 'session-summary',
           version: '0.7.0',

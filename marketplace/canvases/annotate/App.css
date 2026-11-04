@@ -1,0 +1,55 @@
+/* Flat and quiet, like the other canvases here: spacing and hairlines, no cards. */
+.annotate {
+  max-width: var(--width);
+  margin: 0 auto;
+  padding: var(--gutter);
+  display: grid;
+  gap: 16px;
+}
+.annotate.empty { place-items: start; }
+.annotate h1 { margin: 0; font-size: 14px; font-weight: var(--semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.annotate h2 { margin: 0; font-size: 12px; font-weight: var(--semibold); text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.annotate section { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid var(--hairline); }
+
+.bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bar .spacer { flex: 1; }
+.toggle { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.adders { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+
+.list { list-style: none; margin: 0; padding: 0; display: grid; }
+.list li { border-bottom: 1px solid var(--hairline); }
+.list li.selected { background: var(--tint); }
+.row { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 72px 1fr auto; gap: 8px; width: 100%; padding: 4px 6px; cursor: pointer; }
+.row:focus-visible { outline: 2px solid var(--focus); }
+.row .kind { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+.row .text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.inspector { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; padding: 4px 6px 8px; }
+.inspector label { display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
+.inspector label.toggle { display: inline-flex; color: inherit; }
+.inspector input:not([type]), .inspector input[inputmode] { width: 16ch; }
+.inspector .times { display: inline-flex; gap: 6px; }
+.inspector .times input { width: 7ch; }
+.danger { color: var(--bad); }
+
+.cue { display: grid; grid-template-columns: 56px 1fr auto; gap: 6px; align-items: center; padding: 3px 0; }
+.cue input { width: 100%; box-sizing: border-box; }
+.cue .warn { grid-column: 2 / -1; color: var(--warn); font-size: 12px; }
+.link { all: unset; cursor: pointer; color: var(--accent); }
+.link:focus-visible { outline: 2px solid var(--focus); }
+
+.issues { margin: 0; padding-left: 18px; }
+.issues .error { color: var(--bad); }
+.issues .warning { color: var(--warn); }
+.exports { margin: 0; padding-left: 18px; overflow-wrap: anywhere; }
+
+textarea { width: 100%; min-height: 56px; box-sizing: border-box; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 4px 6px; }
+input, select { font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 2px 4px; }
+
+/* Editing handles over the player. */
+.handles { position: absolute; inset: 0; }
+.handle { position: absolute; box-sizing: border-box; cursor: move; touch-action: none; }
+.handle.box { border: 1px dashed color-mix(in srgb, var(--accent) 70%, transparent); }
+.handle.box.selected { border: 2px solid var(--accent); }
+.handle.point { width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+.handle .resize { position: absolute; right: -6px; bottom: -6px; width: 12px; height: 12px; background: var(--accent); cursor: nwse-resize; touch-action: none; }

@@ -1,0 +1,91 @@
+{
+  "name": "@rwoll/annotate",
+  "version": "0.1.0",
+  "description": "Annotate screenshots and screen recordings from one JSON document: zoom, marks, captions, before/after, and redaction, rendered to PNG, MP4, or an interactive player.",
+  "keywords": [
+    "annotate",
+    "screenshot",
+    "screen-recording",
+    "video",
+    "captions",
+    "playwright",
+    "sharp",
+    "ffmpeg"
+  ],
+  "license": "MIT",
+  "author": "Ross A. Wollman",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rwoll/mono-oss.git",
+    "directory": "packages/annotate"
+  },
+  "homepage": "https://github.com/rwoll/mono-oss/tree/main/packages/annotate#readme",
+  "bugs": "https://github.com/rwoll/mono-oss/issues",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "annotate": "./bin/annotate.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "default": "./dist/node/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "default": "./dist/browser.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "default": "./dist/react.js"
+    },
+    "./playwright": {
+      "types": "./dist/playwright.d.ts",
+      "default": "./dist/playwright.js"
+    },
+    "./schema.json": "./dist/schema.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.tsbuildinfo",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node bin/annotate.js schema -o dist/schema.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "sharp": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

@@ -1,0 +1,18 @@
+# annotate
+
+A canvas for annotate documents: marks, zoom, captions, before/after, and redaction
+on a screenshot or screen recording, made with [`@rwoll/annotate`](../../../packages/annotate).
+The agent opens it with a document (or an image or video to start one), and you
+play it, fix marks by dragging them, edit labels and captions, and export.
+
+- **The file is the source of truth.** Every edit is saved to the document file, and
+  edits made to the file outside the canvas show up within two seconds.
+- **Export** renders with the annotate CLI, pinned to the version the canvas was
+  built with (`npx @rwoll/annotate@<version>`), next to the document as
+  `<name>-annotated.<format>` (never over the original), then tells the agent where
+  the file is. Video needs ffmpeg. Set `ANNOTATE_CLI` to use another
+  annotate command or a checkout's `bin/annotate.js`.
+- **Ask the agent** sends your note, and the selected annotation, to the chat.
+
+The plugin also ships the [annotate skill](../../skills/annotate/SKILL.md), which teaches
+the agent the document format and workflow.

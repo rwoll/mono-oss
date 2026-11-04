@@ -23,6 +23,7 @@
     "vitest": "catalog:"
   },
   "dependencies": {
+    "@rwoll/annotate": "workspace:*",
     "@rwoll/canvas-kit": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:"

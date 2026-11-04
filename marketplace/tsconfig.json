@@ -1,4 +1,12 @@
 {
   "extends": "@rwoll/canvas-kit/tsconfig/project.json",
-  "include": ["${configDir}/canvases", "${configDir}/ui", "${configDir}/test", "${configDir}/*.ts"]
+  "include": [
+    "${configDir}/canvases",
+    "${configDir}/ui",
+    "${configDir}/test",
+    "${configDir}/*.ts"
+  ],
+  "compilerOptions": {
+    "resolveJsonModule": true
+  }
 }

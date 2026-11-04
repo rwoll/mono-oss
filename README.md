@@ -11,6 +11,7 @@ Open source tools and `@rwoll` npm packages by [@rwoll](https://github.com/rwoll
 
 | Package | Description |
 | --- | --- |
+| [`@rwoll/annotate`](packages/annotate) | Annotate screenshots and screen recordings from one JSON document: zoom, marks, captions, before/after, and redaction, rendered to PNG, MP4, or an interactive player. |
 | [`@rwoll/canvas-kit`](packages/canvas-kit) | Build Copilot canvas extensions with TypeScript and React: typed state and actions, a secure local host, a Vite build, test helpers, and marketplace publishing. |
 | [`@rwoll/create-canvas`](packages/create-canvas) | `npm create @rwoll/canvas`: start a canvas marketplace with canvas-kit. |
 | [`@rwoll/hello`](packages/hello) | Example package: shows the layout every `@rwoll` package starts from. |
@@ -34,6 +35,26 @@ npm create @rwoll/canvas my-canvases -- --repository me/my-canvases --canvas boa
 
 See the [canvas-kit guide](packages/canvas-kit#readme) for the API.
 
+## annotate
+
+<img src="docs/annotate/logo.png" alt="annotate logo: a screenshot with a numbered highlight and an arrow pointing at it" width="96" align="right">
+
+**Screenshots and screen recordings that explain themselves.** Describe the marks
+once, in JSON: numbered steps, zoom that follows the action, captions, a
+before/after wipe, and redaction. Render it to PNG, MP4, or GIF, or review it with
+your agent in a Copilot canvas.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/annotate/hero-dark.png">
+  <img alt="annotate: screenshots and recordings that explain themselves. Three outputs: a settings page with numbered steps, a boxed bug, and a redacted API key; a recording zoomed onto a toast that says Saved 0 changes, with a caption; and a before/after split zoomed onto a realigned Save button. Below, the Playwright and CLI code that made them." src="docs/annotate/hero-light.png">
+</picture>
+
+```sh
+npx @rwoll/annotate render bug.annotate.json -o bug.png
+```
+
+See the [annotate guide](packages/annotate#readme) for examples and the format.
+
 ## Plugin marketplace
 
 Copilot plugins from this repository, published to its `stable` branch:
@@ -45,6 +66,7 @@ copilot plugin install canvas-kit@rwoll
 
 | Plugin | Description |
 | --- | --- |
+| [`annotate`](marketplace/canvases/annotate) | A canvas and skill for annotated screenshots and screen recordings. |
 | [`canvas-kit`](marketplace/plugins/canvas-kit) | Skills for building, testing, and publishing canvases with canvas-kit. |
 | [`pr-descriptions`](marketplace/plugins/pr-descriptions) | A skill for short, reader-first pull request titles and descriptions. |
 | [`session-summary`](marketplace/canvases/session-summary) | A canvas with an executive summary of the chat that the agent keeps up to date. |
