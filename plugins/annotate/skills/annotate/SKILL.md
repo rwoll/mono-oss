@@ -1,14 +1,21 @@
 ---
 name: annotate
-description: "Make annotated screenshots and screen recordings that show a UI problem or change: boxes, arrows, numbered steps, zoom, magnifier, spotlight, measurements, before/after wipe, redaction, and captions, from one JSON document, rendered to PNG, MP4, or GIF with `npx @rwoll/annotate`, and reviewed with the user in the annotate canvas. Use it when you need to show, not tell: bug reports, pull request media, QA findings, walkthroughs, and visual diffs."
+description: "Make annotated screenshots and screen recordings that show a UI problem or change: boxes, arrows, numbered steps, zoom, magnifier, spotlight, measurements, before/after wipe, redaction, and captions, from one JSON document, rendered to PNG, MP4, or GIF with the `annotate` CLI (`@rwoll/annotate`), and reviewed with the user in the annotate canvas. Use it when you need to show, not tell: bug reports, pull request media, QA findings, walkthroughs, and visual diffs."
 ---
 
 # Annotate screenshots and recordings
 
 One JSON document describes everything drawn on an image or video. The same
-document renders to a flat PNG or MP4 (`npx @rwoll/annotate render`) and plays in
+document renders to a flat PNG or MP4 (`annotate render`) and plays in
 the annotate canvas, where the user can fix a mark by dragging it. The CLI needs
 Node.js 24; video needs ffmpeg.
+
+**Setup.** Run `annotate --version`. If the command is missing, or the canvas says
+it's too old, ask the user, then run `node scripts/install-tools.ts annotate` from
+this skill's folder. It installs `@rwoll/annotate` globally from its newest GitHub
+release, after checking the download against GitHub's digest; its other
+dependencies come from npm's registry, only once they're 7 days old.
+Don't run the CLI with npx.
 
 Read [references/document.md](references/document.md) for every field and
 [references/recipes.md](references/recipes.md) for Playwright capture, recordings,
@@ -21,7 +28,7 @@ before/after, and pull request media.
    For an existing image or video, start a document:
 
    ```sh
-   npx @rwoll/annotate init shot.png          # writes shot.annotate.json with the size
+   annotate init shot.png          # writes shot.annotate.json with the size
    ```
 
 2. **Find positions.** Coordinates are source pixels: the image's own pixels
@@ -29,7 +36,7 @@ before/after, and pull request media.
    grid, look at it, and read positions off it:
 
    ```sh
-   npx @rwoll/annotate grid shot.png -o grid.png --step 100
+   annotate grid shot.png -o grid.png --step 100
    ```
 
 3. **Write the document**: annotations, and for video, camera shots and captions.
@@ -37,15 +44,15 @@ before/after, and pull request media.
    to read, and redactions that do not cover the whole video:
 
    ```sh
-   npx @rwoll/annotate check shot.annotate.json
+   annotate check shot.annotate.json
    ```
 
 5. **Render, then look at the output** before you share it. Fix overlaps, wrong
    boxes, and unreadable labels, and render again.
 
    ```sh
-   npx @rwoll/annotate render shot.annotate.json -o shot.png
-   npx @rwoll/annotate render demo.annotate.json -o demo.mp4 -o demo.gif --vtt demo.vtt
+   annotate render shot.annotate.json -o shot.png
+   annotate render demo.annotate.json -o demo.mp4 -o demo.gif --vtt demo.vtt
    ```
 
 6. **Review with the user** when the result matters: open the canvas (below). They
@@ -80,7 +87,7 @@ time `t`; its end defaults to the next cue or its reading time.
 - Captions are burned into MP4 and GIF by default. `--captions soft` adds a
   subtitle track instead (MP4, WebM), and `--vtt` writes a WebVTT file.
 - For a pull request, put the transcript under the video:
-  `npx @rwoll/annotate captions demo.annotate.json --format md`.
+  `annotate captions demo.annotate.json --format md`.
 
 ## Redaction
 

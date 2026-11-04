@@ -8266,8 +8266,9 @@ var VIDEO_FORMATS = /* @__PURE__ */ new Set([
 	"gif"
 ]);
 // canvases/annotate/canvas.ts
-/** The CLI version exports run, pinned to the @rwoll/annotate this canvas was built with. */
+/** The oldest annotate CLI exports run with: the @rwoll/annotate this canvas was built with. */
 var ANNOTATE_VERSION = package_default.version;
+var INSTALL_HELP = "Ask the agent to install it with the annotate skill (its scripts/install-tools.ts), or see https://github.com/rwoll/mono-oss/tree/main/packages/annotate#install.";
 var issue = object({
 	level: _enum(["error", "warning"]),
 	path: string(),
@@ -8434,7 +8435,7 @@ function indexOf(document, target) {
 	if (index < 0 || index >= document.annotations.length) throw new CanvasKitError("not_found", `No annotation ${JSON.stringify(target)}`);
 	return index;
 }
-/** How exports run the CLI: ANNOTATE_CLI (a command, or a .js file run with Node.js), else the pinned package with npx. */
+/** How exports run the CLI: ANNOTATE_CLI (a command, or a .js file run with Node.js), else `annotate` on PATH. */
 function cliCommand(env = process.env) {
 	const explicit = env.ANNOTATE_CLI;
 	if (explicit) return /\.[cm]?[jt]s$/.test(explicit) ? {
@@ -8444,26 +8445,52 @@ function cliCommand(env = process.env) {
 		command: explicit,
 		args: []
 	};
-	if (ANNOTATE_VERSION === "0.0.0") throw new CanvasKitError("unavailable", "@rwoll/annotate is not published yet. Set ANNOTATE_CLI to the annotate command, or to its bin/annotate.js.");
 	return {
-		command: process.platform === "win32" ? "npx.cmd" : "npx",
-		args: ["--yes", `@rwoll/annotate@${ANNOTATE_VERSION}`]
+		command: process.platform === "win32" ? "annotate.cmd" : "annotate",
+		args: []
 	};
 }
-function runCli(args, cwd, onProgress) {
-	const { command, args: prefix } = cliCommand();
+/** Whether `version` is `minimum` or later. Pre-release suffixes are ignored. */
+function atLeast(version, minimum) {
+	const parse = (v) => (v.trim().replace(/^v/, "").split(/[-+]/)[0] ?? "").split(".").map(Number);
+	const [a, b] = [parse(version), parse(minimum)];
+	for (let i = 0; i < 3; i++) if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) > (b[i] ?? 0);
+	return true;
+}
+/** Spawns a command; Windows runs .cmd launchers only through a shell, so everything is quoted for it. */
+function spawnCli(command, args, cwd) {
 	const shell = process.platform === "win32" && /\.(cmd|bat)$/i.test(command);
 	const quote = (arg) => shell ? `"${arg.replace(/"/g, "\"\"")}"` : arg;
+	return spawn(quote(command), args.map(quote), {
+		cwd,
+		shell,
+		stdio: [
+			"ignore",
+			"pipe",
+			"pipe"
+		]
+	});
+}
+var installedVersion = (command) => new Promise((done) => {
+	const child = spawnCli(command, ["--version"]);
+	let out = "";
+	child.stdout.on("data", (chunk) => out += chunk.toString("utf8"));
+	child.stderr.resume();
+	child.on("error", () => done(null));
+	child.on("close", (code) => done(code === 0 ? out.trim() : null));
+});
+/** Fails unless the annotate CLI is installed at ANNOTATE_VERSION or later. ANNOTATE_CLI is used as it is. */
+async function checkCli(env = process.env, versionOf = installedVersion) {
+	if (env.ANNOTATE_CLI) return;
+	const version = await versionOf(cliCommand(env).command);
+	if (version === null) throw new CanvasKitError("unavailable", `The annotate command isn't installed. ${INSTALL_HELP}`);
+	if (!atLeast(version, ANNOTATE_VERSION)) throw new CanvasKitError("unavailable", `annotate ${version} is installed, but this canvas needs ${ANNOTATE_VERSION} or later. ${INSTALL_HELP.replace("install it", "update it")}`);
+}
+async function runCli(args, cwd, onProgress) {
+	await checkCli();
+	const { command, args: prefix } = cliCommand();
 	return new Promise((done, fail) => {
-		const child = spawn(quote(command), [...prefix, ...args].map(quote), {
-			cwd,
-			shell,
-			stdio: [
-				"ignore",
-				"pipe",
-				"pipe"
-			]
-		});
+		const child = spawnCli(command, [...prefix, ...args], cwd);
 		let errors = "";
 		let partial = "";
 		child.stderr.on("data", (chunk) => {

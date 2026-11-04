@@ -7,13 +7,13 @@
     {
       "name": "annotate",
       "description": "Annotate screenshots and screen recordings with the agent: zoom, marks, captions, before/after, and redaction, exported to PNG, MP4, or GIF.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "source": "./plugins/annotate"
     },
     {
       "name": "blobby-sandbox",
       "description": "See, start, drive, screenshot, and record Blobby sandboxes in Copilot: the blobby-sandbox skill, and a canvas over its CLI.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "./plugins/blobby-sandbox"
     },
     {
