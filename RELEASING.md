@@ -24,7 +24,7 @@ here, [Release](.github/workflows/release.yml) runs on the push to `main`:
 2. **build** installs with the frozen lockfile, builds, and packs those packages,
    and records each tarball's hash.
 3. **test** runs `pnpm check`.
-4. **publish** waits for approval of the `npm` environment, downloads the build
+4. **publish** runs in the `npm` environment (`main` only), downloads the build
    job's artifact by ID, checks every tarball against the recorded hashes, and
    [stages](https://docs.npmjs.com/cli/v12/commands/npm-stage) them with
    `npm stage publish`. npm adds
@@ -100,7 +100,7 @@ name once from your machine, then every release comes from CI.
 
 | Setting | What it does |
 | --- | --- |
-| `npm` environment | Only `main` deploys, and a maintainer approves each release. The only place an npm token can be requested. |
+| `npm` environment | Only `main` deploys. The only place an npm token can be requested. |
 | Staged publishing | Trusted publishing may only stage; a maintainer approves each version on npm with 2FA before it is public. Tokens cannot publish. |
 | `stable` environment | Only `main` deploys; the only job that can push the `stable` branch. |
 | Pull requests | Turned off: this repository only changes through the export. |

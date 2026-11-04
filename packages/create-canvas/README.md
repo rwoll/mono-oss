@@ -1,7 +1,7 @@
 # @rwoll/create-canvas
 
 Create a Copilot plugin marketplace repository with a TypeScript and React canvas,
-built on [@rwoll/canvas-kit](https://github.com/rwoll/canvas-kit/tree/main/packages/canvas-kit#readme).
+built on [@rwoll/canvas-kit](https://github.com/rwoll/mono-oss/tree/main/packages/canvas-kit#readme).
 
 ```sh
 npm create @rwoll/canvas my-marketplace -- --repository me/my-marketplace --canvas release-board

@@ -5,7 +5,7 @@
 # - plan lists what to release, without installing anything.
 # - build does a frozen install, compiles, and packs the tarballs.
 # - test runs every check.
-# - publish runs in the `npm` environment (required reviewer, main only) with
+# - publish runs in the `npm` environment (main only) with
 #   `id-token: write` for npm trusted publishing. It downloads the build job's
 #   artifact by ID, checks each tarball's hash against the build job's output,
 #   and runs only `npm stage publish`. Nothing is public until a maintainer
