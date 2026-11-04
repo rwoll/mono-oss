@@ -155,6 +155,9 @@ export default function App() {
   `lastRunAt`, `nextRunAt`, `lastError`) and `update(id, { enabled, every })`,
   `run(id)`, `add(job, input, { every })`, and `remove(id)` for jobs with
   `controls` that include the UI. Show intervals with `formatInterval(ms)`.
+- To show local screenshots or recordings, add `files(ctx, id)` to the canvas:
+  look the ID up in state and return `{ path }`, or null. The page uses
+  `getCanvasClient().fileUrl(id)` as the `src`. Never resolve a path the page sent.
 - Use the theme variables from `@rwoll/canvas-kit/styles.css` (`--muted`,
   `--border`, `--accent`). Keep the UI flat: spacing and hairlines, not cards.
 

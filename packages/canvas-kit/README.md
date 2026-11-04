@@ -109,9 +109,10 @@ Folder names are kebab-case. Restart `pnpm dev` after adding a canvas.
 ### Plugins
 
 `vite build` writes one plugin named after the package (without its scope), with
-every canvas and the skills. Its canvases run in one extension process per chat.
-To let people install some canvases on their own, list them as their own plugins;
-the other canvases and the skills stay in the main one:
+every canvas and the skills (`skills/<name>/SKILL.md`). Its canvases run in one
+extension process per chat. To let people install some canvases on their own, list
+them as their own plugins, with any skills that go with them; the other canvases
+and skills stay in the main one:
 
 ```ts
 // vite.config.ts
@@ -119,6 +120,7 @@ canvasKit({
   name: 'my-canvases',     // the main plugin's name; defaults to the package.json name
   plugins: [
     { name: 'session-summary', description: 'An executive summary of the chat.', canvases: ['session-summary'] },
+    { name: 'triage', description: 'Triage QA findings.', canvases: ['triage'], skills: ['qa-run'] },
   ],
   devInput: { 'release-board': { repo: 'octo/app' } },   // open_canvas input for `pnpm dev`, by canvas
 })
@@ -173,6 +175,12 @@ export default defineCanvas({
   `csp: { connectSrc: ['ws://127.0.0.1:*'] }`. The sources apply to that canvas only;
   keywords, paths, and bare wildcards are rejected. The dev server sets no CSP, so
   check such a canvas in a built plugin too.
+- To show local images and videos, such as screenshots and recordings, add
+  `files(ctx, id)`. The page asks for a file by an ID the canvas chose, with
+  `<img src={getCanvasClient().fileUrl(id)}>`; return `{ path }` with an absolute
+  path, or null when the ID is unknown. Look IDs up in an allowlist, such as the
+  media listed in `ctx.state`, never use a path from the page. Only images and
+  videos are served (videos with byte ranges), and only with the page's token.
 - When `persist` is set, the saved file carries a format marker and version. A
   corrupt file or one with a different `persist.version` is reported, never
   overwritten. Bump the version when the state shape changes incompatibly.

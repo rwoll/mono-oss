@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineCanvas, z } from '../src/index.ts';
 import { pickCanvas } from '../src/server/headless.ts';
-import { findCanvases, pageHtml, planPlugins } from '../src/vite.ts';
+import { findCanvases, findSkills, pageHtml, planPlugins } from '../src/vite.ts';
 
 const sdk = vi.hoisted(() => ({ joined: [] as { canvases: { id: string; open: (ctx: unknown) => Promise<unknown> }[] }[] }));
 vi.mock('@github/copilot-sdk/extension', () => ({
@@ -48,28 +48,49 @@ describe('projects', () => {
     expect(() => findCanvases(root)).toThrow('canvases/notes has canvas.ts but no App.tsx');
   });
 
-  it('puts every canvas and the skills in one plugin, or splits some off', () => {
-    expect(planPlugins(project, ['board', 'notes', 'summary'], true)).toEqual([
-      { name: 'demo', version: '1.2.0', description: 'Demo canvases.', canvases: ['board', 'notes', 'summary'], skills: true },
+  it('puts every canvas and the skills in one plugin, or splits some off with their skills', () => {
+    expect(planPlugins(project, ['board', 'notes', 'summary'], ['triage'])).toEqual([
+      { name: 'demo', version: '1.2.0', description: 'Demo canvases.', canvases: ['board', 'notes', 'summary'], skills: ['triage'] },
     ]);
-    const split = planPlugins(project, ['board', 'notes', 'summary'], true, [{ name: 'summary', description: 'Summary.', canvases: ['summary'], version: '2.0.0' }]);
+    const split = planPlugins(project, ['board', 'notes', 'summary'], ['report', 'triage'], [
+      { name: 'summary', description: 'Summary.', canvases: ['summary'], version: '2.0.0' },
+      { name: 'notes', description: 'Notes.', canvases: ['notes'], skills: ['triage'] },
+    ]);
     expect(split).toEqual([
-      { name: 'demo', version: '1.2.0', description: 'Demo canvases.', canvases: ['board', 'notes'], skills: true },
-      { name: 'summary', version: '2.0.0', description: 'Summary.', canvases: ['summary'], skills: false },
+      { name: 'demo', version: '1.2.0', description: 'Demo canvases.', canvases: ['board'], skills: ['report'] },
+      { name: 'summary', version: '2.0.0', description: 'Summary.', canvases: ['summary'], skills: [] },
+      { name: 'notes', version: '1.2.0', description: 'Notes.', canvases: ['notes'], skills: ['triage'] },
     ]);
-    // With every canvas split off and no skills, there is no main plugin.
-    expect(planPlugins(project, ['summary'], false, [{ name: 'summary', description: 'Summary.', canvases: ['summary'] }]).map(plan => plan.name)).toEqual(['summary']);
-    expect(planPlugins(project, [], false)).toEqual([]);
+    // With every canvas and skill split off, there is no main plugin.
+    expect(planPlugins(project, ['summary'], ['triage'], [{ name: 'summary', description: 'Summary.', canvases: ['summary'], skills: ['triage'] }]).map(plan => plan.name)).toEqual(['summary']);
+    expect(planPlugins(project, [], [])).toEqual([]);
 
-    expect(() => planPlugins(project, ['board'], false, [{ name: 'demo', description: 'x', canvases: ['board'] }])).toThrow('Two plugins are named demo');
-    expect(() => planPlugins(project, ['board'], false, [{ name: 'other', description: 'x', canvases: ['nope'] }])).toThrow(/lists nope/);
+    expect(() => planPlugins(project, ['board'], [], [{ name: 'demo', description: 'x', canvases: ['board'] }])).toThrow('Two plugins are named demo');
+    expect(() => planPlugins(project, ['board'], [], [{ name: 'other', description: 'x', canvases: ['nope'] }])).toThrow(/lists nope/);
     expect(() =>
-      planPlugins(project, ['board'], false, [
+      planPlugins(project, ['board'], [], [
         { name: 'a', description: 'x', canvases: ['board'] },
         { name: 'b', description: 'x', canvases: ['board'] },
       ]),
     ).toThrow('board is in both a and b');
-    expect(() => planPlugins(project, ['board'], false, [{ name: 'Bad', description: 'x', canvases: ['board'] }])).toThrow(/kebab-case/);
+    expect(() => planPlugins(project, ['board'], [], [{ name: 'other', description: 'x', canvases: ['board'], skills: ['nope'] }])).toThrow(/lists the skill nope/);
+    expect(() =>
+      planPlugins(project, ['a', 'b'], ['triage'], [
+        { name: 'one', description: 'x', canvases: ['a'], skills: ['triage'] },
+        { name: 'two', description: 'x', canvases: ['b'], skills: ['triage'] },
+      ]),
+    ).toThrow('The skill triage is in both one and two');
+    expect(() => planPlugins(project, ['board'], [], [{ name: 'Bad', description: 'x', canvases: ['board'] }])).toThrow(/kebab-case/);
+  });
+
+  it('finds skills by their SKILL.md', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'canvas-kit-skills-'));
+    cleanups.push(() => rm(root, { recursive: true, force: true }));
+    expect(findSkills(root)).toEqual([]);
+    await mkdir(join(root, 'skills', 'triage'), { recursive: true });
+    await writeFile(join(root, 'skills', 'triage', 'SKILL.md'), '---\nname: triage\n---\n');
+    await mkdir(join(root, 'skills', 'notes'), { recursive: true });
+    expect(findSkills(root)).toEqual(['triage']);
   });
 
   it('generates a page per canvas', () => {

@@ -1,9 +1,9 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { mkdirSync, watch, type FSWatcher } from 'node:fs';
+import { createReadStream, mkdirSync, watch, type FSWatcher } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { basename, extname, join, resolve, sep } from 'node:path';
+import { basename, extname, isAbsolute, join, resolve, sep } from 'node:path';
 import {
   jobForId,
   parseWith,
@@ -13,6 +13,7 @@ import {
   type AgentMessage,
   type AnyCanvas,
   type CompiledJob,
+  type FileContext,
   type JobContext,
   type LogLevel,
 } from '../define.ts';
@@ -163,6 +164,20 @@ const MAX_BODY_BYTES = 1024 * 1024;
 const HEARTBEAT_MS = 15_000;
 const HISTORY_WAIT_MS = 5_000;
 const INSTANCE_PATH = /^\/c\/([0-9a-f]{32})(\/.*)?$/;
+/** What `files` may serve: images and videos only, so a served file can never run as a page. */
+const FILE_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+  '.mp4': 'video/mp4',
+  '.m4v': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+};
+const FILE_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/;
 const CONTENT_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -523,8 +538,15 @@ export class CanvasHost {
   async handleApi(instanceId: string, path: string, request: IncomingMessage, response: ServerResponse): Promise<void> {
     const instance = this.#instances.get(instanceId);
     if (!instance) throw new CanvasKitError('not_found', 'This canvas was closed; ask the agent to reopen it');
-    if (!tokenMatches(request.headers['x-canvas-token'], instance.token)) {
+    const file = /^__canvas\/files\/([^/]+)$/.exec(path);
+    // Images and videos are loaded by the browser, which cannot add headers, so their URLs carry the token.
+    const supplied = file ? new URL(request.url ?? '/', 'http://canvas').searchParams.get('token') : request.headers['x-canvas-token'];
+    if (!tokenMatches(supplied ?? undefined, instance.token)) {
       throw new CanvasKitError('forbidden', 'Canvas token required; reload the canvas');
+    }
+    if (file && (request.method === 'GET' || request.method === 'HEAD')) {
+      await this.#sendFile(instance, file[1]!, request, response);
+      return;
     }
     if (path === '__canvas/state' && request.method === 'GET') {
       sendJson(response, 200, this.#snapshotOf(instance.slot));
@@ -542,6 +564,71 @@ export class CanvasHost {
       return;
     }
     throw new CanvasKitError('not_found', 'Route not found');
+  }
+
+  async #sendFile(instance: Instance, id: string, request: IncomingMessage, response: ServerResponse): Promise<void> {
+    const resolver = this.canvas.files;
+    if (!resolver || !FILE_ID.test(id)) throw new CanvasKitError('not_found', 'File not found');
+    const slot = instance.slot;
+    const ctx: FileContext<unknown> = {
+      canvasId: this.canvas.id,
+      instanceId: instance.instanceId,
+      get state() {
+        return slot.state;
+      },
+      dataDir: this.#dataDir,
+      log: (message, level) => this.log(message, level),
+    };
+    const found = await resolver(ctx, id);
+    const type = found && FILE_TYPES[extname(found.path).toLowerCase()];
+    if (!found || !isAbsolute(found.path) || !type) throw new CanvasKitError('not_found', 'File not found');
+    let size: number;
+    try {
+      const info = await stat(found.path);
+      if (!info.isFile()) throw new Error('not a file');
+      size = info.size;
+    } catch {
+      throw new CanvasKitError('not_found', 'File not found');
+    }
+    // Videos seek with byte ranges.
+    const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.range ?? '');
+    const partial = Boolean(range && (range[1] || range[2]));
+    let start = 0;
+    let end = size - 1;
+    if (range && partial) {
+      start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]));
+      end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+      if (start > end || start >= size) {
+        response.writeHead(416, { 'Content-Range': `bytes */${size}` });
+        response.end();
+        return;
+      }
+    }
+    response.writeHead(partial ? 206 : 200, {
+      'Content-Type': type,
+      'Content-Length': String(end - start + 1),
+      'Accept-Ranges': 'bytes',
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      ...(partial && { 'Content-Range': `bytes ${start}-${end}/${size}` }),
+    });
+    if (request.method === 'HEAD' || size === 0) {
+      response.end();
+      return;
+    }
+    await new Promise<void>(done => {
+      const stream = createReadStream(found.path, { start, end });
+      stream.once('error', () => {
+        response.destroy();
+        done();
+      });
+      stream.once('end', done);
+      response.once('close', () => {
+        stream.destroy();
+        done();
+      });
+      stream.pipe(response);
+    });
   }
 
   /**

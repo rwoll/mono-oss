@@ -92,6 +92,56 @@ describe('CanvasHost', () => {
     expect(redirect.headers.get('location')).toBe(new URL(url).pathname);
   });
 
+  it('serves only the images and videos a canvas resolves, with the token and byte ranges', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'canvas-kit-files-'));
+    cleanups.push(() => rm(dir, { recursive: true, force: true }));
+    await writeFile(join(dir, 'shot.png'), Buffer.from('89504e470d0a1a0a', 'hex'));
+    await writeFile(join(dir, 'clip.webm'), Buffer.from('0123456789'));
+    await writeFile(join(dir, 'page.html'), '<script>alert(1)</script>');
+    const seen: string[] = [];
+    const media = defineCanvas({
+      id: 'kit-files',
+      title: 'Files',
+      description: 'Shows local media.',
+      state: z.object({ allowed: z.array(z.string()) }),
+      init: () => ({ allowed: ['shot', 'clip', 'page'] }),
+      files: (ctx, id) => {
+        seen.push(`${ctx.instanceId}:${id}`);
+        const name = { shot: 'shot.png', clip: 'clip.webm', page: 'page.html', relative: 'shot.png' }[id];
+        if (!name || !ctx.state.allowed.includes(id)) return id === 'relative' ? { path: 'shot.png' } : null;
+        return { path: join(dir, name) };
+      },
+    });
+    const canvas = await testCanvas(media);
+    const { url } = await canvas.open('a');
+    const { bootstrap } = await page(url);
+    const client = new CanvasClient({ ...bootstrap, base: new URL(url).pathname });
+    const fileUrl = (id: string) => new URL(client.fileUrl(id), url).href;
+
+    const shot = await fetch(fileUrl('shot'));
+    expect(shot.status).toBe(200);
+    expect(shot.headers.get('content-type')).toBe('image/png');
+    expect(Buffer.from(await shot.arrayBuffer()).toString('hex')).toBe('89504e470d0a1a0a');
+
+    const part = await fetch(fileUrl('clip'), { headers: { Range: 'bytes=2-5' } });
+    expect(part.status).toBe(206);
+    expect(part.headers.get('content-range')).toBe('bytes 2-5/10');
+    expect(await part.text()).toBe('2345');
+    expect((await fetch(fileUrl('clip'), { headers: { Range: 'bytes=20-' } })).status).toBe(416);
+
+    // Only images and videos, only absolute paths, only known IDs, only with the token.
+    expect((await fetch(fileUrl('page'))).status).toBe(404);
+    expect((await fetch(fileUrl('relative'))).status).toBe(404);
+    expect((await fetch(fileUrl('missing'))).status).toBe(404);
+    // A traversal decodes to a path that is no file route, so the token in its URL does not count.
+    expect((await fetch(fileUrl('../shot'))).status).toBe(403);
+    expect(await rawRequest(new URL('__canvas/files/shot', url).href, { 'X-Canvas-Token': bootstrap.token })).toBe(403);
+    expect(await rawRequest(new URL('__canvas/files/shot?token=wrong', url).href, {})).toBe(403);
+    // The token in a URL opens files, not the state or actions.
+    expect(await rawRequest(new URL(`__canvas/state?token=${bootstrap.token}`, url).href, {})).toBe(403);
+    expect(seen).toEqual(['a:shot', 'a:clip', 'a:clip', 'a:page', 'a:relative', 'a:missing']);
+  });
+
   it('adds only the declared connect-src sources to one canvas', async () => {
     const local = defineCanvas({
       id: 'kit-csp-canvas',

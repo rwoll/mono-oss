@@ -167,6 +167,21 @@ export interface OpenContext<I> {
   readonly sessionId: string | undefined;
 }
 
+/** What a canvas's `files` resolver sees when its page asks for a file. */
+export interface FileContext<S> {
+  readonly canvasId: string;
+  readonly instanceId: string;
+  readonly state: S;
+  readonly dataDir: string;
+  log(message: string, level?: LogLevel): void;
+}
+
+/** A local file a canvas lets its page show. Only images and videos are served. */
+export interface CanvasFile {
+  /** Absolute path of the file. */
+  path: string;
+}
+
 export interface ReopenContext<S, I> extends OpenContext<I> {
   readonly state: S;
 }
@@ -212,6 +227,12 @@ export interface CanvasSpec<
   versionFooter?: boolean;
   /** Extra Content-Security-Policy sources for this canvas's pages. Other canvases keep the defaults. */
   csp?: CanvasCsp;
+  /**
+   * Let the page show local images and videos. The page asks for a file by an ID the
+   * canvas chose, with `getCanvasClient().fileUrl(id)`; return the file, or null when
+   * the ID is unknown. Resolve IDs against an allowlist, never a path from the page.
+   */
+  files?(ctx: FileContext<z.output<SS>>, id: string): CanvasFile | null | Promise<CanvasFile | null>;
   actions?(helpers: ActionHelpers<z.output<SS>>): A;
   /**
    * Scheduled jobs. They run for each open document while a chat has the canvas
@@ -273,6 +294,7 @@ export interface CanvasDefinition<
   readonly actions: ReadonlyMap<string, CompiledAction>;
   readonly jobs: ReadonlyMap<string, CompiledJob>;
   readonly persist: { key(ctx: OpenContext<unknown>): string; version: number } | undefined;
+  readonly files: ((ctx: FileContext<unknown>, id: string) => CanvasFile | null | Promise<CanvasFile | null>) | undefined;
   init(ctx: OpenContext<unknown>): unknown;
   reopen(ctx: ReopenContext<unknown, unknown>): unknown;
   status(state: unknown): string | undefined;
@@ -523,6 +545,7 @@ export function defineCanvas<
     persist: spec.persist
       ? { key: spec.persist.key as (ctx: OpenContext<unknown>) => string, version: spec.persist.version ?? 1 }
       : undefined,
+    files: spec.files as CanvasDefinition['files'],
     init: spec.init as (ctx: OpenContext<unknown>) => unknown,
     reopen: ctx => spec.reopen?.(ctx as ReopenContext<z.output<SS>, z.output<IS>>),
     status: state => spec.status?.(state as z.output<SS>),

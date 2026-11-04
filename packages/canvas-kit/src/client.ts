@@ -119,6 +119,14 @@ export class CanvasClient<C extends AnyCanvas = AnyCanvas> {
     return this.#bootstrap.jobDefinitions ?? [];
   }
 
+  /**
+   * The URL of a file the canvas's `files` resolver serves, for `<img src>` or
+   * `<video src>`. It carries the page's token, so keep it inside the page.
+   */
+  fileUrl(id: string): string {
+    return `${this.#bootstrap.base}__canvas/files/${encodeURIComponent(id)}?token=${encodeURIComponent(this.#bootstrap.token)}`;
+  }
+
   run: RunAction<C> = (name, ...args) => this.#post(name, args[0] ?? {}) as never;
 
   /** Pause or resume a job, or change its interval, for a job whose `controls` include the UI. */

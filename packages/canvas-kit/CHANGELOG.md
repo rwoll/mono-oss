@@ -11,7 +11,18 @@ things.
 
 ## [Unreleased]
 
+### Added
+
+- `files(ctx, id)` in `defineCanvas` and `getCanvasClient().fileUrl(id)` let a
+  page show local images and videos the canvas allows, through a token-checked
+  route with byte ranges for video.
+- `skills` in `canvasKit({ plugins })` ships skill folders with an extra plugin
+  instead of the main one.
+
 ### Changed
+
+- Plugins get only the skill folders in `skills/` that have a `SKILL.md`, not
+  every file there.
 
 - **Breaking:** the `ui/` folder that `canvas-kit init` and `canvas-kit ui` create
   now has the Session summary's look: a sticky `Header` with an optional status

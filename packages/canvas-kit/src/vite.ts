@@ -16,6 +16,8 @@ export interface CanvasKitPluginOptions {
   description: string;
   /** Canvas folder names under `canvases/`. */
   canvases: string[];
+  /** Skill folder names under `skills/` to ship with these canvases instead of in the main plugin. */
+  skills?: string[];
   /** Defaults to the project's version. */
   version?: string;
 }
@@ -24,8 +26,8 @@ export interface CanvasKitOptions {
   /** The main plugin's name. Defaults to the package.json name, without its scope. */
   name?: string;
   /**
-   * Plugins to publish some canvases in, each installed on its own. Every other canvas
-   * and the project's skills go in the main plugin.
+   * Plugins to publish some canvases in, each installed on its own, with any skills
+   * they list. Every other canvas and skill goes in the main plugin.
    */
   plugins?: CanvasKitPluginOptions[];
   /** `open_canvas` input for each canvas's dev server preview, by canvas folder name. */
@@ -44,7 +46,8 @@ interface PluginPlan {
   version: string;
   description: string;
   canvases: string[];
-  skills: boolean;
+  /** Skill folder names under `skills/`. */
+  skills: string[];
 }
 
 const CANVASES_DIR = 'canvases';
@@ -88,9 +91,20 @@ export function findCanvases(root: string): string[] {
   return names;
 }
 
+/** Skill folders under `skills/`: those with a `SKILL.md`. */
+export function findSkills(root: string): string[] {
+  const dir = join(root, SKILLS_DIR);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && existsSync(join(dir, entry.name, 'SKILL.md')))
+    .map(entry => entry.name)
+    .sort();
+}
+
 /** Which plugins to build and what goes in each. */
-export function planPlugins(project: { name: string; version: string; description: string }, canvases: string[], hasSkills: boolean, extra: CanvasKitPluginOptions[] = []): PluginPlan[] {
+export function planPlugins(project: { name: string; version: string; description: string }, canvases: string[], skills: string[], extra: CanvasKitPluginOptions[] = []): PluginPlan[] {
   const placed = new Map<string, string>();
+  const placedSkills = new Map<string, string>();
   const names = new Set([project.name]);
   const plans: PluginPlan[] = [];
   for (const plugin of extra) {
@@ -105,12 +119,25 @@ export function planPlugins(project: { name: string; version: string; descriptio
       if (other) throw new Error(`${canvas} is in both ${other} and ${plugin.name}`);
       placed.set(canvas, plugin.name);
     }
-    plans.push({ name: plugin.name, version: plugin.version ?? project.version, description: plugin.description, canvases: [...plugin.canvases].sort(), skills: false });
+    for (const skill of plugin.skills ?? []) {
+      if (!skills.includes(skill)) throw new Error(`Plugin ${plugin.name} lists the skill ${skill}, which is not a folder in ${SKILLS_DIR}/ with a SKILL.md`);
+      const other = placedSkills.get(skill);
+      if (other) throw new Error(`The skill ${skill} is in both ${other} and ${plugin.name}`);
+      placedSkills.set(skill, plugin.name);
+    }
+    plans.push({
+      name: plugin.name,
+      version: plugin.version ?? project.version,
+      description: plugin.description,
+      canvases: [...plugin.canvases].sort(),
+      skills: [...(plugin.skills ?? [])].sort(),
+    });
   }
   const rest = canvases.filter(canvas => !placed.has(canvas));
+  const restSkills = skills.filter(skill => !placedSkills.has(skill));
   // The main plugin is left out when it would be empty.
-  if (rest.length > 0 || hasSkills) {
-    plans.unshift({ name: project.name, version: project.version, description: project.description, canvases: rest, skills: hasSkills });
+  if (rest.length > 0 || restSkills.length > 0) {
+    plans.unshift({ name: project.name, version: project.version, description: project.description, canvases: rest, skills: restSkills });
   }
   return plans;
 }
@@ -248,7 +275,7 @@ function canvasKitPlugin(options: CanvasKitOptions): Plugin {
       if (!NAME_PATTERN.test(name)) throw new Error(`The plugin name must be kebab-case: "${name}". Set canvasKit({ name }) or the package.json name.`);
       pkg = { name, version: manifest.version, description: manifest.description };
       canvases = findCanvases(root);
-      plans = planPlugins(pkg, canvases, existsSync(join(root, SKILLS_DIR)), options.plugins);
+      plans = planPlugins(pkg, canvases, findSkills(root), options.plugins);
       // devInput is keyed by canvas folder; before projects it was one canvas's input.
       for (const key of Object.keys(options.devInput ?? {})) {
         if (!canvases.includes(key)) throw new Error(`canvasKit({ devInput }) has "${key}", which is not a canvas in ${CANVASES_DIR}/. Key it by canvas folder name: { 'my-canvas': { ... } }.`);
@@ -343,12 +370,12 @@ function canvasKitPlugin(options: CanvasKitOptions): Plugin {
             await builder.build(builder.environments[`ui_${index}`]!);
             await builder.build(builder.environments[`extension_${index}`]!);
           }
-          if (plan.skills) await cp(join(root, SKILLS_DIR), join(pluginDir, SKILLS_DIR), { recursive: true });
+          for (const skill of plan.skills) await cp(join(root, SKILLS_DIR, skill), join(pluginDir, SKILLS_DIR, skill), { recursive: true });
           const manifest = {
             name: plan.name,
             version: plan.version,
             description: plan.description,
-            ...(plan.skills && { skills: `${SKILLS_DIR}/` }),
+            ...(plan.skills.length > 0 && { skills: `${SKILLS_DIR}/` }),
             ...(plan.canvases.length > 0 && { extensions: 'extensions/' }),
           };
           await mkdir(join(pluginDir, '.plugin'), { recursive: true });
