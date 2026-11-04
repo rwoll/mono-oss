@@ -11,6 +11,12 @@
       "source": "./plugins/annotate"
     },
     {
+      "name": "blobby-sandbox",
+      "description": "See, start, drive, screenshot, and record Blobby sandboxes in Copilot: the blobby-sandbox skill, and a canvas over its CLI.",
+      "version": "0.1.0",
+      "source": "./plugins/blobby-sandbox"
+    },
+    {
       "name": "canvas-kit",
       "description": "Skills for building, testing, and publishing Copilot canvases with @rwoll/canvas-kit.",
       "version": "0.3.2",
