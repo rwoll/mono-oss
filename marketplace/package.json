@@ -5,15 +5,26 @@
   "description": "The rwoll Copilot plugin marketplace, published to the stable branch of rwoll/mono-oss.",
   "type": "module",
   "scripts": {
-    "build": "canvas-kit build",
-    "check": "canvas-kit build && vitest run",
+    "dev": "vite",
+    "build": "vite build && canvas-kit build",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "playwright:install": "playwright install chromium",
+    "check": "pnpm build && pnpm typecheck && pnpm test"
   },
   "devDependencies": {
-    "@rwoll/canvas-kit": "workspace:*",
+    "@playwright/test": "catalog:",
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
     "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@rwoll/canvas-kit": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:"
   }
 }

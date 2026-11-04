@@ -1,11 +1,4 @@
 {
-  "extends": "../tsconfig.base.json",
-  "compilerOptions": {
-    "noEmit": true,
-    "rootDir": ".",
-    "allowImportingTsExtensions": true
-  },
-  "include": [
-    "test"
-  ]
+  "extends": "@rwoll/canvas-kit/tsconfig/project.json",
+  "include": ["${configDir}/canvases", "${configDir}/ui", "${configDir}/test", "${configDir}/*.ts"]
 }

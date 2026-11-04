@@ -12,3 +12,7 @@ dist
 
 # Written while packing @rwoll/canvas-kit; see scripts/publish-npm.ts.
 packages/canvas-kit/release.json
+
+# Playwright output.
+test-results
+playwright-report

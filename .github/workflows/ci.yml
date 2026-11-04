@@ -31,6 +31,12 @@ jobs:
 
       - run: pnpm check
 
+      - name: Canvas browser tests
+        working-directory: marketplace
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          pnpm e2e
+
   # Every action the workflows use is locked to a reviewed commit in
   # .github/workflows/actions.lock, which the runner enforces. This fails when the
   # lockfile is out of date or a locked commit no longer verifies upstream.
