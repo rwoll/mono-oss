@@ -1,7 +1,7 @@
 # The annotate document
 
-Validate a document with `npx @rwoll/annotate check doc.json`, and print the full
-JSON Schema with `npx @rwoll/annotate schema`. Points are `[x, y]` and boxes are
+Validate a document with `annotate check doc.json`, and print the full
+JSON Schema with `annotate schema`. Points are `[x, y]` and boxes are
 `[x, y, width, height]`, in source pixels. Times are seconds.
 
 ```jsonc

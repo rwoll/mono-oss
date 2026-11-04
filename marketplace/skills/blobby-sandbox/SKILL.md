@@ -7,7 +7,7 @@ description: Start, drive, and record disposable sandboxes with an Ubuntu deskto
 
 `blobby-sandbox` runs disposable sandboxes made from a recipe. Each one has an Ubuntu GNOME desktop with Google Chrome and developer tools. The default recipe, `vscode-insiders`, adds VS Code Insiders; `desktop` is just the desktop. Nothing is signed in until you run a sign-in script with `exec --secret`. Sandboxes run on a **backend** that `blobby-sandbox doctor` picks for this computer (smolvm on macOS on Apple silicon or Linux with KVM, Docker elsewhere, or Azure when the user sets it up and asks for it), or on a server when `BLOBBY_SANDBOX_SERVER` is set. The commands are the same everywhere. Every command takes `--json`; use it, and read `error.code` and `error.message` when a command fails.
 
-Use `blobby-sandbox` from PATH. If it isn't installed, tell the user, point them at the `@rwoll/blobby-sandbox` README, and stop; don't install it yourself.
+Use `blobby-sandbox` from PATH. If it isn't installed, ask the user, then run `node scripts/install-tools.ts blobby-sandbox` from this skill's folder. It installs `@rwoll/blobby-sandbox` globally from its newest GitHub release, after checking the download against GitHub's digest; its other dependencies come from npm's registry, only once they're 7 days old. If it fails, show the user its message, and stop. Don't run the CLI with npx.
 
 ## Rules
 

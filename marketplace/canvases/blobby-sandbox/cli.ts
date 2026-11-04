@@ -37,7 +37,7 @@ export function withJson(args: string[]): string[] {
 const missing = () =>
   new CanvasKitError(
     'cli_missing',
-    'The blobby-sandbox CLI is not installed. Put it on your PATH (see the @rwoll/blobby-sandbox README), or set BLOBBY_SANDBOX_CLI to its path, then reload the canvas.',
+    'The blobby-sandbox CLI is not installed. Ask the agent to install it with the blobby-sandbox skill (its scripts/install-tools.ts), or set BLOBBY_SANDBOX_CLI to its path, then reload the canvas.',
     503,
   )
 

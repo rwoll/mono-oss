@@ -59,7 +59,8 @@ your agent in a Copilot canvas.
 </picture>
 
 ```sh
-npx @rwoll/annotate render bug.annotate.json -o bug.png
+npm install -g --registry=https://registry.npmjs.org/ --min-release-age=7 --min-release-age-exclude='@rwoll/*' @rwoll/annotate@latest
+annotate render bug.annotate.json -o bug.png
 ```
 
 See the [annotate guide](packages/annotate#readme) for examples and the format.

@@ -11,8 +11,8 @@ copilot plugin install blobby-sandbox@rwoll
 ```
 
 The canvas is a thin client over the `blobby-sandbox` CLI from
-[`@rwoll/blobby-sandbox`](https://github.com/rwoll/mono-oss/tree/main/packages/blobby-sandbox), which must be installed: `blobby-sandbox` on PATH, or
-`BLOBBY_SANDBOX_CLI` set to its path. The canvas runs the CLI instead of bundling the library, because
+[`@rwoll/blobby-sandbox`](https://github.com/rwoll/mono-oss/tree/main/packages/blobby-sandbox), which must be installed: `blobby-sandbox` on PATH (the skill's
+`scripts/install-tools.ts` installs it), or `BLOBBY_SANDBOX_CLI` set to its path. The canvas runs the CLI instead of bundling the library, because
 backends such as smolvm load native code, and so the canvas picks the same backend as the CLI:
 `BLOBBY_SANDBOX_BACKEND`, or the default that `blobby-sandbox doctor` reports. With
 `BLOBBY_SANDBOX_SERVER` and `BLOBBY_SANDBOX_TOKEN` set, the CLI, and so the canvas, uses sandboxes on that

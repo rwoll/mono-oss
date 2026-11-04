@@ -4,6 +4,7 @@
     "${configDir}/canvases",
     "${configDir}/ui",
     "${configDir}/test",
+    "${configDir}/scripts",
     "${configDir}/*.ts"
   ],
   "compilerOptions": {

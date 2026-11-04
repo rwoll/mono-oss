@@ -15,7 +15,7 @@ const { documentPath } = await screenshotDocument(page, {
     { type: 'arrow', from: [200, 120], to: 'save' },
   ],
 })
-// Then: npx @rwoll/annotate render out/settings.annotate.json -o out/settings-annotated.png
+// Then: annotate render out/settings.annotate.json -o out/settings-annotated.png
 ```
 
 `boxOf(page, locator)` returns one box, if you build the document yourself. Pass
@@ -54,13 +54,13 @@ The document has auto zoom, click ripples, key chips, and the captions. Add mark
 `check` (it flags captions too fast to read), then render:
 
 ```sh
-npx @rwoll/annotate render out/walkthrough.annotate.json -o out/walkthrough.mp4 --vtt out/walkthrough.vtt
+annotate render out/walkthrough.annotate.json -o out/walkthrough.mp4 --vtt out/walkthrough.vtt
 ```
 
 ## Before and after
 
 ```sh
-npx @rwoll/annotate init after.png --before before.png -o change.annotate.json
+annotate init after.png --before before.png -o change.annotate.json
 ```
 
 Then add one zoom shot per change, a `rect` with `tone: "changed"` and `step: true`
@@ -69,7 +69,7 @@ shot. The last frame, with every change numbered, is a good PNG for the
 description:
 
 ```sh
-npx @rwoll/annotate render change.annotate.json -o change.mp4 -o change.png
+annotate render change.annotate.json -o change.mp4 -o change.png
 ```
 
 ## Pull request and issue media
@@ -77,7 +77,7 @@ npx @rwoll/annotate render change.annotate.json -o change.mp4 -o change.png
 - Use MP4 for video (it plays inline where GIFs are heavy), and PNG for stills.
 - Upload the files to the pull request or issue description, and put the
   Markdown transcript under the video:
-  `npx @rwoll/annotate captions walkthrough.annotate.json --format md`.
+  `annotate captions walkthrough.annotate.json --format md`.
 - Check the rendered files for anything private before uploading, even with redaction.
 
 ## From code

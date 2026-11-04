@@ -24,14 +24,33 @@ change instead of describing it.
 - **Redaction that holds.** Hidden pixels are replaced in the source before the
   camera, a magnifier, or an export ever sees them.
 
+## Install
+
+Install the `annotate` command globally, from the public npm registry. Its
+dependencies install only once they've been published for 7 days; `@rwoll/*`
+packages skip that cooldown. It needs npm 11.17 or later, which enforces both.
+
 ```sh
-npx @rwoll/annotate init shot.png                 # writes shot.annotate.json
-npx @rwoll/annotate check shot.annotate.json
-npx @rwoll/annotate render shot.annotate.json -o shot-annotated.png
+npm install -g --registry=https://registry.npmjs.org/ --min-release-age=7 --min-release-age-exclude='@rwoll/*' @rwoll/annotate@latest
+```
+
+```sh
+annotate init shot.png                 # writes shot.annotate.json
+annotate check shot.annotate.json
+annotate render shot.annotate.json -o shot-annotated.png
 ```
 
 Video needs [ffmpeg](https://ffmpeg.org/download.html) on `PATH` (or `--ffmpeg`, or
-`ANNOTATE_FFMPEG`); stills do not. Requires Node.js 24 or later.
+`ANNOTATE_FFMPEG`); stills do not. Requires Node.js 24 or later. In Copilot, the
+annotate skill installs it for you with its `scripts/install-tools.ts`.
+
+Can't reach registry.npmjs.org? Each [release](https://github.com/rwoll/mono-oss/releases)
+has a tarball that installs without it, with other dependencies from npm's configured
+registry:
+
+```sh
+npm install -g --min-release-age=7 https://github.com/rwoll/mono-oss/releases/download/annotate%400.1.0/rwoll-annotate-0.1.0.tgz
+```
 
 ## Examples
 
@@ -63,7 +82,7 @@ await screenshotDocument(page, {
 ```
 
 ```sh
-npx @rwoll/annotate render bug.annotate.json -o bug-annotated.png
+annotate render bug.annotate.json -o bug-annotated.png
 ```
 
 ### A walkthrough that narrates itself
@@ -87,7 +106,7 @@ doc.annotations.push({ type: 'redact', box: await rec.box(page.getByTestId('api-
 ```
 
 ```sh
-npx @rwoll/annotate render walkthrough.annotate.json -o walkthrough.mp4 -o walkthrough.gif
+annotate render walkthrough.annotate.json -o walkthrough.mp4 -o walkthrough.gif
 ```
 
 ### A change, before and after
@@ -111,8 +130,8 @@ with every change numbered, makes a good still for the pull request description.
 ```
 
 ```sh
-npx @rwoll/annotate init after.png --before before.png -o change.annotate.json
-npx @rwoll/annotate render change.annotate.json -o change.mp4 -o change.png
+annotate init after.png --before before.png -o change.annotate.json
+annotate render change.annotate.json -o change.mp4 -o change.png
 ```
 
 ### In Copilot
@@ -155,7 +174,7 @@ CSS pixels times the device pixel ratio. Times are seconds.
 | `narration` | Captions: each needs a start `t`; it ends at the next caption or after its reading time. |
 | `output` | Default `width`, `fps`, and `scale` (the size of marks and text). |
 
-`npx @rwoll/annotate schema` prints the JSON Schema, also published as
+`annotate schema` prints the JSON Schema, also published as
 `@rwoll/annotate/schema.json`.
 
 ## CLI

@@ -8,8 +8,10 @@ import annotatePackage from '@rwoll/annotate/package.json' with { type: 'json' }
 import { CanvasKitError, defineCanvas, z, type ActionContext } from '@rwoll/canvas-kit'
 import { FORMATS, VIDEO_FORMATS } from './shared.ts'
 
-/** The CLI version exports run, pinned to the @rwoll/annotate this canvas was built with. */
+/** The oldest annotate CLI exports run with: the @rwoll/annotate this canvas was built with. */
 export const ANNOTATE_VERSION = annotatePackage.version
+const INSTALL_HELP =
+  'Ask the agent to install it with the annotate skill (its scripts/install-tools.ts), or see https://github.com/rwoll/mono-oss/tree/main/packages/annotate#install.'
 
 const issue = z.object({ level: z.enum(['error', 'warning']), path: z.string(), message: z.string() })
 const exported = z.object({ path: z.string(), format: z.enum(FORMATS), at: z.string() })
@@ -145,23 +147,53 @@ function indexOf(document: AnnotateDocument, target: string | number): number {
   return index
 }
 
-/** How exports run the CLI: ANNOTATE_CLI (a command, or a .js file run with Node.js), else the pinned package with npx. */
+/** How exports run the CLI: ANNOTATE_CLI (a command, or a .js file run with Node.js), else `annotate` on PATH. */
 export function cliCommand(env: NodeJS.ProcessEnv = process.env): { command: string; args: string[] } {
   const explicit = env.ANNOTATE_CLI
   if (explicit) return /\.[cm]?[jt]s$/.test(explicit) ? { command: process.execPath, args: [explicit] } : { command: explicit, args: [] }
-  if (ANNOTATE_VERSION === '0.0.0') {
-    throw new CanvasKitError('unavailable', '@rwoll/annotate is not published yet. Set ANNOTATE_CLI to the annotate command, or to its bin/annotate.js.')
-  }
-  return { command: process.platform === 'win32' ? 'npx.cmd' : 'npx', args: ['--yes', `@rwoll/annotate@${ANNOTATE_VERSION}`] }
+  return { command: process.platform === 'win32' ? 'annotate.cmd' : 'annotate', args: [] }
 }
 
-function runCli(args: string[], cwd: string, onProgress: (frame: number, frames: number) => void): Promise<void> {
-  const { command, args: prefix } = cliCommand()
-  // Windows runs .cmd launchers (such as npx.cmd) only through a shell, so quote everything for it; run anything else directly.
+/** Whether `version` is `minimum` or later. Pre-release suffixes are ignored. */
+export function atLeast(version: string, minimum: string): boolean {
+  const parse = (v: string) => (v.trim().replace(/^v/, '').split(/[-+]/)[0] ?? '').split('.').map(Number)
+  const [a, b] = [parse(version), parse(minimum)]
+  for (let i = 0; i < 3; i++) if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) > (b[i] ?? 0)
+  return true
+}
+
+/** Spawns a command; Windows runs .cmd launchers only through a shell, so everything is quoted for it. */
+function spawnCli(command: string, args: string[], cwd?: string) {
   const shell = process.platform === 'win32' && /\.(cmd|bat)$/i.test(command)
   const quote = (arg: string) => (shell ? `"${arg.replace(/"/g, '""')}"` : arg)
+  return spawn(quote(command), args.map(quote), { cwd, shell, stdio: ['ignore', 'pipe', 'pipe'] })
+}
+
+const installedVersion = (command: string): Promise<string | null> =>
+  new Promise((done) => {
+    const child = spawnCli(command, ['--version'])
+    let out = ''
+    child.stdout.on('data', (chunk: Buffer) => (out += chunk.toString('utf8')))
+    child.stderr.resume()
+    child.on('error', () => done(null))
+    child.on('close', (code) => done(code === 0 ? out.trim() : null))
+  })
+
+/** Fails unless the annotate CLI is installed at ANNOTATE_VERSION or later. ANNOTATE_CLI is used as it is. */
+export async function checkCli(env: NodeJS.ProcessEnv = process.env, versionOf: (command: string) => Promise<string | null> = installedVersion): Promise<void> {
+  if (env.ANNOTATE_CLI) return
+  const version = await versionOf(cliCommand(env).command)
+  if (version === null) throw new CanvasKitError('unavailable', `The annotate command isn't installed. ${INSTALL_HELP}`)
+  if (!atLeast(version, ANNOTATE_VERSION)) {
+    throw new CanvasKitError('unavailable', `annotate ${version} is installed, but this canvas needs ${ANNOTATE_VERSION} or later. ${INSTALL_HELP.replace('install it', 'update it')}`)
+  }
+}
+
+async function runCli(args: string[], cwd: string, onProgress: (frame: number, frames: number) => void): Promise<void> {
+  await checkCli()
+  const { command, args: prefix } = cliCommand()
   return new Promise((done, fail) => {
-    const child = spawn(quote(command), [...prefix, ...args].map(quote), { cwd, shell, stdio: ['ignore', 'pipe', 'pipe'] })
+    const child = spawnCli(command, [...prefix, ...args], cwd)
     let errors = ''
     let partial = ''
     child.stderr.on('data', (chunk: Buffer) => {

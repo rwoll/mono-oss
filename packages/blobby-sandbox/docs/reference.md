@@ -118,7 +118,7 @@ installed next to `@rwoll/blobby-sandbox`, at the version the backend is tested 
 installs never download it:
 
 ```sh
-npm install -g @rwoll/blobby-sandbox smolmachines@1.31.0   # the CLI, once it is published
+npm install -g --registry=https://registry.npmjs.org/ --min-release-age=7 --min-release-age-exclude='@rwoll/*' @rwoll/blobby-sandbox@latest smolmachines@1.31.0   # the CLI, once it is published
 npm install @rwoll/blobby-sandbox smolmachines@1.31.0      # the SDK, in a project
 ```
 

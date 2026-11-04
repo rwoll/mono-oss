@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { createTestCanvas, type TestCanvas } from '@rwoll/canvas-kit/testing'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { CanvasClient } from '@rwoll/canvas-kit/client'
-import canvas, { ANNOTATE_VERSION, cliCommand, feedbackPrompt } from './canvas.ts'
+import canvas, { ANNOTATE_VERSION, checkCli, cliCommand, feedbackPrompt } from './canvas.ts'
 import { screenshotPng } from './fixtures.ts'
 
 const CLI = fileURLToPath(new URL('../../../packages/annotate/bin/annotate.js', import.meta.url))
@@ -140,11 +140,17 @@ describe('Annotate canvas', () => {
     }
   })
 
-  it('runs the pinned CLI with npx, or ANNOTATE_CLI', () => {
+  it('runs the installed annotate CLI, or ANNOTATE_CLI', () => {
     expect(cliCommand({ ANNOTATE_CLI: '/x/bin/annotate.js' })).toEqual({ command: process.execPath, args: ['/x/bin/annotate.js'] })
-    expect(cliCommand({ ANNOTATE_CLI: 'annotate' })).toEqual({ command: 'annotate', args: [] })
-    if (ANNOTATE_VERSION === '0.0.0') expect(() => cliCommand({})).toThrow(/not published yet/)
-    else expect(cliCommand({}).args).toEqual(['--yes', `@rwoll/annotate@${ANNOTATE_VERSION}`])
+    expect(cliCommand({ ANNOTATE_CLI: '/opt/annotate' })).toEqual({ command: '/opt/annotate', args: [] })
+    expect(cliCommand({})).toEqual({ command: process.platform === 'win32' ? 'annotate.cmd' : 'annotate', args: [] })
+  })
+
+  it('refuses a missing or older annotate CLI, saying how to install it', async () => {
+    await expect(checkCli({}, async () => null)).rejects.toThrow(/isn't installed\. Ask the agent to install it with the annotate skill/)
+    await expect(checkCli({}, async () => '0.0.1')).rejects.toThrow(`annotate 0.0.1 is installed, but this canvas needs ${ANNOTATE_VERSION} or later`)
+    await expect(checkCli({}, async () => ANNOTATE_VERSION)).resolves.toBeUndefined()
+    await expect(checkCli({ ANNOTATE_CLI: '/x/bin/annotate.js' }, async () => null)).resolves.toBeUndefined()
   })
 
   it('sends the user’s feedback with the selected annotation', async () => {

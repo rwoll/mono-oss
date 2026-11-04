@@ -316,21 +316,20 @@ Jobs run with `ctx.headless` set, where `sendToAgent` fails. It uses the same lo
 so it is safe while chats have the canvas open.
 
 ```sh
-# In a project after `pnpm build`, or with --plugin for an installed plugin
-npx @rwoll/canvas-kit run
-npx @rwoll/canvas-kit run prune_triaged --canvas flaky-tests --plugin ~/.copilot/installed-plugins/my-marketplace/my-canvases
+# In a project, after `pnpm build`; --plugin runs an installed plugin's jobs instead
+pnpm exec canvas-kit run
+pnpm exec canvas-kit run prune_triaged --canvas flaky-tests --plugin ~/.copilot/installed-plugins/my-marketplace/my-canvases
 ```
 
 Pass `--canvas` (a folder name or canvas ID) when the plugins have several canvases.
-In a project, `npx` runs the `@rwoll/canvas-kit` it installed; elsewhere it
-downloads it. Always give the scoped name: the unscoped `canvas-kit` on npm is a
-different package.
+`pnpm exec` runs the `@rwoll/canvas-kit` the project installed. Note that the
+unscoped `canvas-kit` on npm is a different package.
 
 Run it at least as often as the shortest interval users may pick. For example,
 every 15 minutes with cron (`crontab -e`):
 
 ```text
-*/15 * * * * cd ~/my-canvases && npx @rwoll/canvas-kit run --canvas flaky-tests >> /tmp/flaky-tests-jobs.log 2>&1
+*/15 * * * * cd ~/my-canvases && node node_modules/@rwoll/canvas-kit/bin/canvas-kit.js run --canvas flaky-tests >> /tmp/flaky-tests-jobs.log 2>&1
 ```
 
 Or with a launchd agent on macOS, in `~/Library/LaunchAgents/com.example.flaky-tests-jobs.plist`, loaded
@@ -344,7 +343,7 @@ with `launchctl load ~/Library/LaunchAgents/com.example.flaky-tests-jobs.plist`:
   <key>Label</key><string>com.example.flaky-tests-jobs</string>
   <key>WorkingDirectory</key><string>/Users/me/my-canvases</string>
   <key>ProgramArguments</key>
-  <array><string>/opt/homebrew/bin/npx</string><string>@rwoll/canvas-kit</string><string>run</string><string>--canvas</string><string>flaky-tests</string></array>
+  <array><string>/opt/homebrew/bin/node</string><string>node_modules/@rwoll/canvas-kit/bin/canvas-kit.js</string><string>run</string><string>--canvas</string><string>flaky-tests</string></array>
   <key>StartInterval</key><integer>900</integer>
 </dict>
 </plist>
