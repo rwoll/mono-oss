@@ -5,6 +5,12 @@
   },
   "plugins": [
     {
+      "name": "annotate",
+      "description": "Annotate screenshots and screen recordings with the agent: zoom, marks, captions, before/after, and redaction, exported to PNG, MP4, or GIF.",
+      "version": "0.1.0",
+      "source": "./plugins/annotate"
+    },
+    {
       "name": "canvas-kit",
       "description": "Skills for building, testing, and publishing Copilot canvases with @rwoll/canvas-kit.",
       "version": "0.3.2",
