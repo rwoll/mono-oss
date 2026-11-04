@@ -5,8 +5,8 @@ write short, reader-first PR titles and descriptions: the problem, repro steps,
 the user-facing change with concrete examples, and before/after tables. It also
 tells them to leave out validation logs, restated diffs, and process narrative.
 
-- [skills/pr-descriptions/SKILL.md](skills/pr-descriptions/SKILL.md) holds the rules.
-- [skills/pr-descriptions/references/examples.md](skills/pr-descriptions/references/examples.md)
+- [skills/pr-descriptions/SKILL.md](https://github.com/rwoll/mono-oss/blob/main/marketplace/plugins/pr-descriptions/skills/pr-descriptions/SKILL.md) holds the rules.
+- [skills/pr-descriptions/references/examples.md](https://github.com/rwoll/mono-oss/blob/main/marketplace/plugins/pr-descriptions/skills/pr-descriptions/references/examples.md)
   holds real microsoft/vscode PRs rewritten with those rules.
 
 It has no MCP servers, hooks, executable code, or package dependencies.
