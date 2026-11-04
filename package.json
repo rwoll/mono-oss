@@ -13,7 +13,7 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck && tsc -p .",
     "lint": "oxlint",
-    "test": "pnpm -r test",
+    "test": "pnpm -r test && node --test 'scripts/*.test.ts'",
     "check": "pnpm build && pnpm typecheck && pnpm lint && pnpm test",
     "consumer-test": "node scripts/consumer-test.ts"
   },

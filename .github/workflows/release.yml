@@ -11,7 +11,12 @@
 #   and runs only `npm stage publish`. Nothing is public until a maintainer
 #   approves the staged version on npm with 2FA. npm adds provenance when this
 #   repository is public, and stages without it while it is private.
-# - tag creates the tags and releases after everything is staged.
+# - tag creates the tags and releases after everything is staged, each with
+#   its GitHub tarball (the npm tarball with @rwoll dependencies pointing at
+#   release URLs, for machines that can't reach registry.npmjs.org), checked
+#   against the build job's hashes. Releases are immutable once created.
+# - backfill attaches those tarballs, made from the packages on npm, to earlier
+#   releases that lack them. It runs no project code.
 # No job restores a dependency cache.
 name: Release
 
@@ -55,6 +60,8 @@ jobs:
     outputs:
       artifact-id: ${{ steps.upload.outputs.artifact-id }}
       integrity: ${{ steps.pack.outputs.integrity }}
+      github-artifact-id: ${{ steps.upload-github.outputs.artifact-id }}
+      github-integrity: ${{ steps.pack.outputs.github-integrity }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -75,13 +82,21 @@ jobs:
         id: pack
         env:
           PLAN: ${{ needs.plan.outputs.releases }}
-        run: node scripts/publish-npm.ts pack --out "$RUNNER_TEMP/npm-packages"
+        run: node scripts/publish-npm.ts pack --out "$RUNNER_TEMP/npm-packages" --github-out "$RUNNER_TEMP/github-packages"
 
       - uses: actions/upload-artifact@v7.0.2
         id: upload
         with:
           name: npm-packages
           path: ${{ runner.temp }}/npm-packages/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v7.0.2
+        id: upload-github
+        with:
+          name: github-packages
+          path: ${{ runner.temp }}/github-packages/*.tgz
           if-no-files-found: error
           retention-days: 7
 
@@ -122,7 +137,9 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-          sparse-checkout: scripts/publish-npm.ts
+          sparse-checkout: |
+            scripts/publish-npm.ts
+            scripts/release-tarballs.ts
           sparse-checkout-cone-mode: false
 
       - uses: actions/setup-node@v7.1.0
@@ -143,7 +160,7 @@ jobs:
         run: node scripts/publish-npm.ts publish --from "$RUNNER_TEMP/npm-packages"
 
   tag:
-    needs: [plan, publish]
+    needs: [plan, build, publish]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -158,22 +175,37 @@ jobs:
           node-version: 24
           package-manager-cache: false
 
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          artifact-ids: ${{ needs.build.outputs.github-artifact-id }}
+          path: ${{ runner.temp }}/github-packages
+          merge-multiple: true
+
       - name: Tag and create releases
         env:
           GH_TOKEN: ${{ github.token }}
           PLAN: ${{ needs.plan.outputs.releases }}
-        run: |
-          jq -c '.[]' <<< "$PLAN" | while read -r release; do
-            folder=$(jq -r .folder <<< "$release")
-            version=$(jq -r .version <<< "$release")
-            tag=$(jq -r .tag <<< "$release")
-            if gh release view "$tag" > /dev/null 2>&1; then
-              echo "$tag already exists."
-              continue
-            fi
-            prerelease=()
-            [[ "$version" == *-* ]] && prerelease=(--prerelease)
-            node scripts/publish-npm.ts notes "$folder" "$version" > "$RUNNER_TEMP/notes.md"
-            gh release create "$tag" --target "$GITHUB_SHA" --title "$(jq -r .name <<< "$release")@$version" \
-              --notes-file "$RUNNER_TEMP/notes.md" "${prerelease[@]}"
-          done
+          EXPECTED_GITHUB_INTEGRITY: ${{ needs.build.outputs.github-integrity }}
+        run: node scripts/publish-npm.ts release --from "$RUNNER_TEMP/github-packages"
+
+  backfill:
+    needs: [plan, tag]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.tag.result != 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Attach tarballs to earlier releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-npm.ts backfill

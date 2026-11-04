@@ -32,7 +32,8 @@ here, [Release](.github/workflows/release.yml) runs on the push to `main`:
    this repository is public. Nothing is installed or built in this job, and only
    it can request an npm token.
 5. **tag** creates the `<folder>@<version>` tag and a GitHub release with the
-   changelog section.
+   changelog section and the package's [GitHub tarball](#github-release-tarballs),
+   checked against the hash the build job recorded.
 6. **You approve** each staged version with 2FA, on the package's page on
    npmjs.com or from your machine. Until then nobody can install it:
 
@@ -57,6 +58,32 @@ with this repository's commit and the `canvas-kit@<version>` tag. `canvas-kit
 init` pins new marketplaces' publish workflow to
 `rwoll/mono-oss/.github/workflows/marketplace.yml` at that commit, so a later
 change here never runs in their workflows until they update the pin.
+
+## GitHub release tarballs
+
+Some machines can't reach registry.npmjs.org. So each release also carries a
+tarball that installs without it:
+
+```sh
+npm install -g https://github.com/rwoll/mono-oss/releases/download/canvas-kit%400.3.0/rwoll-canvas-kit-0.3.0.tgz
+```
+
+It is the npm tarball, except that dependencies on other `@rwoll` packages point
+at their release tarballs instead of version ranges (a package without any is
+attached unchanged). Every other dependency still comes from npm's configured
+registry, such as a company mirror. For example, `@rwoll/create-canvas`:
+
+| Tarball | `@rwoll/canvas-kit` dependency |
+| --- | --- |
+| On npm | `^0.3.0` |
+| On the release | `https://github.com/rwoll/mono-oss/releases/download/canvas-kit%400.3.0/rwoll-canvas-kit-0.3.0.tgz` |
+
+The build job makes them with the npm tarballs
+([release-tarballs.ts](scripts/release-tarballs.ts)) and refuses to point at a
+release without its tarball. Releases are immutable, so a tarball can't change
+once its release is created, and GitHub shows each one's SHA-256 digest.
+**backfill**, which runs after every release, attaches tarballs made from the
+packages on npm to earlier releases that have none.
 
 ## Publish the marketplace
 
@@ -106,6 +133,7 @@ name once from your machine, then every release comes from CI.
 | Pull requests | Turned off: this repository only changes through the export. |
 | Ruleset on `main` | Only the export's GitHub App can push; no force pushes or deletion. |
 | Tags | Created only by the release workflow after the packages are staged. |
+| Immutable releases | A release's tarball can't be replaced or removed once the release is created. |
 | [`actions.lock`](.github/workflows/actions.lock) | Every action runs at the commit the lockfile records, checked again by the runner. |
 | Dependencies | pnpm installs only versions published at least 7 days ago (`@rwoll` packages excepted), never runs dependency install scripts, and CI installs with the frozen lockfile. |
 

@@ -1,7 +1,9 @@
 // Publish every package whose version is not on npm yet. .github/workflows/release.yml runs:
 //   node scripts/publish-npm.ts plan                  # which packages to release
-//   node scripts/publish-npm.ts pack --out <dir>      # build job, no npm credentials
+//   node scripts/publish-npm.ts pack --out <dir> --github-out <dir>   # build job, no credentials
 //   node scripts/publish-npm.ts publish --from <dir>  # publish job: stage on npm with trusted publishing
+//   node scripts/publish-npm.ts release --from <dir>  # tag job: GitHub releases, with their tarballs
+//   node scripts/publish-npm.ts backfill              # attach tarballs to earlier releases that lack them
 //   node scripts/publish-npm.ts notes <folder> <version>
 //
 // A package is released when it is not "private", its version is not 0.0.0
@@ -14,12 +16,21 @@
 // Versions already on npm are skipped, so a rerun after a partial failure is safe.
 // Packages are packed with pnpm, which replaces workspace: and catalog: ranges,
 // and published with npm. Locally: plan, pack, then `publish --dry-run`.
+//
+// Each GitHub release also gets a tarball: the npm one, with dependencies on other
+// @rwoll packages pointing at their release tarballs (scripts/release-tarballs.ts),
+// so the packages install where registry.npmjs.org is blocked. pack writes them
+// with the npm tarballs and records their hashes as `github-integrity`; release
+// checks them against EXPECTED_GITHUB_INTEGRITY and attaches them when it creates
+// each release, which stays immutable afterwards.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { readManifest, tarballName, variantProblem, writeGithubTarball, type Target } from './release-tarballs.ts';
 
 const REGISTRY = 'https://registry.npmjs.org/';
 // Trusted publishing needs npm 11.5.1 or later.
@@ -43,7 +54,7 @@ interface Release {
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
-  options: { out: { type: 'string' }, from: { type: 'string' }, 'dry-run': { type: 'boolean', default: false } },
+  options: { out: { type: 'string' }, 'github-out': { type: 'string' }, from: { type: 'string' }, 'dry-run': { type: 'boolean', default: false } },
 });
 const [mode, ...rest] = positionals;
 
@@ -91,8 +102,9 @@ function plannedReleases(): Release[] {
   return releases;
 }
 
-function pack(out: string): void {
+function pack(out: string, githubOut: string): void {
   mkdirSync(out, { recursive: true });
+  mkdirSync(githubOut, { recursive: true });
   for (const release of plannedReleases()) {
     const dir = join(root, 'packages', release.folder);
     const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
@@ -112,13 +124,121 @@ function pack(out: string): void {
   console.log(`Packed:\n${lines.join('\n')}`);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Packed\n\n${lines.join('\n')}\n`);
   output('integrity', JSON.stringify(Object.fromEntries(found.map(entry => [entry.name, entry.integrity]))));
+
+  const planned = new Set(plannedReleases().map(release => tarballName(release.name, release.version)));
+  for (const entry of found) {
+    const { targets } = writeGithubTarball(entry.file, githubOut);
+    checkTargets(entry.name, targets, planned);
+  }
+  const github = githubTarballs(githubOut);
+  console.log(`GitHub release tarballs:\n${github.map(entry => `- \`${entry.name}@${entry.version}\` \`${entry.integrity}\``).join('\n')}`);
+  output('github-integrity', JSON.stringify(Object.fromEntries(github.map(entry => [entry.name, entry.integrity]))));
+}
+
+/** Every release a GitHub tarball points at must be released in this run, or already have its tarball. */
+function checkTargets(name: string, targets: Target[], planned: Set<string>): void {
+  for (const target of targets) {
+    if (planned.has(tarballName(target.name, target.version))) continue;
+    const head = run('curl', ['-sfIL', '--max-time', '30', '-o', '/dev/null', target.url], { capture: true, allowFailure: true });
+    if (head.status !== 0) throw new Error(`${name} depends on ${target.name}@${target.version}, whose release has no tarball at ${target.url}; release it first, or run backfill`);
+  }
+}
+
+const sha512 = (file: string) => `sha512-${createHash('sha512').update(readFileSync(file)).digest('base64')}`;
+
+/** The GitHub tarballs in `dir`: exactly one per planned release, each with release URLs for @rwoll dependencies. */
+function githubTarballs(dir: string) {
+  const releases = plannedReleases();
+  const found = readdirSync(dir)
+    .filter(name => name.endsWith('.tgz'))
+    .sort()
+    .map(name => {
+      const file = join(dir, name);
+      const integrity = sha512(file);
+      const expected = process.env.EXPECTED_GITHUB_INTEGRITY ? (JSON.parse(process.env.EXPECTED_GITHUB_INTEGRITY) as Record<string, string>) : undefined;
+      if (mode === 'release' && !expected && process.env.GITHUB_ACTIONS) throw new Error('EXPECTED_GITHUB_INTEGRITY is not set; pass the build job\'s github-integrity output');
+      if (expected && !Object.values(expected).includes(integrity)) throw new Error(`${name} does not match any of the build job's GitHub tarball hashes`);
+      const manifest = readManifest(file);
+      const release = releases.find(candidate => candidate.name === manifest.name && candidate.version === manifest.version);
+      if (!release || name !== tarballName(manifest.name, manifest.version)) throw new Error(`${name} contains ${manifest.name}@${manifest.version}, which is not in the plan`);
+      const problem = variantProblem(manifest, 'github');
+      if (problem) throw new Error(problem);
+      return { ...release, file, integrity };
+    });
+  const names = found.map(entry => entry.name).sort().join();
+  const want = releases.map(release => release.name).sort().join();
+  if (names !== want) throw new Error(`expected one GitHub tarball each for ${want} in ${dir}, found ${names || 'none'}`);
+  return found;
+}
+
+/** Creates each planned release with its notes and GitHub tarball, which can't be added once it's published. */
+function release(dir: string): void {
+  const commit = releaseCommit();
+  const notesDir = mkdtempSync(join(tmpdir(), 'release-notes-'));
+  for (const entry of githubTarballs(dir)) {
+    if (run('gh', ['release', 'view', entry.tag], { capture: true, allowFailure: true }).status === 0) {
+      console.log(`${entry.tag} already exists.`);
+      continue;
+    }
+    const notesFile = join(notesDir, `${entry.folder}.md`);
+    writeFileSync(notesFile, `${notes(entry.folder, entry.version)}\n`);
+    const prerelease = entry.version.includes('-') ? ['--prerelease'] : [];
+    run('gh', ['release', 'create', entry.tag, '--target', commit, '--title', `${entry.name}@${entry.version}`, '--notes-file', notesFile, ...prerelease, entry.file]);
+  }
+}
+
+/**
+ * Attaches GitHub tarballs to releases made before they existed, from the tarballs on npm. Releases that
+ * other backfilled tarballs point at go first. Versions not approved on npm yet are left for a later run.
+ */
+function backfill(): void {
+  const releases = run('gh', ['api', '--paginate', 'repos/{owner}/{repo}/releases', '--jq', '.[] | {tag: .tag_name, immutable, assets: [.assets[].name]}'], { capture: true })
+    .stdout.split('\n')
+    .filter(Boolean)
+    .map(line => JSON.parse(line) as { tag: string; immutable: boolean; assets: string[] });
+  const work = mkdtempSync(join(tmpdir(), 'backfill-'));
+  const pending: { tag: string; file: string; targets: Target[] }[] = [];
+  for (const { tag, immutable, assets } of releases) {
+    const match = /^([a-z0-9-]+)@(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/.exec(tag);
+    if (!match) continue;
+    const [, folder, version] = match as unknown as [string, string, string];
+    const name = `@rwoll/${folder}`;
+    if (assets.includes(tarballName(name, version))) continue;
+    if (immutable) {
+      console.log(`${tag} is immutable and has no tarball; it can't get one.`);
+      continue;
+    }
+    if (!onNpm(name, version)) {
+      console.log(`${name}@${version} isn't on npm yet; skipping ${tag} for now.`);
+      continue;
+    }
+    const npmDir = join(work, 'npm');
+    mkdirSync(npmDir, { recursive: true });
+    run('npm', ['pack', `${name}@${version}`, '--pack-destination', npmDir, '--registry', REGISTRY, '--ignore-scripts']);
+    const githubDir = join(work, 'github');
+    mkdirSync(githubDir, { recursive: true });
+    pending.push({ tag, ...writeGithubTarball(join(npmDir, tarballName(name, version)), githubDir) });
+  }
+  const uploading = new Set(pending.map(entry => basename(entry.file)));
+  const order = [...pending].sort((a, b) => a.targets.length - b.targets.length);
+  for (const entry of order) {
+    for (const target of entry.targets) {
+      if (uploading.has(tarballName(target.name, target.version))) continue;
+      const head = run('curl', ['-sfIL', '--max-time', '30', '-o', '/dev/null', target.url], { capture: true, allowFailure: true });
+      if (head.status !== 0) throw new Error(`${entry.tag} points at ${target.url}, which doesn't exist`);
+    }
+    if (values['dry-run']) console.log(`Would attach ${entry.file} to ${entry.tag}.`);
+    else run('gh', ['release', 'upload', entry.tag, entry.file]);
+  }
+  rmSync(work, { recursive: true, force: true });
+  if (!pending.length) console.log('Every release has its tarball.');
 }
 
 /** The tarballs in `dir`, each checked to be exactly one planned package at its planned version. */
 function tarballs(dir: string) {
   const releases = plannedReleases();
   const files = readdirSync(dir).filter(name => name.endsWith('.tgz')).sort();
-  const hashes = new Map(files.map(name => [name, `sha512-${createHash('sha512').update(readFileSync(join(dir, name))).digest('base64')}`]));
+  const hashes = new Map(files.map(name => [name, sha512(join(dir, name))]));
   // Compare hashes before reading anything inside the tarballs.
   checkIntegrity([...hashes.values()]);
   const found: (Release & { file: string; integrity: string })[] = [];
@@ -135,6 +255,8 @@ function tarballs(dir: string) {
     const release = releases.find(candidate => candidate.name === manifest.name);
     if (!release) throw new Error(`${name} contains ${manifest.name}, which is not in the plan`);
     if (manifest.version !== release.version) throw new Error(`${name} contains ${manifest.name}@${manifest.version}, but the plan says ${release.version}`);
+    const problem = variantProblem(manifest, 'npm');
+    if (problem) throw new Error(problem);
     const integrity = hashes.get(name) as string;
     const expected = expectedIntegrity();
     if (expected && expected[manifest.name] !== integrity) throw new Error(`${name} does not match the build job's hash for ${manifest.name}`);
@@ -214,8 +336,15 @@ switch (mode) {
     break;
   }
   case 'pack':
-    if (!values.out) throw new Error('pack needs --out <dir>');
-    pack(resolve(values.out));
+    if (!values.out || !values['github-out']) throw new Error('pack needs --out <dir> and --github-out <dir>');
+    pack(resolve(values.out), resolve(values['github-out']));
+    break;
+  case 'release':
+    if (!values.from) throw new Error('release needs --from <dir>');
+    release(resolve(values.from));
+    break;
+  case 'backfill':
+    backfill();
     break;
   case 'publish':
     if (!values.from) throw new Error('publish needs --from <dir>');
@@ -228,5 +357,5 @@ switch (mode) {
     break;
   }
   default:
-    throw new Error(`unknown mode "${mode}"; use plan, pack, publish, or notes`);
+    throw new Error(`unknown mode "${mode}"; use plan, pack, publish, release, backfill, or notes`);
 }
