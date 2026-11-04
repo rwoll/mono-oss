@@ -13,6 +13,15 @@ things.
 
 ### Changed
 
+- **Breaking:** the `ui/` folder that `canvas-kit init` and `canvas-kit ui` create
+  now has the Session summary's look: a sticky `Header` with an optional status
+  badge and controls, small uppercase section labels, status pills and badges,
+  tinted callouts, menus, dialogs, `InlineMarkdown`, and icons. `Checklist` and
+  `TextButton` are gone, and `Header` takes `badge` and children instead of `meta`.
+  Existing projects keep their own `ui/`.
+- `canvas-kit new` puts a new canvas's page under the shared `Header`, in
+  `<main className="page">`.
+
 - canvas-kit moved to [rwoll/mono-oss](https://github.com/rwoll/mono-oss).
   `canvas-kit init` now pins new marketplaces' publish workflow to
   `rwoll/mono-oss/.github/workflows/marketplace.yml`; existing pins to

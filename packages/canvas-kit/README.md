@@ -410,18 +410,33 @@ tinted executive summary, is the exception.
 
 A project's `ui/` folder holds the React components and the theme its canvases
 share. `canvas-kit init` creates it, `canvas-kit ui` adds it to an existing project,
-and `canvas-kit new` makes each new canvas import its `theme.css` and use its `Header`.
+and `canvas-kit new` makes each new canvas import its `theme.css`, start with its
+`Header`, and put the page in `<main className="page">`.
 
 ```text
-ui/index.ts        exports Header, Markdown, Checklist, TextButton; add your own
-ui/theme.css       brand variables (--accent, --accent-contrast, ...) and component styles
+ui/index.ts        exports Header, Markdown, InlineMarkdown, and icons; add your own
+ui/theme.css       colors, type, the page header, buttons, menus, badges, blocks, dialogs
 ```
 
 ```tsx
 // canvases/<name>/App.tsx
-import { Header, Markdown } from '../../ui'
+import { Header, Markdown, RefreshIcon } from '../../ui'
 import '../../ui/theme.css'
+
+<Header title="Flaky tests" badge={<span className="pill status-working">Triaging</span>}>
+  <button type="button" className="icon-button" aria-label="Refresh"><RefreshIcon /></button>
+</Header>
+<main className="page">
+  <section className="block">
+    <h2 className="label">Notes</h2>
+    <Markdown>{state.notes}</Markdown>
+  </section>
+</main>
 ```
+
+The theme is the Session summary's: a sticky header with a status pill, small
+uppercase section labels, status badges, and tinted callouts. Its README lists the
+classes to use.
 
 `theme.css` overrides the variables of `@rwoll/canvas-kit/styles.css`, which every
 page loads first. The build bundles `ui/` with the canvases, and code they share

@@ -238,6 +238,19 @@ async function patch(file: string, from: string, to: string): Promise<void> {
   await writeFile(file, content.replace(from, to));
 }
 
+/** Put the template canvas's page under the shared Header: `<Header />` and `<main className="page">`. */
+async function patchPage(file: string): Promise<void> {
+  const content = await readFile(file, 'utf8');
+  const start = '    <main>\n      <h1>{TITLE}</h1>\n';
+  const end = '    </main>\n  )';
+  const from = content.indexOf(start);
+  const to = content.indexOf(end, from);
+  if (from < 0 || to < 0) throw new CliError(`${file} no longer contains the text canvas-kit expected; update it by hand`);
+  const body = content.slice(from + start.length, to).replace(/^(?=.)/gm, '  ');
+  const page = `    <>\n      <Header title={TITLE} />\n      <main className="page">\n${body}      </main>\n    </>\n  )`;
+  await writeFile(file, content.slice(0, from) + page + content.slice(to + end.length));
+}
+
 /**
  * Create a project's shared UI folder, `ui/`: React components and a theme that
  * every canvas imports, so canvases look the same and branding changes in one place.
@@ -281,7 +294,7 @@ export async function newCanvas(projectDir: string, name: string, options: NewCa
   if (ui) {
     const app = join(target, 'App.tsx');
     await patch(app, "import type canvas from './canvas.ts'\n", "import { Header } from '../../ui'\nimport type canvas from './canvas.ts'\nimport '../../ui/theme.css'\n");
-    await patch(app, '<h1>{TITLE}</h1>', '<Header title={TITLE} />');
+    await patchPage(app);
   }
   return { dir: target, name, id, title, ui };
 }

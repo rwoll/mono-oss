@@ -1,19 +1,24 @@
 # Shared UI
 
-The look every canvas in this marketplace shares, from the canvases first built in
-agent-customizations: `theme.css` (colors, type, buttons, menus, badges, labeled
-blocks, dialogs, and Markdown) and the components in this folder. It is a plain
-folder, not a package: canvases import it by path.
+The look every canvas in this project shares: `theme.css` (colors, type, the page
+header, buttons, menus, badges, labeled blocks, dialogs, and Markdown) and the
+components in this folder. It is a plain folder, not a package: canvases import it
+by path, and `canvas-kit new` uses it in every new canvas.
 
 ```tsx
 // canvases/<name>/App.tsx
-import { Markdown, RefreshIcon } from '../../ui'
+import { Header, Markdown, RefreshIcon } from '../../ui'
 import '../../ui/theme.css'
 
-<section className="block executive">
-  <h2 className="label">Executive summary</h2>
-  <Markdown>{state.summary}</Markdown>   // Markdown the agent writes, safely
-</section>
+<Header title="Release board" badge={<span className="pill status-working">Working</span>}>
+  <button type="button" className="icon-button" aria-label="Refresh"><RefreshIcon /></button>
+</Header>
+<main className="page">
+  <section className="block executive">
+    <h2 className="label">Summary</h2>
+    <Markdown>{state.summary}</Markdown>   {/* Markdown the agent writes, safely */}
+  </section>
+</main>
 ```
 
 Colors come from the host's theme variables when it provides them, with GitHub-style

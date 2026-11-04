@@ -37,7 +37,7 @@ describe('canvas-kit new and ui', () => {
 
   it("uses the project's shared ui/ folder", async () => {
     const ui = await addUi(dir);
-    expect((await readdir(ui.dir)).sort()).toEqual(['Checklist.tsx', 'Header.tsx', 'Markdown.tsx', 'README.md', 'TextButton.tsx', 'index.ts', 'theme.css']);
+    expect((await readdir(ui.dir)).sort()).toEqual(['Header.tsx', 'Markdown.tsx', 'README.md', 'icons.tsx', 'index.ts', 'theme.css']);
     await expect(addUi(dir)).rejects.toThrow(/already exists/);
 
     const canvas = await newCanvas(dir, 'board');
@@ -45,7 +45,8 @@ describe('canvas-kit new and ui', () => {
     const app = await readFile(join(dir, 'canvases', 'board', 'App.tsx'), 'utf8');
     expect(app).toContain("import { Header } from '../../ui'\n");
     expect(app).toContain("import '../../ui/theme.css'\n");
-    expect(app).toContain('<Header title={TITLE} />');
+    expect(app).toContain('<Header title={TITLE} />\n      <main className="page">');
+    expect(app).toContain('</main>\n    </>');
 
     // A canvas can opt out.
     await newCanvas(dir, 'plain', { ui: false });

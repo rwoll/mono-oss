@@ -2,16 +2,23 @@ import type { ReactNode } from 'react'
 
 export interface HeaderProps {
   title: string
-  /** A short line under the title, such as the repository and a count. */
-  meta?: ReactNode
+  /** Shown before the title, such as a status pill. */
+  badge?: ReactNode
+  /** Controls at the right end, such as icon buttons. */
+  children?: ReactNode
 }
 
-/** The title block every canvas starts with. */
-export function Header({ title, meta }: HeaderProps) {
+/** The sticky bar at the top of every canvas. Put the page under it in `<main className="page">`. */
+export function Header({ title, badge, children }: HeaderProps) {
   return (
-    <header className="ui-header">
-      <h1>{title}</h1>
-      {meta && <p>{meta}</p>}
+    <header className="top">
+      <div className="top-row">
+        <div className="title-wrap">
+          {badge}
+          <h1 className="title">{title}</h1>
+        </div>
+        {children && <div className="controls">{children}</div>}
+      </div>
     </header>
   )
 }

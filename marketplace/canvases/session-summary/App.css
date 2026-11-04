@@ -1,24 +1,9 @@
 /* The Session summary's layout. Shared styles are in ../../ui/theme.css. */
 
-.top {
-  position: sticky; top: 0; z-index: 5;
-  border-bottom: 1px solid var(--line); background: var(--surface);
-}
-.top-row {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px;
-  max-width: var(--width); margin: 0 auto; padding: 6px var(--gutter);
-}
-.title-wrap { display: flex; align-items: center; gap: 8px; flex: 1 1 160px; min-width: 0; }
-.title {
-  flex: 1; min-width: 0; margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
-  font-size: 13px; line-height: 20px; font-weight: var(--semibold);
-}
-.controls { position: relative; display: flex; align-items: center; gap: 2px; margin-left: auto; }
 .timer { padding: 0 4px 0 5px; }
 .countdown { min-width: 3.2em; font-variant-numeric: tabular-nums; text-align: left; white-space: nowrap; }
 .timer.off .countdown { min-width: 0; }
 
-.page { display: grid; gap: 8px; max-width: var(--width); margin: 0 auto; padding: 8px var(--gutter) 12px; }
 .panel { display: grid; gap: 12px; }
 .meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; color: var(--muted); font-size: 12px; }
 .meta:empty { display: none; }

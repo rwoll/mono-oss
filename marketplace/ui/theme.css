@@ -37,6 +37,11 @@
   font: 13px/18px var(--font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
   color: var(--ink);
   background: var(--surface);
+  /* The browser's own text rendering, as before canvas-kit's styles.css. */
+  font-synthesis: initial;
+  text-rendering: auto;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
 }
 
 body { margin: 0; background: var(--surface); color: var(--ink); }
@@ -53,6 +58,23 @@ h1, h2, h3 { color: inherit; line-height: inherit; }
 .muted { color: var(--muted); }
 .mono { font-family: var(--mono); font-size: 12px; }
 .time { font-variant-numeric: tabular-nums; }
+
+/* Page: <Header> and <main className="page"> */
+.top {
+  position: sticky; top: 0; z-index: 5;
+  border-bottom: 1px solid var(--line); background: var(--surface);
+}
+.top-row {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px;
+  max-width: var(--width); margin: 0 auto; padding: 6px var(--gutter);
+}
+.title-wrap { display: flex; align-items: center; gap: 8px; flex: 1 1 160px; min-width: 0; }
+.title {
+  flex: 1; min-width: 0; margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  font-size: 13px; line-height: 20px; font-weight: var(--semibold);
+}
+.controls { position: relative; display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.page { display: grid; gap: 8px; max-width: var(--width); margin: 0 auto; padding: 8px var(--gutter) 12px; }
 
 /* Controls */
 button {

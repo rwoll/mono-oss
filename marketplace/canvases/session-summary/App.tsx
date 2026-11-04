@@ -1,6 +1,6 @@
 import { createCanvasHooks, type AgentActivity, type CanvasActionError } from '@rwoll/canvas-kit/react'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { ChevronIcon, ClockIcon, Markdown, RefreshIcon } from '../../ui'
+import { ChevronIcon, ClockIcon, Header, Markdown, RefreshIcon } from '../../ui'
 import type canvas from './canvas.ts'
 import type { PendingRefresh, RefreshOutcome, Summary } from './canvas.ts'
 import { AskAgent } from './AskAgent.tsx'
@@ -119,27 +119,19 @@ function App() {
 
   return (
     <>
-      <header className="top">
-        <div className="top-row">
-          <div className="title-wrap">
-            {summary && <span className={`pill status-${summary.status}`}>{STATUS_LABELS[summary.status]}</span>}
-            <h1 className="title">Session summary</h1>
-          </div>
-          <div className="controls">
-            {refresh && <RefreshSettings refresh={refresh} updating={updating} now={now} />}
-            <button
-              type="button"
-              className={updating ? 'icon-button spinning' : 'icon-button'}
-              aria-label="Refresh now"
-              title="Refresh now"
-              aria-disabled={refreshLocked || undefined}
-              onClick={refreshNow}
-            >
-              <RefreshIcon />
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header title="Session summary" badge={summary && <span className={`pill status-${summary.status}`}>{STATUS_LABELS[summary.status]}</span>}>
+        {refresh && <RefreshSettings refresh={refresh} updating={updating} now={now} />}
+        <button
+          type="button"
+          className={updating ? 'icon-button spinning' : 'icon-button'}
+          aria-label="Refresh now"
+          title="Refresh now"
+          aria-disabled={refreshLocked || undefined}
+          onClick={refreshNow}
+        >
+          <RefreshIcon />
+        </button>
+      </Header>
 
       <main className="page" ref={page}>
         {status === 'offline' && (
