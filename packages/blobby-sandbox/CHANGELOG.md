@@ -7,6 +7,14 @@ things.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-05
+
+### Changed
+
+- When `~/.config/blobby/azure.json` exists, azure is the default backend,
+  before smolvm and docker. `--backend` and `BLOBBY_SANDBOX_BACKEND` still come
+  first. Sandboxes on another backend need `--backend <name>` to be found.
+
 ## [0.1.1] - 2026-11-05
 
 ### Fixed
@@ -28,5 +36,6 @@ things.
 - `blobby-sandbox image build` builds the optional `blobby-desktop` Docker image
   locally, on demand, from build files the package ships. No image is published.
 
+[0.2.0]: https://github.com/rwoll/mono-oss/releases/tag/blobby-sandbox@0.2.0
 [0.1.1]: https://github.com/rwoll/mono-oss/releases/tag/blobby-sandbox@0.1.1
 [0.1.0]: https://github.com/rwoll/mono-oss/releases/tag/blobby-sandbox@0.1.0

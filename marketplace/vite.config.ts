@@ -16,7 +16,7 @@ export default defineConfig({
         },
         {
           name: 'blobby-sandbox',
-          version: '0.1.3',
+          version: '0.1.4',
           description: 'See, start, drive, screenshot, and record Blobby sandboxes in Copilot: the blobby-sandbox skill, and a canvas over its CLI.',
           canvases: ['blobby-sandbox'],
           skills: ['blobby-sandbox'],

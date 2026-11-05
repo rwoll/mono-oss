@@ -45,7 +45,7 @@ instead, with other dependencies from Microsoft's public 1ES mirror of npm, whic
 
 ```sh
 npm install -g --min-release-age=7 --registry=https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/ \
-  https://github.com/rwoll/mono-oss/releases/download/blobby-sandbox%400.1.1/rwoll-blobby-sandbox-0.1.1.tgz smolmachines@1.31.0
+  https://github.com/rwoll/mono-oss/releases/download/blobby-sandbox%400.2.0/rwoll-blobby-sandbox-0.2.0.tgz smolmachines@1.31.0
 ```
 
 In Copilot, the blobby-sandbox skill's `scripts/install-tools.ts` does this for you. Then:
@@ -135,9 +135,9 @@ await sb.remove()
 
 | Backend | Where | Notes |
 |---|---|---|
-| **smolvm** | macOS on Apple silicon, or Linux with `/dev/kvm` | The default where it runs. Micro-VMs on your computer. |
+| **azure** | Azure Container Apps sandboxes | The default once `~/.config/blobby/azure.json` exists; set it up once with [`infra/azure`](https://github.com/rwoll/mono-oss/blob/main/packages/blobby-sandbox/infra/azure/README.md). No live viewer yet. |
+| **smolvm** | macOS on Apple silicon, or Linux with `/dev/kvm` | The default where it runs, without Azure. Micro-VMs on your computer. |
 | **docker** | Docker Desktop, or Docker Engine 20.10 or later | The default elsewhere. Needs 8 GB of memory and 20 GB of disk for Docker. |
-| **azure** | Azure Container Apps sandboxes | Set up once with [`infra/azure`](https://github.com/rwoll/mono-oss/blob/main/packages/blobby-sandbox/infra/azure/README.md). No live viewer yet. |
 
 Pick one with `--backend <name>` or `BLOBBY_SANDBOX_BACKEND`. Each backend has its own sandboxes.
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createBackend, selectBackend, smolvmSupport, type HostInfo } from '../src/backends.ts'
+import { azureConfigPath, createBackend, detectHost, selectBackend, smolvmSupport, type HostInfo } from '../src/backends.ts'
 import { connect } from '../src/client.ts'
 import { DockerBackend } from '../src/docker/index.ts'
 import { missingSdk, SMOLMACHINES_VERSION, SmolvmBackend } from '../src/smolvm.ts'
@@ -21,6 +21,27 @@ describe('selectBackend', () => {
       expect(selectBackend({ env: {}, host })).toMatchObject({ name: 'docker', source: 'default', reason: expect.stringMatching(/smolvm needs .*Docker is the default here\.$/) })
     }
     expect(smolvmSupport(plainLinux)).toEqual({ supported: false, reason: 'smolvm needs /dev/kvm, which is missing here or which this user cannot open.' })
+  })
+
+  it('defaults to azure when azure.json sets up a sandbox group, before smolvm and docker', async () => {
+    const withAzure = { ...mac, azureConfig: '/home/someone/.config/blobby/azure.json' }
+    expect(selectBackend({ env: {}, host: withAzure })).toMatchObject({ name: 'azure', source: 'default', reason: expect.stringMatching(/azure\.json sets up an Azure sandbox group\.$/) })
+    expect(selectBackend({ env: {}, host: { ...plainLinux, azureConfig: '/x/azure.json' } })).toMatchObject({ name: 'azure' })
+    expect(selectBackend({ env: { BLOBBY_SANDBOX_BACKEND: 'smolvm' }, host: withAzure })).toMatchObject({ name: 'smolvm', source: 'environment' })
+    expect(selectBackend({ backend: 'docker', env: {}, host: withAzure })).toMatchObject({ name: 'docker', source: 'option' })
+
+    const dir = await mkdtemp(join(tmpdir(), 'blobby-config-'))
+    try {
+      const env = { XDG_CONFIG_HOME: dir }
+      expect(detectHost(env).azureConfig).toBeUndefined()
+      expect(selectBackend({ env }).name).not.toBe('azure')
+      await mkdir(join(dir, 'blobby'))
+      await writeFile(azureConfigPath(env), '{}')
+      expect(detectHost(env).azureConfig).toBe(join(dir, 'blobby', 'azure.json'))
+      expect(selectBackend({ env }).name).toBe('azure')
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
   })
 
   it('takes --backend over BLOBBY_SANDBOX_BACKEND over the default', () => {

@@ -1,5 +1,7 @@
-import { accessSync, constants } from 'node:fs'
+import { accessSync, constants, existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { SandboxError, type Backend } from './backend.ts'
+import { configDir, displayPath } from './paths.ts'
 
 /** The backends `--backend` and `BLOBBY_SANDBOX_BACKEND` can name. */
 export const BACKEND_NAMES = ['smolvm', 'docker', 'azure'] as const
@@ -21,6 +23,8 @@ export interface HostInfo {
   arch: string
   /** Whether `/dev/kvm` exists and this user can open it. Only Linux has it. */
   kvm: boolean
+  /** Where the azure backend's `azure.json` is, when it exists. */
+  azureConfig?: string
 }
 
 /** Why smolvm can or can't run on a host. */
@@ -31,7 +35,12 @@ export interface HostSupport {
 
 export const BACKEND_ENV = 'BLOBBY_SANDBOX_BACKEND'
 
-export function detectHost(): HostInfo {
+/** The azure backend's config file, `azure.json` in the config folder. */
+export function azureConfigPath(env: NodeJS.ProcessEnv = process.env): string {
+  return join(configDir(env), 'azure.json')
+}
+
+export function detectHost(env: NodeJS.ProcessEnv = process.env): HostInfo {
   let kvm = false
   if (process.platform === 'linux') {
     try {
@@ -41,7 +50,8 @@ export function detectHost(): HostInfo {
       kvm = false
     }
   }
-  return { platform: process.platform, arch: process.arch, kvm }
+  const azure = azureConfigPath(env)
+  return { platform: process.platform, arch: process.arch, kvm, ...(existsSync(azure) ? { azureConfig: azure } : {}) }
 }
 
 /** smolvm runs on macOS on Apple silicon, and on Linux with a usable `/dev/kvm`. */
@@ -65,14 +75,16 @@ function checkName(name: string, from: string): BackendName {
 }
 
 /**
- * Picks the backend: the one asked for, else `BLOBBY_SANDBOX_BACKEND`, else smolvm when this host runs it
- * and Docker when it doesn't.
+ * Picks the backend: the one asked for, else `BLOBBY_SANDBOX_BACKEND`, else azure when `azure.json` sets up a
+ * sandbox group, else smolvm when this host runs it, and Docker when it doesn't.
  */
 export function selectBackend(options: { backend?: string; env?: NodeJS.ProcessEnv; host?: HostInfo } = {}): BackendSelection {
   if (options.backend) return { name: checkName(options.backend, '--backend'), source: 'option', reason: 'It was asked for with --backend.' }
   const fromEnv = (options.env ?? process.env)[BACKEND_ENV]
   if (fromEnv) return { name: checkName(fromEnv, BACKEND_ENV), source: 'environment', reason: `${BACKEND_ENV} is set to ${fromEnv}.` }
-  const smolvm = smolvmSupport(options.host ?? detectHost())
+  const host = options.host ?? detectHost(options.env ?? process.env)
+  if (host.azureConfig) return { name: 'azure', source: 'default', reason: `${displayPath(host.azureConfig)} sets up an Azure sandbox group.` }
+  const smolvm = smolvmSupport(host)
   return smolvm.supported
     ? { name: 'smolvm', source: 'default', reason: smolvm.reason }
     : { name: 'docker', source: 'default', reason: `${smolvm.reason} Docker is the default here.` }

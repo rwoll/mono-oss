@@ -1,6 +1,6 @@
 {
   "name": "@rwoll/blobby-sandbox",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Disposable sandboxes with features, such as a desktop that agents can drive and VS Code Insiders signed in to a test account, on local or remote backends.",
   "keywords": [
     "sandbox",

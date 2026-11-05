@@ -79,8 +79,9 @@ The backend is, in order:
 
 1. `--backend <name>` on any command, or `connect({ backend })` in the SDK;
 2. `BLOBBY_SANDBOX_BACKEND`;
-3. the default for this computer: **smolvm** on macOS on Apple silicon, or on Linux with a usable
-   `/dev/kvm`, and **docker** everywhere else.
+3. the default for this computer: **azure** when `~/.config/blobby/azure.json` sets up a sandbox group
+   (see [The azure backend](#the-azure-backend)), else **smolvm** on macOS on Apple silicon or on Linux
+   with a usable `/dev/kvm`, and **docker** everywhere else. `doctor` says which, and why.
 
 With `--server`, the server picks its own backend: start it with `blobby-sandbox serve --backend <name>`.
 
@@ -588,8 +589,8 @@ the official SDK.
 
 **Setting it up.** Deploy [`infra/azure/main.bicep`](../infra/azure/README.md) once, to make the sandbox
 group and give your account its SandboxGroup Data Owner role. Then save its outputs in
-`~/.config/blobby/azure.json`, which only you can read. The file names your Azure resources, so it is
-never committed:
+`~/.config/blobby/azure.json`, which only you can read. Once it exists, azure is the default backend. The
+file names your Azure resources, so it is never committed:
 
 ```json
 { "subscription": "00000000-0000-0000-0000-000000000000", "resourceGroup": "rg-contoso", "sandboxGroup": "sg-contoso", "location": "westus2" }
