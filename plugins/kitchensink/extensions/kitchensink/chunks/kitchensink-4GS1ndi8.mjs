@@ -8185,7 +8185,7 @@ function mediaKind(path) {
 }
 var package_default = {
 	name: "@rwoll/annotate",
-	version: "0.1.0",
+	version: "0.2.0",
 	description: "Annotate screenshots and screen recordings from one JSON document: zoom, marks, captions, before/after, and redaction, rendered to PNG, MP4, or an interactive player.",
 	keywords: [
 		"annotate",
