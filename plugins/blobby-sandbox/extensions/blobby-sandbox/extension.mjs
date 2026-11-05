@@ -95,7 +95,7 @@ await runCanvasExtension(canvases, {
 	releaseFile: new URL("../../release.json", import.meta.url),
 	plugin: {
 		"name": "blobby-sandbox",
-		"version": "0.1.2"
+		"version": "0.1.3"
 	}
 });
 export {};
