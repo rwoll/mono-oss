@@ -6,6 +6,8 @@ Notable changes to `@rwoll/annotate`. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-05
+
 ### Added
 
 - Notes panel: a `note` on a `rect`, `ellipse`, `arrow`, or `measure` explains it in
@@ -38,4 +40,5 @@ Notable changes to `@rwoll/annotate`. The format follows
   locators (`boxOf` for screenshots, `recorder().box` for recordings) and record
   input alongside a video.
 
+[0.2.0]: https://github.com/rwoll/mono-oss/releases/tag/annotate@0.2.0
 [0.1.0]: https://github.com/rwoll/mono-oss/releases/tag/annotate@0.1.0
