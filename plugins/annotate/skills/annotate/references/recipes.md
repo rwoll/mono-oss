@@ -75,8 +75,8 @@ annotate render change.annotate.json -o change.mp4 -o change.png
 ## Pull request and issue media
 
 - Use MP4 for video (it plays inline where GIFs are heavy), and PNG for stills.
-- Upload the files to the pull request or issue description, and put the
-  Markdown transcript under the video:
+- Upload the files to the pull request or issue description, put them first,
+  right under the summary, and put the Markdown transcript under the video:
   `annotate captions walkthrough.annotate.json --format md`.
 - Check the rendered files for anything private before uploading, even with redaction.
 
