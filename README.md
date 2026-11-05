@@ -9,7 +9,7 @@ things, have it show you what it found, and build the panels you and it work in 
 
 | Project | What it does for you | Get it |
 | --- | --- | --- |
-| [**Blobby Sandbox**](packages/blobby-sandbox#readme) | Gives your agent a disposable Linux desktop to test on, set up by a recipe, that it can see, drive, and record, away from your own apps and accounts. | Early: [build from source](packages/blobby-sandbox#try-it) |
+| [**Blobby Sandbox**](packages/blobby-sandbox#readme) | Gives your agent a disposable Linux desktop to test on, set up by a recipe, that it can see, drive, and record, away from your own apps and accounts. | [`@rwoll/blobby-sandbox`](https://www.npmjs.com/package/@rwoll/blobby-sandbox) (early) |
 | [**annotate**](packages/annotate#readme) | Turns screenshots and recordings into ones that explain themselves: numbered steps, zoom, captions, before/after, and redaction, from one JSON document. | [`@rwoll/annotate`](https://www.npmjs.com/package/@rwoll/annotate) |
 | [**canvas-kit**](packages/canvas-kit#readme) | Builds Copilot canvases, the interactive panels you and your agent share, in TypeScript and React, with tests and one-push publishing. | [`@rwoll/canvas-kit`](https://www.npmjs.com/package/@rwoll/canvas-kit), [`@rwoll/create-canvas`](packages/create-canvas#readme) |
 
@@ -41,8 +41,8 @@ blobby-sandbox screenshot demo -o demo.png    # what the agent sees
 blobby-sandbox view demo                      # or watch it live in your browser
 ```
 
-It's early and not on npm yet. See the [Blobby Sandbox guide](packages/blobby-sandbox#readme) to build it
-and sign VS Code Insiders in to a test account.
+It's early. See the [Blobby Sandbox guide](packages/blobby-sandbox#readme) to install it and sign VS Code
+Insiders in to a test account.
 
 ## annotate
 

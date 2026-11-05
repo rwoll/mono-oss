@@ -29,19 +29,28 @@ Blobby Sandbox gives each run its own disposable machine instead:
 - **Runs where you do**: micro-VMs on your Mac or Linux box (smolvm), Docker, or Azure, with the same
   commands on each.
 
-> **Status:** early. It isn't on npm yet, so [build it from source](#try-it). See
-> [Known limitations](#known-limitations).
+> **Status:** early. See [Known limitations](#known-limitations).
 
 ## Try it
 
-You need Node.js 24 or later, pnpm 11.28.8 (`npm install -g pnpm@11.28.8`), and either a Mac with Apple
-silicon, Linux with KVM, or Docker. It isn't on npm yet, so build it from source:
+You need Node.js 24 or later, and either a Mac with Apple silicon, Linux with KVM, or Docker. Install the
+CLI, and on a Mac or Linux with KVM, `smolmachines` for the smolvm backend:
 
 ```sh
-git clone https://github.com/rwoll/mono-oss && cd mono-oss
-pnpm install --frozen-lockfile && pnpm --filter @rwoll/blobby-sandbox build
-ln -s "$PWD/packages/blobby-sandbox/dist/cli.js" ~/.local/bin/blobby-sandbox   # any folder on your PATH
+npm install -g --registry=https://registry.npmjs.org/ --min-release-age=7 --min-release-age-exclude='@rwoll/*' @rwoll/blobby-sandbox@latest smolmachines@1.31.0
+```
 
+Can't reach registry.npmjs.org? Install the [release's tarball](https://github.com/rwoll/mono-oss/releases)
+instead, with other dependencies from Microsoft's public 1ES mirror of npm, which needs no token:
+
+```sh
+npm install -g --min-release-age=7 --registry=https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/ \
+  https://github.com/rwoll/mono-oss/releases/download/blobby-sandbox%400.1.0/rwoll-blobby-sandbox-0.1.0.tgz smolmachines@1.31.0
+```
+
+In Copilot, the blobby-sandbox skill's `scripts/install-tools.ts` does this for you. Then:
+
+```sh
 blobby-sandbox doctor                         # which backend it picked, and whether it works here
 blobby-sandbox start demo --recipe desktop    # the first one installs a base: a few minutes, once
 blobby-sandbox screenshot demo -o demo.png    # what's on its screen

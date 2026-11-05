@@ -105,8 +105,9 @@ operation is a call to the service.
 
 ## Install
 
-Until `@rwoll/blobby-sandbox` is on npm, build the CLI from a checkout of rwoll/mono-oss and put it on
-your PATH:
+Install the CLI from npm, or from a [GitHub release](https://github.com/rwoll/mono-oss/releases)'s tarball
+where registry.npmjs.org is blocked; see the [README](https://github.com/rwoll/mono-oss/tree/main/packages/blobby-sandbox#try-it).
+In a checkout of rwoll/mono-oss, build it instead:
 
 ```sh
 pnpm install --frozen-lockfile && pnpm --filter @rwoll/blobby-sandbox build
@@ -118,7 +119,7 @@ installed next to `@rwoll/blobby-sandbox`, at the version the backend is tested 
 installs never download it:
 
 ```sh
-npm install -g --registry=https://registry.npmjs.org/ --min-release-age=7 --min-release-age-exclude='@rwoll/*' @rwoll/blobby-sandbox@latest smolmachines@1.31.0   # the CLI, once it is published
+npm install -g --registry=https://registry.npmjs.org/ --min-release-age=7 --min-release-age-exclude='@rwoll/*' @rwoll/blobby-sandbox@latest smolmachines@1.31.0   # the CLI
 npm install @rwoll/blobby-sandbox smolmachines@1.31.0      # the SDK, in a project
 ```
 
