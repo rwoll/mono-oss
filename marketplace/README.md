@@ -7,6 +7,9 @@ the `stable` branch of this repository by
 [Publish marketplace](https://github.com/rwoll/mono-oss/blob/main/.github/workflows/publish-marketplace.yml)
 on every push to `main`. Install:
 
+[![Install kitchensink in VS Code](https://img.shields.io/badge/VS_Code-Install_kitchensink-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect?url=vscode%3A%2F%2Fchat-plugin%2Finstall%3Fsource%3DcndvbGwvbW9uby1vc3Mjc3RhYmxl%26plugin%3Dkitchensink)
+[![Install kitchensink in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_kitchensink-24bfa5?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect?url=vscode-insiders%3A%2F%2Fchat-plugin%2Finstall%3Fsource%3DcndvbGwvbW9uby1vc3Mjc3RhYmxl%26plugin%3Dkitchensink)
+
 ```sh
 copilot plugin marketplace add rwoll/mono-oss#stable
 copilot plugin install kitchensink@rwoll

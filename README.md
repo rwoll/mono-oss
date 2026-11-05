@@ -1,5 +1,3 @@
-# rwoll/mono-oss
-
 Open source tools, `@rwoll` npm packages, and a Copilot plugin by [@rwoll](https://github.com/rwoll).
 
 <picture>
@@ -8,6 +6,9 @@ Open source tools, `@rwoll` npm packages, and a Copilot plugin by [@rwoll](https
 </picture>
 
 Install the Copilot plugin, with every skill and canvas below:
+
+[![Install kitchensink in VS Code](https://img.shields.io/badge/VS_Code-Install_kitchensink-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect?url=vscode%3A%2F%2Fchat-plugin%2Finstall%3Fsource%3DcndvbGwvbW9uby1vc3Mjc3RhYmxl%26plugin%3Dkitchensink)
+[![Install kitchensink in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_kitchensink-24bfa5?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect?url=vscode-insiders%3A%2F%2Fchat-plugin%2Finstall%3Fsource%3DcndvbGwvbW9uby1vc3Mjc3RhYmxl%26plugin%3Dkitchensink)
 
 ```sh
 copilot plugin marketplace add rwoll/mono-oss#stable
