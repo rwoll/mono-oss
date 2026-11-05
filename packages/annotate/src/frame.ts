@@ -3,17 +3,30 @@ import type { ResolvedDocument } from './document.ts';
 import type { Box, Point, Tone } from './schema.ts';
 import { FONT_FAMILY, measureText, wrapText } from './text.ts';
 
+/** Stroke color of each tone. */
 export const TONE_COLORS: Record<Tone, string> = {
-  problem: '#ef4444',
-  removed: '#ef4444',
+  problem: '#dc2626',
+  removed: '#dc2626',
   warning: '#f59e0b',
   changed: '#f59e0b',
-  added: '#22c55e',
-  success: '#22c55e',
-  note: '#3b82f6',
-  accent: '#a855f7',
+  added: '#16a34a',
+  success: '#16a34a',
+  note: '#2563eb',
+  accent: '#9333ea',
+};
+/** Fill of each tone's labels and badges: darker than the stroke, so white text stays readable (amber is lighter, with dark text). */
+export const TONE_LABEL_COLORS: Record<Tone, string> = {
+  problem: '#b91c1c',
+  removed: '#b91c1c',
+  warning: '#fbbf24',
+  changed: '#fbbf24',
+  added: '#15803d',
+  success: '#15803d',
+  note: '#1d4ed8',
+  accent: '#7e22ce',
 };
 const DARK_TEXT = new Set<Tone>(['warning', 'changed']);
+const HALO = 'stroke="#ffffff" stroke-opacity="0.9"';
 
 export interface FrameOptions {
   /** Output width in pixels. */
@@ -154,30 +167,43 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
     return [0, 0];
   };
   const color = (tone: Tone | undefined, fallback: Tone = 'note') => TONE_COLORS[tone ?? fallback];
+  const labelColor = (tone: Tone | undefined, fallback: Tone = 'note') => TONE_LABEL_COLORS[tone ?? fallback];
+  let shadowed = false;
 
+  /**
+   * A label, with an optional step number. With `attach` (the box's stroke width), it is a tab
+   * on the box's outer edge, flush with a corner, unless it had to move to stay in the frame.
+   */
   function pill(
     label: string | undefined,
     [x, y, w, h]: Box,
     tone: Tone | undefined,
-    { step, place = 'above', align = 'start' }: { step?: number | undefined; place?: 'above' | 'below' | 'middle'; align?: 'start' | 'center' | 'end' } = {},
+    {
+      step,
+      place = 'above',
+      align = 'start',
+      attach,
+    }: { step?: number | undefined; place?: 'above' | 'below' | 'middle'; align?: 'start' | 'center' | 'end'; attach?: number } = {},
   ): string {
     const own: Box = [x, y, w, h];
     if (!label && step === undefined) return '';
-    const fs = 13 * u;
-    const ph = 24 * u;
-    const padX = 10 * u;
-    const badge = 18 * u;
+    const fs = 12.5 * u;
+    const ph = 22 * u;
+    const padX = 8 * u;
     const inset = 3 * u;
+    const badge = ph - 2 * inset;
     const textWidth = label ? measureText(label, fs, 600) : 0;
     const lead = step !== undefined ? inset + badge + (label ? 6 * u : inset) : padX;
     const pw = lead + textWidth + (label ? padX : 0);
     // Candidate spots: the requested side first, then the others, each left- and right-aligned
     // for labels on a box. The spot covering the least of earlier labels and other marks wins.
     const sides = place === 'middle' ? (['middle', 'above', 'below'] as const) : place === 'below' ? (['below', 'above'] as const) : (['above', 'below'] as const);
-    const yFor = (side: 'above' | 'below' | 'middle') => (side === 'middle' ? y + h / 2 - ph / 2 : side === 'below' ? y + h + 6 * u : y - ph - 6 * u);
-    const xs = align === 'center' ? [x + w / 2 - pw / 2] : align === 'end' ? [x - pw] : [x, x + w - pw];
+    const gap = attach === undefined ? 6 * u : attach / 2;
+    const yFor = (side: 'above' | 'below' | 'middle') => (side === 'middle' ? y + h / 2 - ph / 2 : side === 'below' ? y + h + gap : y - ph - gap);
+    const outset = attach === undefined ? 0 : attach / 2;
+    const xs = align === 'center' ? [x + w / 2 - pw / 2] : align === 'end' ? [x - pw] : [x - outset, x + w + outset - pw];
     const others = obstacles.filter(o => !boxesMatch(o, own));
-    let best: { px: number; py: number; score: number } | undefined;
+    let best: { px: number; py: number; side: 'above' | 'below' | 'middle'; flush: boolean; score: number } | undefined;
     for (const side of sides) {
       for (const cx of xs) {
         const top = yFor(side);
@@ -185,18 +211,31 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
         const spot: Box = [left, top, pw, ph];
         const inFrame = top >= 4 && top + ph <= H - 4;
         const score = (inFrame ? 0 : 1e9) + labels.reduce((sum, l) => sum + 4 * overlap(spot, l, 2), 0) + others.reduce((sum, o) => sum + overlap(spot, o, 0), 0);
-        if (!best || score < best.score) best = { px: left, py: top, score };
+        if (!best || score < best.score) best = { px: left, py: top, side, flush: left === cx && inFrame, score };
       }
     }
-    const { px } = best as { px: number };
-    const py = clamp((best as { py: number }).py, 4, H - ph - 4);
+    const { px, side, flush } = best as NonNullable<typeof best>;
+    const py = clamp((best as NonNullable<typeof best>).py, 4, H - ph - 4);
     labels.push([px, py, pw, ph]);
-    const fill = color(tone);
+    const fill = labelColor(tone);
     const fg = tone && DARK_TEXT.has(tone) ? '#1c1300' : '#ffffff';
-    let svg = `<rect x="${n(px)}" y="${n(py)}" width="${n(pw)}" height="${n(ph)}" rx="${n(ph / 2)}" fill="${fill}" stroke="#ffffff" stroke-opacity="0.9" stroke-width="${n(1.5 * u)}"/>`;
+    let svg: string;
+    if (attach !== undefined && flush && side !== 'middle') {
+      // Square where it meets the box, rounded on the outside.
+      const r = 3 * u;
+      const [x0, x1, y0, y1] = [n(px), n(px + pw), n(py), n(py + ph)];
+      const d =
+        side === 'above'
+          ? `M${x0} ${y1}V${n(py + r)}A${n(r)} ${n(r)} 0 0 1 ${n(px + r)} ${y0}H${n(px + pw - r)}A${n(r)} ${n(r)} 0 0 1 ${x1} ${n(py + r)}V${y1}Z`
+          : `M${x0} ${y0}H${x1}V${n(py + ph - r)}A${n(r)} ${n(r)} 0 0 1 ${n(px + pw - r)} ${y1}H${n(px + r)}A${n(r)} ${n(r)} 0 0 1 ${x0} ${n(py + ph - r)}Z`;
+      svg = `<path d="${d}" fill="${fill}"/>`;
+    } else {
+      shadowed = true;
+      svg = `<rect x="${n(px)}" y="${n(py)}" width="${n(pw)}" height="${n(ph)}" rx="${n(4 * u)}" fill="${fill}" filter="url(#annotate-label-shadow)"/>`;
+    }
     if (step !== undefined) {
       const cx = px + inset + badge / 2;
-      svg += `<circle cx="${n(cx)}" cy="${n(py + ph / 2)}" r="${n(badge / 2)}" fill="${fg}"/>${textAt(cx, py + ph / 2, String(step), 11 * u, fill, 700, 'middle')}`;
+      svg += `<circle cx="${n(cx)}" cy="${n(py + ph / 2)}" r="${n(badge / 2)}" fill="${fg}"/>${textAt(cx, py + ph / 2, String(step), 10.5 * u, fill, 700, 'middle')}`;
     }
     if (label) {
       // Centered in its space, so a font a little wider or narrower than the metrics still fits.
@@ -238,18 +277,21 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
         const cx = x + w / 2;
         const cy = y + h / 2;
         const k = 1 + 0.08 * (1 - easeOut(progress(age, 0.3)));
+        const sw = 2.5 * u;
         const shape = (attrs: string) =>
           a.type === 'rect'
-            ? `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${n(6 * u)}" ${attrs}/>`
+            ? `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${n(3 * u)}" ${attrs}/>`
             : `<ellipse cx="${n(cx)}" cy="${n(cy)}" rx="${n(w / 2 + 6 * u)}" ry="${n(h / 2 + 6 * u)}" ${attrs}/>`;
         const step = resolved.steps.get(a);
+        // The label is inside the pop, so a tab stays on its box while the box settles.
         mid.push(
           `<g opacity="${n(o)}"><g transform="translate(${n(cx)} ${n(cy)}) scale(${n(k)}) translate(${n(-cx)} ${n(-cy)})">` +
-            shape(`fill="${stroke}" fill-opacity="0.08" stroke="#ffffff" stroke-opacity="0.9" stroke-width="${n(6 * u)}"`) +
-            shape(`fill="none" stroke="${stroke}" stroke-width="${n(3 * u)}"`) +
-            `</g>${pill(a.label, a.type === 'ellipse' ? [x, y - 6 * u, w, h + 12 * u] : [x, y, w, h], tone, { step })}</g>`,
+            shape(`fill="${stroke}" fill-opacity="0.06" ${HALO} stroke-width="${n(sw + 2 * u)}"`) +
+            shape(`fill="none" stroke="${stroke}" stroke-width="${n(sw)}"`) +
+            (a.type === 'ellipse' ? pill(a.label, [x, y - 6 * u, w, h + 12 * u], tone, { step }) : pill(a.label, [x, y, w, h], tone, { step, attach: sw })) +
+            `</g></g>`,
         );
-        keepClear.push(a.label || step !== undefined ? [x, y - 34 * u, w, h + 34 * u] : [x, y, w, h]);
+        keepClear.push(a.label || step !== undefined ? [x, y - 30 * u, w, h + 30 * u] : [x, y, w, h]);
         break;
       }
       case 'arrow': {
@@ -277,11 +319,11 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
         const tl = Math.hypot(tx, ty) || 1;
         tx /= tl;
         ty /= tl;
-        const hs = 14 * u;
+        const hs = 12 * u;
         const end: Point = [p1[0] - tx * hs * 0.7, p1[1] - ty * hs * 0.7];
         const length = quadLength(p0, c, end);
         const drawn = easeOut(progress(age, 0.45));
-        const head = [p1, [p1[0] - tx * hs - ty * hs * 0.55, p1[1] - ty * hs + tx * hs * 0.55], [p1[0] - tx * hs + ty * hs * 0.55, p1[1] - ty * hs - tx * hs * 0.55]]
+        const head = [p1, [p1[0] - tx * hs - ty * hs * 0.45, p1[1] - ty * hs + tx * hs * 0.45], [p1[0] - tx * hs + ty * hs * 0.45, p1[1] - ty * hs - tx * hs * 0.45]]
           .map(p => `${n(p[0] as number)},${n(p[1] as number)}`)
           .join(' ');
         const d = `M${n(p0[0])} ${n(p0[1])} Q${n(c[0])} ${n(c[1])} ${n(end[0])} ${n(end[1])}`;
@@ -296,10 +338,10 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
         }
         mid.push(
           `<g opacity="${n(o)}" stroke-linecap="round" stroke-linejoin="round">` +
-            `<path d="${d}" fill="none" stroke="#ffffff" stroke-opacity="0.9" stroke-width="${n(7 * u)}"${dash}/>` +
-            `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${n(3.5 * u)}"${dash}/>` +
-            (drawn > 0.8 ? `<polygon points="${head}" fill="${stroke}" stroke="#ffffff" stroke-width="${n(1.5 * u)}"/>` : '') +
-            `<circle cx="${n(p0[0])}" cy="${n(p0[1])}" r="${n(4 * u)}" fill="${stroke}" stroke="#ffffff" stroke-width="${n(1.5 * u)}"/>` +
+            `<path d="${d}" fill="none" ${HALO} stroke-width="${n(4.5 * u)}"${dash}/>` +
+            `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${n(2.5 * u)}"${dash}/>` +
+            (drawn > 0.8 ? `<polygon points="${head}" fill="${stroke}" ${HALO} stroke-width="${n(u)}"/>` : '') +
+            `<circle cx="${n(p0[0])}" cy="${n(p0[1])}" r="${n(3 * u)}" fill="${stroke}" ${HALO} stroke-width="${n(u)}"/>` +
             `${label}</g>`,
         );
         keepClear.push(boundsOf([p0, p1]));
@@ -313,12 +355,13 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
       }
       case 'step': {
         const at = typeof a.at === 'string' && boxOf(a.at) ? P([(boxOf(a.at) as Box)[0], (boxOf(a.at) as Box)[1]]) : P(pointOf(a.at));
-        const r = 13 * u;
+        const r = 11 * u;
         const k = easeOutBack(progress(age, 0.35));
-        const fill = color(tone, 'accent');
+        const fill = TONE_LABEL_COLORS[tone ?? 'accent'];
+        const fg = tone && DARK_TEXT.has(tone) ? '#1c1300' : '#ffffff';
         top.push(
-          `<g opacity="${n(o)}" transform="translate(${n(at[0])} ${n(at[1])}) scale(${n(k)})"><circle r="${n(r)}" fill="${fill}" stroke="#ffffff" stroke-width="${n(2.5 * u)}"/>` +
-            `${textAt(0, 0, String(resolved.steps.get(a) ?? ''), 13 * u, '#ffffff', 700, 'middle')}</g>`,
+          `<g opacity="${n(o)}" transform="translate(${n(at[0])} ${n(at[1])}) scale(${n(k)})"><circle r="${n(r)}" fill="${fill}" stroke="#ffffff" stroke-width="${n(1.5 * u)}"/>` +
+            `${textAt(0, 0, String(resolved.steps.get(a) ?? ''), 12 * u, fg, 700, 'middle')}</g>`,
         );
         break;
       }
@@ -351,7 +394,7 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
         const lines = segment(q0, q1) + ticks(q0) + ticks(q1);
         const distance = Math.round(Math.hypot(a.to[0] - a.from[0], a.to[1] - a.from[1]));
         mid.push(
-          `<g opacity="${n(o)}" stroke-linecap="round"><g stroke="#ffffff" stroke-opacity="0.9" stroke-width="${n(5 * u)}">${lines}</g>` +
+          `<g opacity="${n(o)}" stroke-linecap="round"><g ${HALO} stroke-width="${n(4 * u)}">${lines}</g>` +
             `<g stroke="${stroke}" stroke-width="${n(2 * u)}">${lines}</g>` +
             (g > 0.6 ? pill(a.label ?? `${distance} px`, [m[0], m[1] - tick, 0, 0], tone, { align: 'center' }) : '') +
             `</g>`,
@@ -394,7 +437,7 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
         mid.push(
           `<g opacity="${n(o)}"><g stroke="${stroke}" stroke-width="${n(1.5 * u)}" stroke-opacity="0.7">${connectors}</g>` +
             `<rect x="${n(sx)}" y="${n(sy)}" width="${n(sw)}" height="${n(sh)}" rx="${n(3 * u)}" fill="none" stroke="${stroke}" stroke-width="${n(2 * u)}"/>` +
-            `<rect x="${n(cx)}" y="${n(cy)}" width="${n(cw)}" height="${n(ch)}" rx="${n(radius)}" fill="none" stroke="${stroke}" stroke-width="${n(3 * u)}"/>` +
+            `<rect x="${n(cx)}" y="${n(cy)}" width="${n(cw)}" height="${n(ch)}" rx="${n(radius)}" fill="none" stroke="${stroke}" stroke-width="${n(2.5 * u)}"/>` +
             (g > 0.7 ? pill(`${a.label ? `${a.label} · ` : ''}${zoom.toFixed(1)}×`, cur, tone) : '') +
             `</g>`,
         );
@@ -490,6 +533,9 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
   }
 
   const defs = magnifiers.length ? `<defs><filter id="annotate-shadow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="${n(10 * u)}"/></filter></defs>` : '';
+  const labelDefs = shadowed
+    ? `<defs><filter id="annotate-label-shadow" x="-10%" y="-30%" width="120%" height="180%"><feDropShadow dx="0" dy="${n(u)}" stdDeviation="${n(1.2 * u)}" flood-color="#000000" flood-opacity="0.4"/></filter></defs>`
+    : '';
   return {
     t,
     width: W,
@@ -501,7 +547,7 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
     wipe,
     under: defs + under.join(''),
     magnifiers,
-    over: mid.join('') + top.join(''),
+    over: labelDefs + mid.join('') + top.join(''),
   };
 }
 

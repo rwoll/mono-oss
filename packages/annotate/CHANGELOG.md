@@ -6,6 +6,16 @@ Notable changes to `@rwoll/annotate`. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Lighter, easier-to-read marks: 2.5 px strokes with a thin white halo (were
+  3 px strokes on a 6 px halo), 3 px corners, and thinner arrows, dimension
+  lines, and step badges.
+- Labels are small-radius chips with a soft shadow instead of round pills with a
+  white border, and a box's label is a tab attached to its corner.
+- Darker tone colors, with darker label fills than strokes, so white label text
+  is readable on every tone. Adds `TONE_LABEL_COLORS` next to `TONE_COLORS`.
+
 ## [0.1.0] - 2026-11-04
 
 ### Added

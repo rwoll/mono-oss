@@ -35,7 +35,7 @@ it throughout), and `tone`.
 | --- | --- | --- |
 | `rect`, `ellipse` | `box`, `label?`, `step?` (`true` or a number), `target?` | `target` records how the box was found, such as a locator |
 | `arrow` | `from`, `to` (points or ids), `label?`, `bend?` (-1 to 1) | Pointing at an id stops at that annotation's edge |
-| `callout` | `at` (point or id), `text` | A note pill at a point |
+| `callout` | `at` (point or id), `text` | A note label at a point |
 | `step` | `at` (point or id), `n?` | A numbered badge; at an id, on its top-left corner |
 | `guide` | `x` or `y`, `label?` | A full-length dashed line, such as a content edge |
 | `measure` | `from`, `to` (points), `label?` | Labeled with the distance in source pixels |

@@ -1,7 +1,7 @@
 // Text layout that does not depend on installed fonts, so a label is the same size
 // in a PNG rendered by sharp and in the browser player. Widths are Helvetica's
 // (Arial is metric-compatible) in 1/1000 em for ASCII 32-126; labels are centered
-// in their pills, so a slightly different system font still fits.
+// in their chips, so a slightly different system font still fits.
 const REGULAR = [
   278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556,
   556, 556, 278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778,

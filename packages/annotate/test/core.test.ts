@@ -175,15 +175,27 @@ describe('frameAt', () => {
       doc({
         annotations: [
           { type: 'rect', box: [100, 80, 600, 40], label: 'Upper' },
-          { type: 'rect', box: [100, 150, 200, 40], label: 'Lower' },
+          { type: 'rect', box: [100, 140, 200, 40], label: 'Lower' },
         ],
       }),
     );
     const svg = frameAt(resolved, 0, { width: 1280, animate: false }).over;
     const y = (label: string) => Number(new RegExp(`y="([0-9.]+)"[^>]*>${label}<`).exec(svg)?.[1]);
     // Above "Lower" is "Upper", so its label goes below its box instead.
-    expect(y('Lower')).toBeGreaterThan(190);
+    expect(y('Lower')).toBeGreaterThan(180);
     expect(y('Upper')).toBeLessThan(80);
+  });
+
+  it('attaches box labels as tabs on the box edge, and frees them when they must move into the frame', () => {
+    const tabs = (box: [number, number, number, number]) =>
+      frameAt(resolveDocument(doc({ annotations: [{ type: 'rect', box, label: 'Tab' }] })), 0, { width: 1280, animate: false }).over;
+    // At 1280 px wide the stroke is 3.2 px, centered on the edge, so the tab meets its outside at y - 1.6 (y + h + 1.6 below).
+    expect(tabs([100, 200, 300, 40])).toContain('<path d="M98.4 198.4V');
+    expect(tabs([100, 2, 300, 40])).toContain('<path d="M98.4 43.6H');
+    const full = tabs([100, 0, 300, 800]);
+    expect(full).not.toContain('<path d=');
+    expect(full).toContain('filter="url(#annotate-label-shadow)"');
+    expect(full).toContain('<filter id="annotate-label-shadow"');
   });
 
   it('returns raster work separately: redactions in source pixels and lenses in output pixels', () => {
