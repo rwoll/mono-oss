@@ -7,7 +7,7 @@
     {
       "name": "annotate",
       "description": "Annotate screenshots and screen recordings with the agent: zoom, marks, captions, before/after, and redaction, exported to PNG, MP4, or GIF.",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "source": "./plugins/annotate"
     },
     {

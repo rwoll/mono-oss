@@ -7899,6 +7899,7 @@ var base = {
 	tone: toneSchema.optional()
 };
 var label = string().min(1).max(200).optional().describe("Short text shown next to the mark.");
+var note = string().min(1).max(1e3).optional().describe("A longer explanation, shown in the notes panel beside or below the image; **bold** and `code` are styled. The mark gets a number that matches it.");
 var target = string().max(500).optional().describe("How the box was found, such as a Playwright locator. Informational; the box is what renders.");
 var step = union([literal(true), number().int().positive()]).optional().describe("Show a step number: true numbers steps in order of appearance.");
 var shape = (type, description) => object({
@@ -7906,6 +7907,7 @@ var shape = (type, description) => object({
 	...base,
 	box: boxSchema,
 	label,
+	note,
 	step,
 	target
 }).describe(description);
@@ -7918,6 +7920,7 @@ var annotationSchema = discriminatedUnion("type", [
 		from: pointOrReference,
 		to: pointOrReference,
 		label,
+		note,
 		bend: number().min(-1).max(1).optional().describe("Curvature, -1 to 1. Default 0.2.")
 	}).describe("An arrow. A reference points at the edge of that annotation."),
 	object({
@@ -7944,7 +7947,8 @@ var annotationSchema = discriminatedUnion("type", [
 		...base,
 		from: pointSchema,
 		to: pointSchema,
-		label
+		label,
+		note
 	}).describe("A dimension line labeled with its length in source pixels."),
 	object({
 		type: literal("spotlight"),
@@ -8028,6 +8032,14 @@ var documentSchema = object({
 	events: array(eventSchema).max(5e3).optional(),
 	camera: array(shotSchema).max(500).optional(),
 	annotations: array(annotationSchema).max(2e3).default([]),
+	notes: object({
+		title: string().min(1).max(200).optional().describe("Heading of the panel."),
+		side: _enum([
+			"auto",
+			"right",
+			"bottom"
+		]).optional().describe("Where the panel goes. auto (default) puts it on the right of tall or square images, else below, so wide screenshots keep their width.")
+	}).optional().describe("The notes panel, shown when any mark has a note."),
 	narration: array(cueSchema).max(1e3).optional().describe("Captions. Silent videos rely on them."),
 	output: object({
 		width: number().int().min(16).max(7680).optional(),
@@ -8131,6 +8143,7 @@ function checkDocument(doc) {
 		if (annotation.type === "redact" && annotation.time) add("warning", `${path}.time`, "a redaction with a time window leaves the pixels visible outside it; remove time to hide them throughout");
 	});
 	if (doc.camera?.some((shot) => shot.type === "auto") && !(doc.events ?? []).some((event) => event.at)) add("warning", "camera", "auto zoom follows events with `at`, and there are none");
+	if (doc.notes && !doc.annotations.some((a) => "note" in a && a.note)) add("warning", "notes", "no annotation has a note, so the notes panel is not shown");
 	(doc.camera ?? []).forEach((shot, index) => {
 		if (shot.type === "zoom" && outside(shot.box)) add("warning", `camera.${index}.box`, "extends outside the frame");
 	});

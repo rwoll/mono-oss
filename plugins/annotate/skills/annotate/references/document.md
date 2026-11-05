@@ -33,12 +33,12 @@ it throughout), and `tone`.
 
 | type | Fields | Notes |
 | --- | --- | --- |
-| `rect`, `ellipse` | `box`, `label?`, `step?` (`true` or a number), `target?` | `target` records how the box was found, such as a locator |
-| `arrow` | `from`, `to` (points or ids), `label?`, `bend?` (-1 to 1) | Pointing at an id stops at that annotation's edge |
+| `rect`, `ellipse` | `box`, `label?`, `note?`, `step?` (`true` or a number), `target?` | `target` records how the box was found, such as a locator |
+| `arrow` | `from`, `to` (points or ids), `label?`, `note?`, `bend?` (-1 to 1) | Pointing at an id stops at that annotation's edge |
 | `callout` | `at` (point or id), `text` | A note label at a point |
 | `step` | `at` (point or id), `n?` | A numbered badge; at an id, on its top-left corner |
 | `guide` | `x` or `y`, `label?` | A full-length dashed line, such as a content edge |
-| `measure` | `from`, `to` (points), `label?` | Labeled with the distance in source pixels |
+| `measure` | `from`, `to` (points), `label?`, `note?` | Labeled with the distance in source pixels |
 | `spotlight` | `box`, `pad?` | Dims everything else |
 | `magnify` | `box`, `into`, `label?` | Shows `box` enlarged at `into`, with connector lines |
 | `redact` | `box`, `style?` (`fill` or `pixelate`) | Changes source pixels; never give it a `time` |
@@ -46,6 +46,21 @@ it throughout), and `tone`.
 | `keys` | | A chip for each `key` event |
 
 Steps with `step: true` are numbered in order of their start time.
+
+## notes
+
+A `note` on a `rect`, `ellipse`, `arrow`, or `measure` is a longer explanation, shown
+in a panel beside or below the image; `**bold**` and `` `code` `` are styled. The mark
+is numbered like `step: true` (unless it has a numbered `step`), and the panel lists
+the notes in that order. `notes` sets up the panel:
+
+```json
+"notes": { "title": "Settings page review", "side": "auto" }
+```
+
+`side` is `auto` (default: right of tall or square images, else below), `right`, or
+`bottom`. The panel adds to the output size; the image keeps its own. In a video,
+notes of marks not shown yet are dimmed.
 
 ## events
 
