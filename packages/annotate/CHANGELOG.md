@@ -6,6 +6,16 @@ Notable changes to `@rwoll/annotate`. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Notes panel: a `note` on a `rect`, `ellipse`, `arrow`, or `measure` explains it in
+  a panel beside or below the image, with `**bold**` and `` `code` ``; the mark gets
+  a matching number. `notes` sets the panel's `title` and `side` (`auto`, `right`,
+  or `bottom`). The PNG, video, and `<AnnotatePlayer>` outputs include it, and the
+  annotate canvas can edit notes. `notesPanel` lays it out for other renderers.
+- A step number with no label is drawn on its own, as a round badge or a tab on a
+  box.
+
 ### Changed
 
 - Lighter, easier-to-read marks: 2.5 px strokes with a thin white halo (were

@@ -3,6 +3,7 @@ import {
   checkDocument,
   frameAt,
   measureText,
+  notesPanel,
   parseDocument,
   planShots,
   resolveDocument,
@@ -206,6 +207,44 @@ describe('frameAt', () => {
     expect(frame.redactions).toEqual([{ box: [1, 2, 3, 4], style: 'fill' }]);
     expect(frame.magnifiers[0]?.dest).toEqual([100, 100, 200, 100]);
     expect(frame.height).toBe(400);
+  });
+});
+
+describe('notesPanel', () => {
+  const noted = (extra: Partial<AnnotateDocumentInput> = {}) =>
+    resolveDocument(
+      doc({
+        annotations: [
+          { type: 'rect', box: [10, 10, 50, 50], note: 'Second **bold** `code`', time: [2, 4] },
+          { type: 'arrow', from: [300, 300], to: [400, 400], note: 'First' },
+          { type: 'rect', box: [500, 10, 50, 50], label: 'No note' },
+        ],
+        ...extra,
+      }),
+    );
+
+  it('numbers marks with notes like steps, on the image and in the panel', () => {
+    const resolved = noted();
+    expect(resolved.doc.annotations.map(a => resolved.steps.get(a))).toEqual([2, 1, undefined]);
+    const svg = notesPanel(resolved, 3, { width: 1280, height: 800 })?.svg ?? '';
+    expect(svg.indexOf('>First<')).toBeLessThan(svg.indexOf('>Second<'));
+    expect(svg).toMatch(/font-weight="700"[^>]*>bold</);
+    expect(svg).toContain('font-family="ui-monospace');
+    // The arrow has no label, so the image shows its number alone.
+    expect(frameAt(resolved, 3, { width: 1280, animate: false }).over).toMatch(/text-anchor="middle">1</);
+    expect(notesPanel(resolveDocument(doc()), 0, { width: 1280, height: 800 })).toBeUndefined();
+  });
+
+  it('goes below wide images and beside tall ones, keeps one size over time, and dims notes not shown yet', () => {
+    const resolved = noted();
+    const early = notesPanel(resolved, 0, { width: 1280, height: 800 });
+    const late = notesPanel(resolved, 3, { width: 1280, height: 800 });
+    expect(early).toMatchObject({ side: 'bottom', width: 1280 });
+    expect([early?.width, early?.height]).toEqual([late?.width, late?.height]);
+    expect(early?.svg).toContain('<g opacity="0.4">');
+    expect(late?.svg).not.toContain('<g opacity="0.4">');
+    expect(notesPanel(resolved, 0, { width: 600, height: 900 })).toMatchObject({ side: 'right', height: 900 });
+    expect(notesPanel(noted({ notes: { side: 'right' } }), 0, { width: 1280, height: 800 })?.side).toBe('right');
   });
 });
 

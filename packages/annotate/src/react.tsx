@@ -4,7 +4,9 @@ import { resolveDocument, type ResolvedDocument } from './document.ts';
 import { frameAt, type Frame } from './frame.ts';
 import { mediaKind } from './media.ts';
 import { shortTime } from './narration.ts';
+import { notesPanel } from './notes.ts';
 import type { AnnotateDocument, Point } from './schema.ts';
+import { FONT_FAMILY } from './text.ts';
 
 /** What `overlay` gets on every frame, for drawing editing handles on top of the player. */
 export interface PlayerView {
@@ -183,6 +185,8 @@ export function AnnotatePlayer(props: AnnotatePlayerProps): ReactNode {
     () => (size && !(resolved instanceof Error) ? frameAt(resolved, time, { width: size.width, height: size.height, captions, camera, wipe }) : undefined),
     [resolved, time, size, captions, camera, wipe],
   );
+  // Laid out at the source size and scaled with the player, like a render at full width.
+  const notes = useMemo(() => (resolved instanceof Error ? undefined : notesPanel(resolved, time, { width: resolved.width, height: resolved.height })), [resolved, time]);
 
   useLayoutEffect(() => {
     const { main, before } = sources.current;
@@ -207,23 +211,38 @@ export function AnnotatePlayer(props: AnnotatePlayerProps): ReactNode {
       </div>
     );
   }
+  const right = notes?.side === 'right';
+  const total = resolved.width + (right ? (notes?.width ?? 0) : 0);
   return (
     <div className={props.className} style={props.style}>
-      <div
-        ref={stage}
-        onPointerDown={dragWipe}
-        onPointerMove={dragWipe}
-        style={{
-          position: 'relative',
-          width: '100%',
-          aspectRatio: `${resolved.width} / ${resolved.height}`,
-          background: '#000',
-          overflow: 'hidden',
-          cursor: doc.compare && !overlay ? 'ew-resize' : undefined,
-          touchAction: 'none',
-        }}
-      >
-        {frame && overlay && <div style={{ position: 'absolute', inset: 0 }}>{overlay({ frame, toView: point => toView(frame, point), toSource: point => toSource(frame, point) })}</div>}
+      <div style={{ display: 'flex', flexDirection: right ? 'row' : 'column', alignItems: 'flex-start' }}>
+        <div
+          ref={stage}
+          onPointerDown={dragWipe}
+          onPointerMove={dragWipe}
+          style={{
+            position: 'relative',
+            flex: 'none',
+            width: `${(resolved.width / total) * 100}%`,
+            aspectRatio: `${resolved.width} / ${resolved.height}`,
+            background: '#000',
+            overflow: 'hidden',
+            cursor: doc.compare && !overlay ? 'ew-resize' : undefined,
+            touchAction: 'none',
+          }}
+        >
+          {frame && overlay && <div style={{ position: 'absolute', inset: 0 }}>{overlay({ frame, toView: point => toView(frame, point), toSource: point => toSource(frame, point) })}</div>}
+        </div>
+        {notes && (
+          <svg
+            role="img"
+            aria-label="Notes"
+            viewBox={`0 0 ${notes.width} ${notes.height}`}
+            fontFamily={FONT_FAMILY}
+            style={{ display: 'block', flex: 'none', width: right ? `${(notes.width / total) * 100}%` : '100%', height: 'auto' }}
+            dangerouslySetInnerHTML={{ __html: notes.svg }}
+          />
+        )}
       </div>
       {controls && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>

@@ -63,6 +63,7 @@ before/after, and pull request media.
 | To say | Use |
 | --- | --- |
 | "This is broken" | `rect` or `ellipse` with `tone: "problem"` and a short `label` |
+| "Here is why, in a sentence" | a `note` on the mark, shown in the notes panel ([below](#inline-labels-or-a-notes-panel)) |
 | "Look here" | `arrow` to an annotation's `id`, `spotlight`, or a camera `zoom` |
 | "Do these in order" | `rect` with `step: true` (numbered by time), or `step` badges |
 | "This changed" | `compare` (before/after wipe) and `rect` with `tone: "changed"`, `"added"`, or `"removed"` |
@@ -73,7 +74,38 @@ before/after, and pull request media.
 
 Tones color marks by meaning: `problem`, `warning`, `changed`, `added`, `removed`,
 `note` (default), `success`, `accent`. Keep labels to a few words; put sentences in
-captions.
+captions or notes.
+
+## Inline labels or a notes panel
+
+Inline labels are the easiest to read: the words sit on the thing they describe.
+Use them by default, for a few short points that are spread out.
+
+Move the words to a notes panel (beside or below the image) when inline labels
+would get in the way:
+
+- They would cover something the reader needs to see, such as the text being
+  reported or the controls around it.
+- Several marks are close together, so their labels would crowd or overlap.
+- A point needs a sentence or two, or `code`, to explain.
+
+Give each such mark a `note` instead of (or with) its `label`. The mark gets a
+number, and the panel lists the notes by number:
+
+```json
+{
+  "notes": { "title": "Settings page review" },
+  "annotations": [
+    { "type": "rect", "box": [740, 352, 136, 36], "tone": "problem", "note": "**Save changes** ends 8 px short of the card edge; the others use `padding-right: 24px`." },
+    { "type": "ellipse", "box": [836, 513, 40, 22], "tone": "warning", "note": "**Product updates** is on by default for new accounts." }
+  ]
+}
+```
+
+The panel goes below wide images, so they keep their width in a pull request, and
+beside tall ones; set `"side": "right"` or `"bottom"` to choose. Mixing is fine: a
+short `label` for a mark that has room, and notes for the rest. In a video, notes of
+marks not shown yet are dimmed.
 
 ## Captions for silent videos
 

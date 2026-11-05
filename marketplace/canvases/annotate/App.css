@@ -30,6 +30,8 @@
 .inspector input:not([type]), .inspector input[inputmode] { width: 16ch; }
 .inspector .times { display: inline-flex; gap: 6px; }
 .inspector .times input { width: 7ch; }
+.inspector label.note { flex: 1 1 100%; }
+.inspector textarea { font: inherit; resize: vertical; }
 .danger { color: var(--bad); }
 
 .cue { display: grid; grid-template-columns: 56px 1fr auto; gap: 6px; align-items: center; padding: 3px 0; }

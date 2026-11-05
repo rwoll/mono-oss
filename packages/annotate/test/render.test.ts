@@ -28,6 +28,18 @@ describe('render stills', () => {
     expect(result).toMatchObject({ width: 1280, height: 800, frames: 1, format: 'png' });
   });
 
+  it('adds the notes panel below a wide image and beside a tall one, leaving the image as it was', async () => {
+    const annotations = [{ type: 'rect' as const, box: LAYOUT.save, note: 'Save is 8 px short of the card edge.' }];
+    const below = await renderDoc({ source: { path: 'after.png' }, annotations }, 'notes-below.png');
+    expect(below.width).toBe(1280);
+    expect(below.height).toBeGreaterThan(800);
+    expect(await pixel(join(dir, 'notes-below.png'), 10, 10)).toEqual(await pixel(join(dir, 'after.png'), 10, 10));
+    expect(await pixel(join(dir, 'notes-below.png'), 640, below.height - 4)).toEqual({ r: 0xf6, g: 0xf8, b: 0xfa });
+    const beside = await renderDoc({ source: { path: 'after.png' }, annotations, notes: { side: 'right' } }, 'notes-right.png');
+    expect(beside).toMatchObject({ height: 800 });
+    expect(beside.width).toBeGreaterThan(1280);
+  });
+
   it('redacts source pixels with a solid fill', async () => {
     const [x, y, w, h] = LAYOUT.apiKey;
     expect(await pixel(join(dir, 'after.png'), x + w / 2, y + h / 2)).toEqual(API_KEY_COLOR);

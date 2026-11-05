@@ -176,6 +176,7 @@ CSS pixels times the device pixel ratio. Times are seconds.
 | `events` | Clicks, keys, and typing recorded with a video, for click ripples, key chips, and auto zoom. |
 | `compare` | A before/after wipe between two images, with `[time, position]` keyframes. |
 | `narration` | Captions: each needs a start `t`; it ends at the next caption or after its reading time. |
+| `notes` | A panel beside or below the image for longer explanations: give a mark a `note` (with `**bold**` and `` `code` ``) and it gets a number that matches its entry. Set a `title` and a `side` (`auto`, `right`, or `bottom`). Use it when inline labels would cover what matters or crowd each other. |
 | `output` | Default `width`, `fps`, and `scale` (the size of marks and text). |
 
 `annotate schema` prints the JSON Schema, also published as
@@ -197,7 +198,7 @@ CSS pixels times the device pixel ratio. Times are seconds.
 
 | Import | Runs in | What it has |
 | --- | --- | --- |
-| `@rwoll/annotate` | anywhere | `documentSchema`, `parseDocument`, `checkDocument`, `resolveDocument`, `frameAt` (one frame as SVG layers and raster steps), camera planning, `timeCues`, `toVtt`, `toSrt`, `toMarkdown` |
+| `@rwoll/annotate` | anywhere | `documentSchema`, `parseDocument`, `checkDocument`, `resolveDocument`, `frameAt` (one frame as SVG layers and raster steps), `notesPanel` (the notes panel as SVG), camera planning, `timeCues`, `toVtt`, `toSrt`, `toMarkdown` |
 | `@rwoll/annotate/node` | Node.js | `render`, `probe`, `loadDocument`, `completeDocument`, `drawGrid`, `convertVideo`, `findFfmpeg` |
 | `@rwoll/annotate/browser` | browser | `FrameView`, which draws frames into a container with a canvas and SVG |
 | `@rwoll/annotate/react` | browser | `<AnnotatePlayer document src />` with the camera, captions toggle, scrubbing, and a draggable wipe; `overlay` draws editing handles |

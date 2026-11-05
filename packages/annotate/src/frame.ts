@@ -26,6 +26,8 @@ export const TONE_LABEL_COLORS: Record<Tone, string> = {
   accent: '#7e22ce',
 };
 const DARK_TEXT = new Set<Tone>(['warning', 'changed']);
+/** Text color on a tone's label fill. */
+export const labelTextColor = (tone: Tone): string => (DARK_TEXT.has(tone) ? '#1c1300' : '#ffffff');
 const HALO = 'stroke="#ffffff" stroke-opacity="0.9"';
 
 export interface FrameOptions {
@@ -193,8 +195,10 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
     const inset = 3 * u;
     const badge = ph - 2 * inset;
     const textWidth = label ? measureText(label, fs, 600) : 0;
+    // A number with no label is the whole chip: round, or a tab on a box.
+    const alone = !label && step !== undefined;
     const lead = step !== undefined ? inset + badge + (label ? 6 * u : inset) : padX;
-    const pw = lead + textWidth + (label ? padX : 0);
+    const pw = alone ? Math.max(ph, measureText(String(step), fs, 700) + 12 * u) : lead + textWidth + (label ? padX : 0);
     // Candidate spots: the requested side first, then the others, each left- and right-aligned
     // for labels on a box. The spot covering the least of earlier labels and other marks wins.
     const sides = place === 'middle' ? (['middle', 'above', 'below'] as const) : place === 'below' ? (['below', 'above'] as const) : (['above', 'below'] as const);
@@ -231,9 +235,11 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
       svg = `<path d="${d}" fill="${fill}"/>`;
     } else {
       shadowed = true;
-      svg = `<rect x="${n(px)}" y="${n(py)}" width="${n(pw)}" height="${n(ph)}" rx="${n(4 * u)}" fill="${fill}" filter="url(#annotate-label-shadow)"/>`;
+      svg = `<rect x="${n(px)}" y="${n(py)}" width="${n(pw)}" height="${n(ph)}" rx="${n(alone ? ph / 2 : 4 * u)}" fill="${fill}" filter="url(#annotate-label-shadow)"/>`;
     }
-    if (step !== undefined) {
+    if (alone) {
+      svg += textAt(px + pw / 2, py + ph / 2, String(step), fs, fg, 700, 'middle');
+    } else if (step !== undefined) {
       const cx = px + inset + badge / 2;
       svg += `<circle cx="${n(cx)}" cy="${n(py + ph / 2)}" r="${n(badge / 2)}" fill="${fg}"/>${textAt(cx, py + ph / 2, String(step), 10.5 * u, fill, 700, 'middle')}`;
     }
@@ -329,12 +335,13 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
         const d = `M${n(p0[0])} ${n(p0[1])} Q${n(c[0])} ${n(c[1])} ${n(end[0])} ${n(end[1])}`;
         const dash = drawn < 1 ? ` stroke-dasharray="${n(length)} ${n(length + 1)}" stroke-dashoffset="${n(length * (1 - drawn))}"` : '';
         let label = '';
-        if (a.label) {
+        const step = resolved.steps.get(a);
+        if (a.label || step !== undefined) {
           const g = 10 * u;
           label =
             Math.abs(dx) >= Math.abs(dy)
-              ? pill(a.label, [p0[0] + (dx > 0 ? -g : g), p0[1], 0, 0], tone, { place: 'middle', align: dx > 0 ? 'end' : 'start' })
-              : pill(a.label, [p0[0], p0[1] + (dy > 0 ? -g : g), 0, 0], tone, { place: dy > 0 ? 'above' : 'below', align: 'center' });
+              ? pill(a.label, [p0[0] + (dx > 0 ? -g : g), p0[1], 0, 0], tone, { step, place: 'middle', align: dx > 0 ? 'end' : 'start' })
+              : pill(a.label, [p0[0], p0[1] + (dy > 0 ? -g : g), 0, 0], tone, { step, place: dy > 0 ? 'above' : 'below', align: 'center' });
         }
         mid.push(
           `<g opacity="${n(o)}" stroke-linecap="round" stroke-linejoin="round">` +
@@ -396,7 +403,7 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
         mid.push(
           `<g opacity="${n(o)}" stroke-linecap="round"><g ${HALO} stroke-width="${n(4 * u)}">${lines}</g>` +
             `<g stroke="${stroke}" stroke-width="${n(2 * u)}">${lines}</g>` +
-            (g > 0.6 ? pill(a.label ?? `${distance} px`, [m[0], m[1] - tick, 0, 0], tone, { align: 'center' }) : '') +
+            (g > 0.6 ? pill(a.label ?? `${distance} px`, [m[0], m[1] - tick, 0, 0], tone, { step: resolved.steps.get(a), align: 'center' }) : '') +
             `</g>`,
         );
         keepClear.push(boundsOf([p0, p1]));

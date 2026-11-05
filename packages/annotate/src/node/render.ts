@@ -7,6 +7,7 @@ import { AnnotateError, resolveDocument, type ResolvedDocument } from '../docume
 import { frameAt, svgDocument, type Frame, type Magnifier, type Redaction } from '../frame.ts';
 import { mediaKind, outputKind, type OutputFormat } from '../media.ts';
 import { toVtt } from '../narration.ts';
+import { notesPanel, type NotesPanel } from '../notes.ts';
 import type { AnnotateDocument, Media } from '../schema.ts';
 import { decodeFrames, extractFrame, findFfmpeg, FrameEncoder, toGif, type FfmpegOptions } from './ffmpeg.ts';
 import { completeDocument, loadDocument, mediaPath } from './load.ts';
@@ -81,12 +82,14 @@ function outputSize(resolved: ResolvedDocument, requested: number | undefined, c
 }
 
 async function renderStill(resolved: ResolvedDocument, baseDir: string, format: OutputFormat, options: RenderOptions): Promise<RenderResult> {
-  const { width, height } = outputSize(resolved, options.width, Infinity, false);
+  const { width: imageWidth, height: imageHeight } = outputSize(resolved, options.width, Infinity, false);
   const t = options.at ?? resolved.duration;
-  const frame = frameAt(resolved, t, { width, height, captions: options.captions !== 'none', animate: false });
+  const frame = frameAt(resolved, t, { width: imageWidth, height: imageHeight, captions: options.captions !== 'none', animate: false });
+  const panel = notesPanel(resolved, t, { width: imageWidth, height: imageHeight });
+  const { width, height } = canvasSize(imageWidth, imageHeight, panel, false);
   const main = await stillSource(resolved.doc.source, resolved, baseDir, t, options);
   const before = resolved.doc.compare ? await stillSource(resolved.doc.compare.before, resolved, baseDir, t, options) : undefined;
-  const data = await composeFrame(frame, redact(main, frame.redactions), before && redact(before, frame.redactions));
+  const data = await withNotes(await composeFrame(frame, redact(main, frame.redactions), before && redact(before, frame.redactions)), frame, panel, width, height);
   let image = sharp(data, RAW(width, height));
   if (format === 'png') image = image.png();
   else if (format === 'jpeg') image = image.flatten({ background: '#ffffff' }).jpeg({ quality: 90, chromaSubsampling: '4:4:4', mozjpeg: true });
@@ -141,7 +144,9 @@ async function renderVideo(resolved: ResolvedDocument, baseDir: string, format: 
   const gif = format === 'gif';
   if (gif && options.captions === 'soft') throw new AnnotateError('unsupported_output', 'GIFs cannot carry a subtitle track; use --captions burn or none.');
   const fps = options.fps ?? resolved.doc.output?.fps ?? (gif ? 12 : 30);
-  const { width, height } = outputSize(resolved, options.width, gif ? 960 : 1920, true);
+  const { width: imageWidth, height: imageHeight } = outputSize(resolved, options.width, gif ? 960 : 1920, true);
+  // The panel's size does not depend on time, so the first frame's sizes the canvas.
+  const { width, height } = canvasSize(imageWidth, imageHeight, notesPanel(resolved, 0, { width: imageWidth, height: imageHeight }), true);
   const frames = Math.max(1, Math.round(resolved.duration * fps));
   const work = await mkdtemp(join(tmpdir(), 'annotate-'));
   const main = await videoSource(resolved.doc.source, resolved, baseDir, fps, options);
@@ -159,7 +164,8 @@ async function renderVideo(resolved: ResolvedDocument, baseDir: string, format: 
   try {
     for (let index = 0; index < frames; index += 1) {
       const t = index / fps;
-      const frame = frameAt(resolved, t, { width, height, captions: (options.captions ?? 'burn') === 'burn' });
+      const frame = frameAt(resolved, t, { width: imageWidth, height: imageHeight, captions: (options.captions ?? 'burn') === 'burn' });
+      const panel = notesPanel(resolved, t, { width: imageWidth, height: imageHeight });
       const [mainRaw, beforeRaw] = await Promise.all([main.frame(index), before?.frame(index)]);
       const cached = (raw: Raw) => {
         const key = JSON.stringify(frame.redactions);
@@ -170,7 +176,7 @@ async function renderVideo(resolved: ResolvedDocument, baseDir: string, format: 
         redacted.set(key, { source: raw, data: data.data });
         return data;
       };
-      inFlight.push(composeFrame(frame, cached(mainRaw), beforeRaw && redact(beforeRaw, frame.redactions)));
+      inFlight.push(composeFrame(frame, cached(mainRaw), beforeRaw && redact(beforeRaw, frame.redactions)).then(data => withNotes(data, frame, panel, width, height)));
       if (inFlight.length >= 4) await encoder.write(await (inFlight.shift() as Promise<Buffer>));
       options.onProgress?.({ frame: index + 1, frames });
     }
@@ -291,6 +297,29 @@ async function magnifierLayer(image: Raw, magnifier: Magnifier, frameWidth: numb
   if (cw <= 0 || ch <= 0) return undefined;
   const input = cl || ct || cw < width || ch < height ? await sharp(lens, RAW(width, height)).extract({ left: cl, top: ct, width: cw, height: ch }).raw().toBuffer() : lens;
   return { input, ...RAW(cw, ch), left: Math.max(0, left), top: Math.max(0, top) };
+}
+
+/** The output size: the image plus the notes panel beside or below it, even in both directions for video. */
+function canvasSize(width: number, height: number, panel: NotesPanel | undefined, even: boolean): { width: number; height: number } {
+  const up = (value: number) => (even ? value + (value % 2) : value);
+  if (!panel) return { width, height };
+  if (panel.side === 'right') return { width: up(width + panel.width), height: up(Math.max(height, panel.height)) };
+  return { width, height: up(height + panel.height) };
+}
+
+/** Puts a composed image on a canvas of the output size, with the notes panel in the rest. */
+async function withNotes(image: Buffer, frame: Frame, panel: NotesPanel | undefined, width: number, height: number): Promise<Buffer> {
+  if (!panel) return image;
+  const right = panel.side === 'right';
+  const panelWidth = right ? width - frame.width : width;
+  const panelHeight = right ? height : height - frame.height;
+  return sharp({ create: { width, height, channels: 4, background: panel.background } })
+    .composite([
+      { input: image, ...RAW(frame.width, frame.height), left: 0, top: 0 },
+      { input: Buffer.from(svgDocument(panel.svg, panelWidth, panelHeight)), left: right ? frame.width : 0, top: right ? 0 : frame.height },
+    ])
+    .raw()
+    .toBuffer();
 }
 
 /** Composites one frame's layers. Sources must already be redacted. Returns RGBA. */

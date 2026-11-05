@@ -20,6 +20,7 @@ interface Draft {
 const BOX_FIELDS = ['box', 'into'] as const
 const POINT_FIELDS = ['from', 'to', 'at'] as const
 const LABEL_TYPES = new Set<Annotation['type']>(['rect', 'ellipse', 'arrow', 'guide', 'measure', 'magnify'])
+const NOTE_TYPES = new Set<Annotation['type']>(['rect', 'ellipse', 'arrow', 'measure'])
 const round = (geometry: Geometry) => geometry.map((v) => Math.round(v)) as Geometry
 function describe(a: Annotation): string {
   if ('label' in a && a.label) return a.label
@@ -370,11 +371,15 @@ function Inspector({ annotation: a, onChange, onDelete }: { annotation: Annotati
   const record = a as Record<string, unknown>
   const textField = a.type === 'callout' ? 'text' : LABEL_TYPES.has(a.type) ? 'label' : undefined
   const [text, setText] = useState(textField ? String(record[textField] ?? '') : '')
+  const [note, setNote] = useState(String(record.note ?? ''))
   const [start, setStart] = useState(a.time ? String(a.time[0]) : '')
   const [end, setEnd] = useState(a.time ? String(a.time[1]) : '')
   const saveText = () => {
     if (!textField || text === String(record[textField] ?? '')) return
     onChange({ [textField]: text.trim() ? text : textField === 'text' ? 'Note' : null })
+  }
+  const saveNote = () => {
+    if (note !== String(record.note ?? '')) onChange({ note: note.trim() ? note : null })
   }
   const saveTime = () => {
     if (start === '' && end === '') return a.time && onChange({ time: null })
@@ -387,6 +392,12 @@ function Inspector({ annotation: a, onChange, onDelete }: { annotation: Annotati
         <label>
           {textField === 'text' ? 'Text' : 'Label'}
           <input value={text} onChange={(e) => setText(e.currentTarget.value)} onBlur={saveText} onKeyDown={(e) => e.key === 'Enter' && saveText()} />
+        </label>
+      )}
+      {NOTE_TYPES.has(a.type) && (
+        <label className="note">
+          Note
+          <textarea rows={2} placeholder="Longer text for the notes panel" value={note} onChange={(e) => setNote(e.currentTarget.value)} onBlur={saveNote} />
         </label>
       )}
       {a.type !== 'redact' && (

@@ -24,6 +24,12 @@ const base = {
   tone: toneSchema.optional(),
 };
 const label = z.string().min(1).max(200).optional().describe('Short text shown next to the mark.');
+const note = z
+  .string()
+  .min(1)
+  .max(1000)
+  .optional()
+  .describe('A longer explanation, shown in the notes panel beside or below the image; **bold** and `code` are styled. The mark gets a number that matches it.');
 const target = z
   .string()
   .max(500)
@@ -35,7 +41,7 @@ const step = z
   .describe('Show a step number: true numbers steps in order of appearance.');
 
 const shape = <T extends string>(type: T, description: string) =>
-  z.object({ type: z.literal(type), ...base, box: boxSchema, label, step, target }).describe(description);
+  z.object({ type: z.literal(type), ...base, box: boxSchema, label, note, step, target }).describe(description);
 
 export const annotationSchema = z.discriminatedUnion('type', [
   shape('rect', 'A rectangle around something.'),
@@ -47,6 +53,7 @@ export const annotationSchema = z.discriminatedUnion('type', [
       from: pointOrReference,
       to: pointOrReference,
       label,
+      note,
       bend: z.number().min(-1).max(1).optional().describe('Curvature, -1 to 1. Default 0.2.'),
     })
     .describe('An arrow. A reference points at the edge of that annotation.'),
@@ -67,7 +74,7 @@ export const annotationSchema = z.discriminatedUnion('type', [
     .refine(guide => (guide.x === undefined) !== (guide.y === undefined), 'a guide needs exactly one of x or y')
     .describe('A full-length line, such as a content edge.'),
   z
-    .object({ type: z.literal('measure'), ...base, from: pointSchema, to: pointSchema, label })
+    .object({ type: z.literal('measure'), ...base, from: pointSchema, to: pointSchema, label, note })
     .describe('A dimension line labeled with its length in source pixels.'),
   z
     .object({ type: z.literal('spotlight'), ...base, box: boxSchema, pad: z.number().nonnegative().max(200).optional() })
@@ -155,6 +162,16 @@ export const documentSchema = z
     events: z.array(eventSchema).max(5000).optional(),
     camera: z.array(shotSchema).max(500).optional(),
     annotations: z.array(annotationSchema).max(2000).default([]),
+    notes: z
+      .object({
+        title: z.string().min(1).max(200).optional().describe('Heading of the panel.'),
+        side: z
+          .enum(['auto', 'right', 'bottom'])
+          .optional()
+          .describe('Where the panel goes. auto (default) puts it on the right of tall or square images, else below, so wide screenshots keep their width.'),
+      })
+      .optional()
+      .describe('The notes panel, shown when any mark has a note.'),
     narration: z.array(cueSchema).max(1000).optional().describe('Captions. Silent videos rely on them.'),
     output: z
       .object({

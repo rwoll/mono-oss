@@ -9,7 +9,7 @@ export default defineConfig({
       plugins: [
         {
           name: 'annotate',
-          version: '0.2.3',
+          version: '0.2.4',
           description: 'Annotate screenshots and screen recordings with the agent: zoom, marks, captions, before/after, and redaction, exported to PNG, MP4, or GIF.',
           canvases: ['annotate'],
           skills: ['annotate'],

@@ -45,7 +45,10 @@ export function resolveDocument(doc: AnnotateDocument): ResolvedDocument {
     if (byId.has(annotation.id)) throw new AnnotateError('duplicate_id', `Two annotations have the id "${annotation.id}".`);
     byId.set(annotation.id, annotation);
   }
-  const numbered = doc.annotations.filter(a => ('step' in a && a.step === true) || (a.type === 'step' && a.n === undefined));
+  // A note numbers its mark like `step: true`, so the badge on the image matches the notes panel.
+  const numbered = doc.annotations.filter(
+    a => ('step' in a && a.step === true) || (a.type === 'step' && a.n === undefined) || ('note' in a && a.note !== undefined && !('step' in a && typeof a.step === 'number')),
+  );
   const steps = new Map<Annotation, number>();
   [...numbered].sort((a, b) => (a.time?.[0] ?? 0) - (b.time?.[0] ?? 0)).forEach((annotation, index) => steps.set(annotation, index + 1));
   for (const annotation of doc.annotations) {
@@ -140,6 +143,7 @@ export function checkDocument(doc: AnnotateDocument): Issue[] {
   if (doc.camera?.some(shot => shot.type === 'auto') && !(doc.events ?? []).some(event => event.at)) {
     add('warning', 'camera', 'auto zoom follows events with `at`, and there are none');
   }
+  if (doc.notes && !doc.annotations.some(a => 'note' in a && a.note)) add('warning', 'notes', 'no annotation has a note, so the notes panel is not shown');
   (doc.camera ?? []).forEach((shot, index) => {
     if (shot.type === 'zoom' && outside(shot.box)) add('warning', `camera.${index}.box`, 'extends outside the frame');
   });
