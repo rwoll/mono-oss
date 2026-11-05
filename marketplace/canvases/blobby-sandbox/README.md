@@ -2,12 +2,12 @@
 
 # Blobby Sandbox canvas
 
-Start, see, drive, screenshot, and record Blobby sandboxes in Copilot. Canvas ID and plugin name:
-`blobby-sandbox`.
+Start, see, drive, screenshot, and record Blobby sandboxes in Copilot. Canvas ID:
+`blobby-sandbox`, in the `kitchensink` plugin.
 
 ```sh
 copilot plugin marketplace add rwoll/mono-oss#stable
-copilot plugin install blobby-sandbox@rwoll
+copilot plugin install kitchensink@rwoll
 ```
 
 The canvas is a thin client over the `blobby-sandbox` CLI from

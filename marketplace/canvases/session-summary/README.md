@@ -5,7 +5,7 @@ schedule. Built with [`@rwoll/canvas-kit`](https://github.com/rwoll/mono-oss/tre
 
 ```sh
 copilot plugin marketplace add rwoll/mono-oss#stable
-copilot plugin install session-summary@rwoll
+copilot plugin install kitchensink@rwoll
 ```
 
 Ask the agent to open `session-executive-summary` with a stable instance ID, such

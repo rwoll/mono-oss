@@ -105,11 +105,11 @@ so recipes are safe to share. See [Recipes](https://github.com/rwoll/mono-oss/bl
 
 ## Let your agent drive it
 
-Install the Copilot plugin, with the CLI skill and a canvas to watch sandboxes, from the `rwoll` marketplace:
+Install the `kitchensink` Copilot plugin, which has the CLI skill and a canvas to watch sandboxes:
 
 ```sh
 copilot plugin marketplace add rwoll/mono-oss#stable
-copilot plugin install blobby-sandbox@rwoll
+copilot plugin install kitchensink@rwoll
 ```
 
 Then ask your agent, for example:

@@ -1,6 +1,13 @@
 # rwoll/mono-oss
 
-Open source tools, `@rwoll` npm packages, and Copilot plugins by [@rwoll](https://github.com/rwoll).
+Open source tools, `@rwoll` npm packages, and a Copilot plugin by [@rwoll](https://github.com/rwoll).
+
+Install the Copilot plugin, with every skill and canvas below:
+
+```sh
+copilot plugin marketplace add rwoll/mono-oss#stable
+copilot plugin install kitchensink@rwoll
+```
 
 ## What's here
 
@@ -13,8 +20,18 @@ things, have it show you what it found, and build the panels you and it work in 
 | [**annotate**](packages/annotate#readme) | Turns screenshots and recordings into ones that explain themselves: numbered steps, zoom, captions, before/after, and redaction, from one JSON document. | [`@rwoll/annotate`](https://www.npmjs.com/package/@rwoll/annotate) |
 | [**canvas-kit**](packages/canvas-kit#readme) | Builds Copilot canvases, the interactive panels you and your agent share, in TypeScript and React, with tests and one-push publishing. | [`@rwoll/canvas-kit`](https://www.npmjs.com/package/@rwoll/canvas-kit), [`@rwoll/create-canvas`](packages/create-canvas#readme) |
 
-Each one also comes as a Copilot plugin, and there are two more plugins for everyday chats; see
-[Copilot plugins](#copilot-plugins).
+### Skills and canvases
+
+The `kitchensink` Copilot plugin bundles these, so your agent knows how to use each tool and you
+get a panel to work in alongside it:
+
+| Skill or canvas | Why |
+| --- | --- |
+| [`pr-descriptions`](marketplace/skills/pr-descriptions/SKILL.md) (skill) | Agents write walls of text. This has them write PR and bug report descriptions a person can skim in 30 seconds: the screenshot or video first, then the problem, repro, and what changed, and none of the validation logs or process narrative. |
+| [`annotate`](marketplace/canvases/annotate) (skill and canvas) | A raw screenshot makes the reader hunt for the problem. The agent marks what matters, zooms, captions, and redacts accounts, and you adjust it in the canvas before it goes in a PR or issue. |
+| [`blobby-sandbox`](marketplace/canvases/blobby-sandbox) (skill and canvas) | Lets the agent test a UI change by actually clicking through it, on a throwaway desktop instead of your computer, and shows you what it's doing. Needs the [CLI](packages/blobby-sandbox#readme). |
+| [`session-summary`](marketplace/canvases/session-summary) (canvas) | Long agent sessions are hard to check on. The agent keeps a short executive summary up to date, so you can see where things stand at a glance. |
+| [`canvas-kit`](marketplace/skills/canvas-kit/SKILL.md), [`-testing`](marketplace/skills/canvas-kit-testing/SKILL.md), [`-publishing`](marketplace/skills/canvas-kit-publishing/SKILL.md) (skills) | Teach the agent to build, test, and publish your own canvases with `@rwoll/canvas-kit`. |
 
 They work together. An agent reproduces a bug in a Blobby sandbox and records it, annotate turns the
 recording into a clip that explains itself for the pull request, and both have canvases, built with
@@ -84,22 +101,18 @@ npm create @rwoll/canvas my-canvases -- --repository me/my-canvases --canvas boa
 
 See the [canvas-kit guide](packages/canvas-kit#readme) for the API.
 
-## Copilot plugins
+## Copilot plugin
 
-Add the marketplace once, then install any of these:
+<img src="docs/marketplace/logo.png" alt="kitchensink plugin logo: developer tools overflowing a kitchen sink" width="96" align="right">
+
+Everything but the kitchen sink, in one plugin:
 
 ```sh
 copilot plugin marketplace add rwoll/mono-oss#stable
-copilot plugin install annotate@rwoll
+copilot plugin install kitchensink@rwoll
 ```
 
-| Plugin | What you get |
-| --- | --- |
-| [`annotate`](marketplace/canvases/annotate) | A canvas to play, adjust, and export annotated screenshots and recordings, and a skill that teaches the agent the format. |
-| [`blobby-sandbox`](marketplace/canvases/blobby-sandbox) | A canvas to start, watch, and drive sandboxes, and a skill for the `blobby-sandbox` CLI. Needs the CLI installed. |
-| [`canvas-kit`](marketplace/plugins/canvas-kit) | Skills for building, testing, and publishing your own canvases. |
-| [`session-summary`](marketplace/canvases/session-summary) | A canvas with an executive summary of the chat that the agent keeps up to date, so you can check on long work at a glance. |
-| [`pr-descriptions`](marketplace/plugins/pr-descriptions) | A skill for short, reader-first pull request titles and descriptions. |
+See [Skills and canvases](#skills-and-canvases) for what's in it.
 
 ## Issues and contributions
 

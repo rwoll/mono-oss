@@ -9,7 +9,7 @@ play it, fix marks by dragging them, edit labels and captions, and export.
 
 ```sh
 copilot plugin marketplace add rwoll/mono-oss#stable
-copilot plugin install annotate@rwoll
+copilot plugin install kitchensink@rwoll
 ```
 
 - **The file is the source of truth.** Every edit is saved to the document file, and

@@ -1,25 +1,30 @@
+<img src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/marketplace/logo.png" alt="kitchensink plugin logo: developer tools overflowing a kitchen sink" width="96" align="right">
+
 # The rwoll plugin marketplace
 
-Copilot plugins published to the `stable` branch of this repository by
-[Publish marketplace](../.github/workflows/publish-marketplace.yml) on every push
-to `main`. Install:
+One Copilot plugin, `kitchensink`, with everything but the kitchen sink, published to
+the `stable` branch of this repository by
+[Publish marketplace](https://github.com/rwoll/mono-oss/blob/main/.github/workflows/publish-marketplace.yml)
+on every push to `main`. Install:
 
 ```sh
 copilot plugin marketplace add rwoll/mono-oss#stable
-copilot plugin install canvas-kit@rwoll
+copilot plugin install kitchensink@rwoll
 ```
 
-| Plugin | What it is |
+| Part | What it is |
 | --- | --- |
-| [`annotate`](canvases/annotate) | A canvas and skill for annotated screenshots and screen recordings, made with [`@rwoll/annotate`](../packages/annotate). |
-| [`blobby-sandbox`](canvases/blobby-sandbox) | A canvas and skill to start, watch, and drive disposable desktops with [`@rwoll/blobby-sandbox`](../packages/blobby-sandbox). |
-| [`canvas-kit`](plugins/canvas-kit) | Skills for building, testing, and publishing Copilot canvases with [`@rwoll/canvas-kit`](../packages/canvas-kit). |
-| [`pr-descriptions`](plugins/pr-descriptions) | A skill for short, reader-first pull request titles and descriptions. |
-| [`session-summary`](canvases/session-summary) | A canvas with an executive summary of the chat that the agent keeps up to date. |
+| [`annotate`](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases/annotate) | A canvas and skill for annotated screenshots and screen recordings, made with [`@rwoll/annotate`](https://github.com/rwoll/mono-oss/tree/main/packages/annotate). |
+| [`blobby-sandbox`](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases/blobby-sandbox) | A canvas and skill to start, watch, and drive disposable desktops with [`@rwoll/blobby-sandbox`](https://github.com/rwoll/mono-oss/tree/main/packages/blobby-sandbox). |
+| [`canvas-kit`](https://github.com/rwoll/mono-oss/blob/main/marketplace/skills/canvas-kit/SKILL.md), [`canvas-kit-testing`](https://github.com/rwoll/mono-oss/blob/main/marketplace/skills/canvas-kit-testing/SKILL.md), [`canvas-kit-publishing`](https://github.com/rwoll/mono-oss/blob/main/marketplace/skills/canvas-kit-publishing/SKILL.md) | Skills for building, testing, and publishing Copilot canvases with [`@rwoll/canvas-kit`](https://github.com/rwoll/mono-oss/tree/main/packages/canvas-kit). |
+| [`pr-descriptions`](https://github.com/rwoll/mono-oss/blob/main/marketplace/skills/pr-descriptions/SKILL.md) | A skill for short, media-first pull request and bug report descriptions. |
+| [`session-summary`](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases/session-summary) | A canvas with an executive summary of the chat that the agent keeps up to date. |
 
-Each folder in [plugins/](plugins) is a content plugin (skills, MCP servers)
-with its own `plugin.json`. Each folder in [canvases/](canvases) is a canvas built
-with canvas-kit; [vite.config.ts](vite.config.ts) lists which plugin ships it.
-Canvases share the React components and theme in [ui/](ui). `pnpm build` builds
-the canvases and assembles `dist/marketplace` with `canvas-kit build`; `pnpm e2e`
-runs the canvases' browser tests.
+Skills live in [skills/](https://github.com/rwoll/mono-oss/tree/main/marketplace/skills)
+and canvases in [canvases/](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases),
+built with canvas-kit;
+[vite.config.ts](https://github.com/rwoll/mono-oss/blob/main/marketplace/vite.config.ts)
+puts them all in the `kitchensink` plugin. Canvases share the React components and theme
+in [ui/](https://github.com/rwoll/mono-oss/tree/main/marketplace/ui). `pnpm build`
+builds the canvases and assembles `dist/marketplace` with `canvas-kit build`;
+`pnpm e2e` runs the canvases' browser tests.

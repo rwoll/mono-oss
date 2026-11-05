@@ -1,6 +1,0 @@
-{
-  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "pr-descriptions",
-  "version": "0.3.0",
-  "description": "Write short, reader-first pull request and bug report descriptions, media first."
-}

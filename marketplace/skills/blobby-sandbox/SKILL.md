@@ -1,6 +1,6 @@
 ---
 name: blobby-sandbox
-description: Start, drive, and record disposable sandboxes with an Ubuntu desktop using the `blobby-sandbox` CLI, by default with VS Code Insiders, which a built-in script signs in to a GitHub test account on request. Use when asked to reproduce, test, try out, or demo something in VS Code Insiders, Chrome, or another Linux app on a clean desktop, to drive an app through its UI for computer-use testing, or to capture screenshots or recordings as evidence.
+description: "Start, drive, and record disposable sandboxes with an Ubuntu desktop using the `blobby-sandbox` CLI, by default with VS Code Insiders, which a built-in script signs in to a GitHub test account on request. Use when asked to reproduce, test, try out, or demo something in VS Code Insiders, Chrome, or another Linux app on a clean desktop, to drive an app through its UI for computer-use testing, or to capture screenshots or recordings as evidence."
 ---
 
 # Blobby Sandbox

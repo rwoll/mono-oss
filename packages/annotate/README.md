@@ -140,13 +140,13 @@ annotate render change.annotate.json -o change.mp4 -o change.png
 
 ### In Copilot
 
-The `annotate` plugin adds a skill that teaches the agent this workflow and a canvas
+The `kitchensink` Copilot plugin adds an `annotate` skill that teaches the agent this workflow and a canvas
 where you and the agent review a document together: play it, drag a mark, fix a
 caption, and export.
 
 ```sh
 copilot plugin marketplace add rwoll/mono-oss#stable
-copilot plugin install annotate@rwoll
+copilot plugin install kitchensink@rwoll
 ```
 
 ## The document
