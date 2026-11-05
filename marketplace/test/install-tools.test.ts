@@ -1,11 +1,29 @@
+import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
-import { describe, expect, it } from 'vitest'
-import { atLeast, installTools, SMOLMACHINES, type Result, type Runner } from '../scripts/install-tools.ts'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterAll, describe, expect, it } from 'vitest'
+import { atLeast, installTools, MIRROR, NPM_REGISTRY, SMOLMACHINES, tarballManifest, type Result, type Runner } from '../scripts/install-tools.ts'
 
 const ok = (stdout = ''): Result => ({ code: 0, stdout, stderr: '' })
-const TARBALL = Buffer.from('the annotate tarball')
+const work = mkdtempSync(join(tmpdir(), 'install-tools-test-'))
+afterAll(() => rmSync(work, { recursive: true, force: true }))
+
+/** An npm tarball with this package.json. */
+function tarball(manifest: object): Buffer {
+  const dir = mkdtempSync(join(work, 'pkg-'))
+  mkdirSync(join(dir, 'package'))
+  writeFileSync(join(dir, 'package', 'package.json'), JSON.stringify(manifest))
+  expect(spawnSync('tar', ['-czf', join(dir, 'p.tgz'), '-C', dir, 'package']).status).toBe(0)
+  return readFileSync(join(dir, 'p.tgz'))
+}
+
+const TARBALL = tarball({ name: '@rwoll/annotate', version: '0.2.0', dependencies: { zod: '^4.6.7', sharp: '^0.34.0' } })
 const SHA256 = createHash('sha256').update(TARBALL).digest('hex')
+/** zod's packument on a registry, with its download at `downloads`. */
+const zod = (downloads: string) => ({ 'dist-tags': { latest: '4.6.7' }, versions: { '4.6.7': { dist: { tarball: `${downloads}/zod/-/zod-4.6.7.tgz` } } } })
+const NPM = { [NPM_REGISTRY]: zod('https://registry.npmjs.org') }
 const DOWNLOADS = 'https://github.com/rwoll/mono-oss/releases/download'
 
 const release = (tag: string, assets: { name: string; digest?: string | null }[], prerelease = false) => ({
@@ -15,14 +33,21 @@ const release = (tag: string, assets: { name: string; digest?: string | null }[]
   assets: assets.map((asset) => ({ browser_download_url: `${DOWNLOADS}/${encodeURIComponent(tag)}/${asset.name}`, ...asset })),
 })
 
-/** GitHub's releases API and their downloads. */
-function github(releases: unknown[], body: Buffer = TARBALL) {
+/** GitHub's releases API and their downloads, and registries: each answers with a packument, or is 'down'. */
+function github(releases: unknown[], body: Buffer = TARBALL, registries: Record<string, object | 'down'> = NPM) {
   const urls: string[] = []
   const fetchFn = (async (input: string | URL | Request) => {
     const url = String(input)
     urls.push(url)
     if (url.startsWith('https://api.github.com/')) return new Response(JSON.stringify(releases))
-    return new Response(new Uint8Array(body))
+    const registry = Object.keys(registries).find((base) => url.startsWith(base))
+    if (registry) {
+      const answer = registries[registry]
+      if (answer === 'down') throw new TypeError('fetch failed')
+      return new Response(JSON.stringify(answer))
+    }
+    if (url.startsWith('https://github.com/')) return new Response(new Uint8Array(body))
+    throw new TypeError(`fetch failed: nothing answers ${url}`)
   }) as typeof fetch
   return { urls, fetch: fetchFn }
 }
@@ -56,8 +81,38 @@ describe('install-tools', () => {
     const install = t.calls.find((call) => call.args[0] === 'install')
     expect(install?.args.slice(0, 4)).toEqual(['install', '--global', '--min-release-age=7', '--ignore-scripts'])
     expect(install?.args.slice(4)).toEqual([expect.stringMatching(/rwoll-annotate-0\.2\.0\.tgz$/)])
+    expect(gh.urls).toContain(`${NPM_REGISTRY}zod`)
     expect(install?.args.join(' ')).not.toMatch(/registry/)
     expect(t.lines.at(-1)).toBe('annotate 0.2.0')
+  })
+
+  it('gets dependencies from the mirror for this install when registry.npmjs.org is blocked', async () => {
+    const t = fake({ 'npm --version': ok('12.2.1'), 'npm config': ok(`${NPM_REGISTRY}\n`), 'annotate --version': ok('0.2.0') })
+    const feed = 'https://feed.example.com/_packaging/npm/registry'
+    const gh = github(annotateReleases, TARBALL, { [NPM_REGISTRY]: 'down', [MIRROR]: zod(feed) })
+    expect(await installTools({ names: ['annotate'], run: t.run, fetch: gh.fetch, log: t.log, platform: 'linux' })).toBe(0)
+    expect(gh.urls).toContain(`${MIRROR}zod`)
+    const install = t.calls.find((call) => call.args[0] === 'install')
+    expect(install?.args.slice(4, 6)).toEqual([`--registry=${MIRROR}`, `--replace-registry-host=${feed}`])
+    expect(t.lines).toContain(`${NPM_REGISTRY} isn't reachable, so this install gets its dependencies from ${MIRROR}.`)
+  })
+
+  it("uses a configured mirror as it is, fixing its download host, and never replaces it", async () => {
+    const mirror = 'https://mirror.example.com/npm/'
+    const ran = async (registries: Record<string, object | 'down'>) => {
+      const t = fake({ 'npm --version': ok('12.2.1'), 'npm config': ok(mirror), 'annotate --version': ok('0.2.0') })
+      const code = await installTools({ names: ['annotate'], run: t.run, fetch: github(annotateReleases, TARBALL, registries).fetch, log: t.log, platform: 'linux' })
+      return { code, args: t.calls.find((call) => call.args[0] === 'install')?.args.slice(4, -1), lines: t.lines }
+    }
+    expect((await ran({ [mirror]: zod('https://mirror.example.com/npm') })).args).toEqual([])
+    expect((await ran({ [mirror]: zod('https://cdn.example.com/files') })).args).toEqual(['--replace-registry-host=https://cdn.example.com/files'])
+    const down = await ran({ [mirror]: 'down', [MIRROR]: zod('https://cdn.example.com/files') })
+    expect([down.code, down.args]).toEqual([1, undefined])
+    expect(down.lines.at(-1)).toMatch(/^Can't reach npm's registry, https:\/\/mirror\.example\.com\/npm\/, for zod/)
+  })
+
+  it('reads package.json from a tarball', () => {
+    expect(tarballManifest(TARBALL).dependencies).toEqual({ zod: '^4.6.7', sharp: '^0.34.0' })
   })
 
   it("refuses a download that doesn't match GitHub's digest, or an asset without one", async () => {

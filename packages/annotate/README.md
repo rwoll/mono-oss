@@ -45,12 +45,16 @@ Video needs [ffmpeg](https://ffmpeg.org/download.html) on `PATH` (or `--ffmpeg`,
 annotate skill installs it for you with its `scripts/install-tools.ts`.
 
 Can't reach registry.npmjs.org? Each [release](https://github.com/rwoll/mono-oss/releases)
-has a tarball that installs without it, with other dependencies from npm's configured
-registry:
+has a tarball that installs without it. This takes the other dependencies from
+Microsoft's public 1ES mirror of npm, which needs no token:
 
 ```sh
-npm install -g --min-release-age=7 https://github.com/rwoll/mono-oss/releases/download/annotate%400.1.0/rwoll-annotate-0.1.0.tgz
+npm install -g --min-release-age=7 \
+  --registry=https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/ \
+  https://github.com/rwoll/mono-oss/releases/download/annotate%400.1.0/rwoll-annotate-0.1.0.tgz
 ```
+
+The skill's `scripts/install-tools.ts` does the same when registry.npmjs.org doesn't answer.
 
 ## Examples
 

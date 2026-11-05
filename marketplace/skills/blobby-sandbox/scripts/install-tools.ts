@@ -8,16 +8,26 @@
 // it has been published for 7 days. npm older than 11.10 silently ignores that cooldown, so the script
 // refuses to run with it. --check only reports what's installed. --dry-run says what it would install.
 //
+// Where registry.npmjs.org is blocked, npm's default registry, the dependencies come from MIRROR instead,
+// for this install only. When a registry serves its downloads from another host, as Azure Artifacts feeds
+// do, the script passes --replace-registry-host for it, since npm 12 refuses downloads from other hosts.
+// It never reads or writes npm's config files and never sends credentials: only these flags.
+//
 // Every skill that needs it ships an identical copy of this file. It uses only Node.js and npm, and
 // GitHub's public API without a token.
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
+import { gunzipSync } from 'node:zlib'
 import { mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export const REPOSITORY = 'rwoll/mono-oss'
+export const NPM_REGISTRY = 'https://registry.npmjs.org/'
+/** Microsoft's public 1ES mirror of the npm registry, used when registry.npmjs.org is blocked. No token needed. */
+export const MIRROR = 'https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/'
+const PROBE_TIMEOUT_MS = 8000
 export const COOLDOWN_DAYS = 7
 export const MIN_NPM = '11.10.0'
 /** Each tool's command and the package that provides it. */
@@ -103,8 +113,82 @@ export async function newestReleases(tools: string[], fetchFn: typeof fetch): Pr
 }
 
 /** The `npm` arguments that install these tarballs, and any other packages, globally. */
-export function npmArgs(files: string[]): string[] {
-  return ['install', '--global', `--min-release-age=${COOLDOWN_DAYS}`, '--ignore-scripts', ...files]
+export function npmArgs(files: string[], flags: string[] = []): string[] {
+  return ['install', '--global', `--min-release-age=${COOLDOWN_DAYS}`, '--ignore-scripts', ...flags, ...files]
+}
+
+type Manifest = { dependencies?: Record<string, string>; optionalDependencies?: Record<string, string> }
+
+/** The package.json in an npm tarball, read without unpacking anything else. */
+export function tarballManifest(tgz: Uint8Array): Manifest {
+  const tar = gunzipSync(tgz)
+  const field = (header: Buffer, start: number, end: number) => header.subarray(start, end).toString('utf8').replace(/\0[\s\S]*$/, '')
+  for (let offset = 0; offset + 512 <= tar.length; ) {
+    const header = tar.subarray(offset, offset + 512)
+    const name = field(header, 0, 100)
+    if (!name) break
+    const prefix = field(header, 345, 500)
+    const size = parseInt(field(header, 124, 136).trim() || '0', 8)
+    const body = offset + 512
+    if ((prefix ? `${prefix}/${name}` : name) === 'package/package.json') return JSON.parse(tar.subarray(body, body + size).toString('utf8')) as Manifest
+    offset = body + Math.ceil(size / 512) * 512
+  }
+  throw new Error('The tarball has no package/package.json.')
+}
+
+const withSlash = (url: string) => (url.endsWith('/') ? url : `${url}/`)
+
+/**
+ * Looks `dependency` up on `registry`. Resolves with where its downloads come from, `prefix`, when that's
+ * another host or path than the registry's own, null when it's the registry's, or false when the registry
+ * doesn't answer.
+ */
+export async function probeRegistry(registry: string, dependency: string, fetchFn: typeof fetch): Promise<string | null | false> {
+  let response: Response
+  try {
+    response = await fetchFn(`${withSlash(registry)}${dependency.replace('/', '%2f')}`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
+  } catch {
+    return false
+  }
+  if (!response.ok) return false
+  const packument = (await response.json().catch(() => null)) as { 'dist-tags'?: { latest?: string }; versions?: Record<string, { dist?: { tarball?: string } }> } | null
+  const latest = packument?.['dist-tags']?.latest
+  const tarball = latest ? packument?.versions?.[latest]?.dist?.tarball : undefined
+  const at = tarball?.indexOf(`/${dependency}/-/`) ?? -1
+  if (!tarball || at <= 0) return null
+  const prefix = tarball.slice(0, at)
+  return withSlash(prefix).startsWith(withSlash(registry)) ? null : prefix
+}
+
+/**
+ * The npm flags that let these dependencies install: none when npm's registry works as configured,
+ * --registry when registry.npmjs.org is blocked and the mirror works, and --replace-registry-host when the
+ * registry in use serves downloads from elsewhere. Throws when no registry answers.
+ */
+export async function registryFlags(dependencies: string[], configured: string, fetchFn: typeof fetch, log: (line: string) => void): Promise<string[]> {
+  const dependency = dependencies[0]
+  if (!dependency) return []
+  const candidates = withSlash(configured) === NPM_REGISTRY ? [configured, MIRROR] : [configured]
+  for (const registry of candidates) {
+    const prefix = await probeRegistry(registry, dependency, fetchFn)
+    if (prefix === false) continue
+    const flags: string[] = []
+    if (registry !== configured) {
+      log(`${configured} isn't reachable, so this install gets its dependencies from ${registry}.`)
+      flags.push(`--registry=${registry}`)
+    }
+    if (prefix) flags.push(`--replace-registry-host=${prefix}`)
+    return flags
+  }
+  throw new Error(
+    `Can't reach npm's registry, ${candidates.join(', or ')}, for ${dependency} and the tools' other dependencies. Check your network, or point npm at a mirror you can reach: npm config set registry <url>.`,
+  )
+}
+
+/** The tools' dependencies that come from a registry: not other @rwoll packages, which come from their releases. */
+function registryDependencies(manifests: Manifest[]): string[] {
+  const names = manifests.flatMap((manifest) => Object.entries({ ...manifest.optionalDependencies, ...manifest.dependencies }))
+  return [...new Set(names.filter(([name, spec]) => !name.startsWith('@rwoll/') && !/^[a-z+]+:/.test(spec)).map(([name]) => name))]
 }
 
 export interface Options {
@@ -146,14 +230,10 @@ export async function installTools({ names = [], check = false, dryRun = false, 
       return 1
     }
     const extras = tools.includes('blobby-sandbox') && SMOLVM_HOSTS.has(`${platform}-${arch}`) ? [SMOLMACHINES] : []
-    if (dryRun) {
-      for (const release of releases) log(`${TOOLS[release.tool]}@${release.version}: ${release.url} (sha256 ${release.sha256})`)
-      log([npm, ...npmArgs([...releases.map((release) => release.url.split('/').pop() ?? release.url), ...extras])].join(' '))
-      return 0
-    }
     const work = mkdtempSync(join(tmpdir(), 'install-tools-'))
     try {
       const files: string[] = []
+      const manifests: Manifest[] = []
       for (const release of releases) {
         const response = await fetchFn(release.url)
         if (!response.ok) {
@@ -169,9 +249,23 @@ export async function installTools({ names = [], check = false, dryRun = false, 
         const file = join(work, release.url.split('/').pop() ?? `${release.tool}.tgz`)
         writeFileSync(file, bytes)
         files.push(file)
+        manifests.push(tarballManifest(bytes))
+      }
+      const configured = (await run(npm, ['config', 'get', 'registry']).catch(() => null))?.stdout.trim() || NPM_REGISTRY
+      let flags: string[]
+      try {
+        flags = await registryFlags([...registryDependencies(manifests), ...extras.map((spec) => spec.replace(/@[^@]*$/, ''))], configured, fetchFn, log)
+      } catch (error) {
+        log((error as Error).message)
+        return 1
+      }
+      if (dryRun) {
+        for (const release of releases) log(`${TOOLS[release.tool]}@${release.version}: ${release.url} (sha256 ${release.sha256})`)
+        log([npm, ...npmArgs([...files.map((file) => file.split(/[\\/]/).pop() ?? file), ...extras], flags)].join(' '))
+        return 0
       }
       log(`Installing ${releases.map((release) => `${TOOLS[release.tool]}@${release.version}`).concat(extras).join(', ')} globally with npm`)
-      const installed = await run(npm, npmArgs([...files, ...extras]), { inherit: true })
+      const installed = await run(npm, npmArgs([...files, ...extras], flags), { inherit: true })
       if (installed.code !== 0) {
         log(`npm install failed with exit code ${installed.code}.`)
         return 1
