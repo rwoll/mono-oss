@@ -53,7 +53,12 @@ const EXEC_DIR = '/run/blobby-exec'
 /** The longest a single buffered exec call is trusted to wait. Longer and streaming commands run in the background. */
 const DIRECT_LIMIT_SECONDS = 240
 const POLL_MS = 1000
-const CHUNK_BYTES = 1024 * 1024
+// The service cuts a command off once its output passes 1 MiB ("[adc] output exceeded 1048576 bytes"). So
+// every command's output goes to files in the guest, and each call reads at most this much of each, as
+// base64: about 854 KiB in all, with room to spare.
+export const OUTPUT_LIMIT_BYTES = 1024 * 1024
+const STDOUT_CHUNK = 512 * 1024
+const STDERR_CHUNK = 128 * 1024
 /** How long past its own limit a background command may run before this process stops it. */
 const DEADLINE_GRACE_SECONDS = 60
 /** Sandboxes don't suspend themselves after a short idle time, as they do by default; deleteAfter and reapers bound what they cost. */
@@ -451,10 +456,25 @@ function detachedScript(script: string, dir: string): string {
   return `mkdir -p -m 700 ${d} && : >${d}/out && : >${d}/err && nohup setsid sh -c ${shellQuote(run)} </dev/null >/dev/null 2>&1 &`
 }
 
-/** Reads a background command's exit code, if it has one, and up to a chunk of its output past what was read. */
+/** Runs a wrapped command to the end with its output in `dir`, then reads the first of it, as `pollScript` does. */
+function foregroundScript(script: string, dir: string): string {
+  const d = shellQuote(dir)
+  return `mkdir -p -m 700 ${d} || exit 125; sh -c ${shellQuote(script)} </dev/null >${d}/out 2>${d}/err; echo $? >${d}/exit; ${pollScript(dir, { stdout: 0, stderr: 0 })}`
+}
+
+/**
+ * Prints a command's exit code, if it has one, and the next chunk of each of its streams as base64, one per
+ * line, then `1` when that was all of it, after removing `dir`, or `0`.
+ */
 function pollScript(dir: string, read: { stdout: number; stderr: number }): string {
   const d = shellQuote(dir)
-  return `e=$(cat ${d}/exit 2>/dev/null); printf '%s\\n' "$e"; tail -c +${read.stdout + 1} ${d}/out | head -c ${CHUNK_BYTES} | base64 -w0; echo; tail -c +${read.stderr + 1} ${d}/err | head -c ${CHUNK_BYTES} | base64 -w0; echo`
+  return [
+    `e=$(cat ${d}/exit 2>/dev/null); so=$(($(wc -c <${d}/out))); se=$(($(wc -c <${d}/err)))`,
+    `printf '%s\\n' "$e"`,
+    `tail -c +${read.stdout + 1} ${d}/out | head -c ${STDOUT_CHUNK} | base64 | tr -d '\\n'; echo`,
+    `tail -c +${read.stderr + 1} ${d}/err | head -c ${STDERR_CHUNK} | base64 | tr -d '\\n'; echo`,
+    `if [ -n "$e" ] && [ "$so" -le ${read.stdout + STDOUT_CHUNK} ] && [ "$se" -le ${read.stderr + STDERR_CHUNK} ]; then rm -rf -- ${d}; echo 1; else echo 0; fi`,
+  ].join('; ')
 }
 
 /** Passes only `range` of a stream through. */
@@ -872,39 +892,23 @@ export class AzureBackend implements Backend {
       const dir = `${EXEC_DIR}/${marker}`
       await api.exec(sandbox.id, `sh -c ${shellQuote(KILL_SCRIPT)} sh ${marker} ${EXEC_ID_ENV}; rm -rf -- ${shellQuote(dir)} ${shellQuote(`${dir}.stdin`)}`).catch(() => {})
     }
-    if (!options.onOutput && (timeout === undefined || timeout <= DIRECT_LIMIT_SECONDS)) {
-      const run = api.exec(sandbox.id, script)
-      if (!options.signal) return run
-      run.catch(() => {})
-      const signal = options.signal
-      let abort = () => {}
-      const aborted = new Promise<never>((_, reject) => {
-        abort = () => reject(cancelled())
-        signal.addEventListener('abort', abort, { once: true })
-      })
-      try {
-        return await Promise.race([run, aborted])
-      } catch (error) {
-        if (signal.aborted) await kill()
-        throw error
-      } finally {
-        signal.removeEventListener('abort', abort)
-      }
-    }
-    return this.#background(sandbox.id, api, script, marker, { onOutput: options.onOutput, signal: options.signal, timeout, kill, cancelled })
+    const foreground = !options.onOutput && (timeout === undefined || timeout <= DIRECT_LIMIT_SECONDS)
+    return this.#run(sandbox.id, api, script, marker, { foreground, onOutput: options.onOutput, signal: options.signal, timeout, kill, cancelled })
   }
 
-  /** Runs a command in the background and polls for its output, for commands that stream or run long. */
-  async #background(
+  /**
+   * Runs a command with its output in files in the guest, and reads the output back in chunks the service
+   * returns whole. A command that may finish within one call runs in that call, which also returns its
+   * output when it is small; others run in the background and are polled.
+   */
+  async #run(
     id: string,
     api: AzureApi,
     script: string,
     marker: string,
-    options: { onOutput?: ExecOptions['onOutput']; signal?: AbortSignal; timeout?: number; kill: () => Promise<void>; cancelled: () => SandboxError },
+    options: { foreground: boolean; onOutput?: ExecOptions['onOutput']; signal?: AbortSignal; timeout?: number; kill: () => Promise<void>; cancelled: () => SandboxError },
   ): Promise<ExecResult> {
     const dir = `${EXEC_DIR}/${marker}`
-    const started = await api.exec(id, detachedScript(script, dir))
-    if (started.exitCode !== 0) throw new SandboxError('azure_exec', `The command could not start in the background: ${started.stderr.trim() || `exit code ${started.exitCode}`}.`)
     const output = { stdout: '', stderr: '' }
     const read = { stdout: 0, stderr: 0 }
     const decoders = { stdout: new StringDecoder('utf8'), stderr: new StringDecoder('utf8') }
@@ -913,36 +917,59 @@ export class AzureBackend implements Backend {
       output[stream] += text
       options.onOutput?.({ stream, text })
     }
-    const deadline = options.timeout === undefined ? Infinity : this.#now() + (options.timeout + DEADLINE_GRACE_SECONDS) * 1000
+    /** Takes one poll's output; resolves with the exit code once the command is done and all of it is read. */
+    const take = (polled: { exitCode: number; stdout: string; stderr: string }): number | null => {
+      const [exit = '', out = '', err = '', done = ''] = polled.stdout.split('\n')
+      if (done.trim() !== '1' && done.trim() !== '0') {
+        throw new SandboxError('azure_exec', `The command's output could not be read: ${polled.stderr.trim() || `exit code ${polled.exitCode}`}.`)
+      }
+      const chunks = { stdout: Buffer.from(out, 'base64'), stderr: Buffer.from(err, 'base64') }
+      for (const stream of ['stdout', 'stderr'] as const) {
+        read[stream] += chunks[stream].length
+        emit(stream, decoders[stream].write(chunks[stream]))
+      }
+      if (done.trim() !== '1') return null
+      emit('stdout', decoders.stdout.end())
+      emit('stderr', decoders.stderr.end())
+      return Number(exit.trim())
+    }
+    const signal = options.signal
+    let abort = () => {}
+    const aborted = new Promise<never>((_, reject) => {
+      abort = () => reject(options.cancelled())
+      signal?.addEventListener('abort', abort, { once: true })
+    })
+    aborted.catch(() => {})
+    const call = (command: string) => (signal ? Promise.race([api.exec(id, command), aborted]) : api.exec(id, command))
     try {
+      if (options.foreground) {
+        const exitCode = take(await call(foregroundScript(script, dir)))
+        if (exitCode !== null) return { exitCode, ...output }
+      } else {
+        const started = await call(detachedScript(script, dir))
+        if (started.exitCode !== 0) throw new SandboxError('azure_exec', `The command could not start in the background: ${started.stderr.trim() || `exit code ${started.exitCode}`}.`)
+      }
+      const deadline = options.timeout === undefined ? Infinity : this.#now() + (options.timeout + DEADLINE_GRACE_SECONDS) * 1000
       for (;;) {
-        if (options.signal?.aborted) throw options.cancelled()
-        const polled = await api.exec(id, pollScript(dir, read))
-        const [exit = '', out = '', err = ''] = polled.stdout.split('\n')
-        const chunks = { stdout: Buffer.from(out, 'base64'), stderr: Buffer.from(err, 'base64') }
-        for (const stream of ['stdout', 'stderr'] as const) {
-          read[stream] += chunks[stream].length
-          emit(stream, decoders[stream].write(chunks[stream]))
-        }
-        const more = chunks.stdout.length >= CHUNK_BYTES || chunks.stderr.length >= CHUNK_BYTES
-        if (/^\d+$/.test(exit.trim()) && !more) {
-          emit('stdout', decoders.stdout.end())
-          emit('stderr', decoders.stderr.end())
-          await api.exec(id, `rm -rf -- ${shellQuote(dir)}`).catch(() => {})
-          return { exitCode: Number(exit.trim()), ...output }
-        }
+        if (signal?.aborted) throw options.cancelled()
+        const before = { ...read }
+        const exitCode = take(await call(pollScript(dir, read)))
+        if (exitCode !== null) return { exitCode, ...output }
         if (this.#now() > deadline) {
           await options.kill()
           return { exitCode: 124, ...output }
         }
-        if (!more) await waitOrAbort(this.#pollMs, options.signal)
+        // Read on at once while there is more output; otherwise wait for the command.
+        if (read.stdout === before.stdout && read.stderr === before.stderr) await waitOrAbort(this.#pollMs, signal)
       }
     } catch (error) {
-      if (options.signal?.aborted) {
+      if (signal?.aborted) {
         await options.kill()
         throw options.cancelled()
       }
       throw error
+    } finally {
+      signal?.removeEventListener('abort', abort)
     }
   }
 

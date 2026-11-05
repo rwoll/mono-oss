@@ -125,6 +125,7 @@ npm install @rwoll/blobby-sandbox smolmachines@1.31.0      # the SDK, in a proje
 
 Without it, smolvm commands fail with `smolvm_missing` and these instructions. The azure backend needs
 `@azure/containerapps-sandbox@1.0.0-beta.1` the same way, and fails with `azure_sdk_missing` without it.
+In Copilot, the blobby-sandbox skill's `node scripts/install-tools.ts blobby-sandbox --azure` installs both.
 
 ## Use it
 

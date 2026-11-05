@@ -45,7 +45,7 @@ instead, with other dependencies from Microsoft's public 1ES mirror of npm, whic
 
 ```sh
 npm install -g --min-release-age=7 --registry=https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/ \
-  https://github.com/rwoll/mono-oss/releases/download/blobby-sandbox%400.1.0/rwoll-blobby-sandbox-0.1.0.tgz smolmachines@1.31.0
+  https://github.com/rwoll/mono-oss/releases/download/blobby-sandbox%400.1.1/rwoll-blobby-sandbox-0.1.1.tgz smolmachines@1.31.0
 ```
 
 In Copilot, the blobby-sandbox skill's `scripts/install-tools.ts` does this for you. Then:

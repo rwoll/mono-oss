@@ -7,6 +7,17 @@ things.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-05
+
+### Fixed
+
+- On the azure backend, commands with more than 1 MiB of output, such as a
+  screenshot of a busy screen, no longer fail or come back cut off at 1 MiB:
+  the output is read back in pieces under the service's limit.
+- `vscode-signin` gets past GitHub's one-time "Verify your two-factor
+  authentication (2FA) settings" page, by verifying it with a new code, instead
+  of timing out waiting to authorize VS Code.
+
 ## [0.1.0] - 2026-11-05
 
 ### Added
@@ -17,4 +28,5 @@ things.
 - `blobby-sandbox image build` builds the optional `blobby-desktop` Docker image
   locally, on demand, from build files the package ships. No image is published.
 
+[0.1.1]: https://github.com/rwoll/mono-oss/releases/tag/blobby-sandbox@0.1.1
 [0.1.0]: https://github.com/rwoll/mono-oss/releases/tag/blobby-sandbox@0.1.0

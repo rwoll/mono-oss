@@ -153,11 +153,52 @@ function checkSignInUrl(url) {
   if (!loopback && !github) throw new Error(`VS Code asked to open ${parsed.origin}, not its sign-in server or github.com`)
 }
 
+/**
+ * GitHub's one-time check of recently configured 2FA, which it may show instead of the authorization page.
+ * Verifying it with a new code, instead of skipping it, keeps it from coming back the next day.
+ */
+async function passTwoFactorCheckup(page) {
+  progress("GitHub asked to verify the test account's 2FA settings once; verifying them with a new code")
+  await page.getByRole('button', { name: 'Verify 2FA now', exact: true }).click()
+  const otp = page.locator('input[name="app_otp"]')
+  await otp.waitFor({ state: 'visible', timeout: 30_000 })
+  await otp.fill(await secret('otp'))
+  // GitHub may submit the form by itself once the code is complete.
+  await page.getByRole('button', { name: 'Verify', exact: true }).click({ timeout: 5_000 }).catch(() => {})
+  // GitHub either moves on or stays and says so.
+  const verified = await first(
+    {
+      left: page.waitForURL((url) => url.pathname !== '/settings/two_factor_checkup'),
+      said: page.getByRole('heading', { name: /2FA verification successful/i }).waitFor({ state: 'visible' }),
+    },
+    30_000,
+    'for GitHub to accept the code',
+  ).then(() => true, () => false)
+  if (!verified) throw new Error(`GitHub did not accept the code for its 2FA check. It shows ${await describe(page)}`)
+  progress("Verified the test account's 2FA settings on GitHub")
+}
+
 async function authorizeInBrowser(page, url, username) {
-  await page.goto(url)
   const account = page.getByRole('button', { name: new RegExp(username) })
   const authorize = page.getByRole('button', { name: /^Authorize Visual[ -]Studio[ -]Code(?: - Insiders)?$/i })
-  await account.or(authorize).first().waitFor({ state: 'visible', timeout: 30_000 })
+  const checkup = page.getByRole('button', { name: 'Verify 2FA now', exact: true })
+  const shown = async () => {
+    try {
+      return await first(
+        { account: account.waitFor({ state: 'visible' }), authorize: authorize.waitFor({ state: 'visible' }), checkup: checkup.waitFor({ state: 'visible' }) },
+        30_000,
+        'for GitHub to ask to authorize VS Code',
+      )
+    } catch (error) {
+      throw new Error(`${error.message}. It shows ${await describe(page)}`)
+    }
+  }
+  await page.goto(url)
+  if ((await shown()) === 'checkup') {
+    await passTwoFactorCheckup(page)
+    await page.goto(url)
+    if ((await shown()) === 'checkup') throw new Error('GitHub asked to verify the 2FA settings again')
+  }
   if (await account.isVisible()) await account.click()
   // GitHub asks for consent the first time, then redirects back to VS Code's loopback server.
   try {

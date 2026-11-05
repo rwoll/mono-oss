@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
-import { atLeast, installTools, MIRROR, NPM_REGISTRY, SMOLMACHINES, tarballManifest, type Result, type Runner } from '../scripts/install-tools.ts'
+import { atLeast, AZURE_SDK, installTools, MIRROR, NPM_REGISTRY, SMOLMACHINES, tarballManifest, type Result, type Runner } from '../scripts/install-tools.ts'
 
 const ok = (stdout = ''): Result => ({ code: 0, stdout, stderr: '' })
 const work = mkdtempSync(join(tmpdir(), 'install-tools-test-'))
@@ -142,6 +142,16 @@ describe('install-tools', () => {
     }
     expect(await installed('darwin', 'arm64')).toEqual([SMOLMACHINES])
     expect(await installed('darwin', 'x64')).toEqual([])
+  })
+
+  it("adds the azure backend's SDK with --azure, at blobby-sandbox's peer version", async () => {
+    const blobby = JSON.parse(readFileSync(new URL('../../packages/blobby-sandbox/package.json', import.meta.url), 'utf8')) as { peerDependencies: Record<string, string> }
+    expect(AZURE_SDK).toBe(`@azure/containerapps-sandbox@${blobby.peerDependencies['@azure/containerapps-sandbox']}`)
+    const releases = [release('blobby-sandbox@0.1.0', [{ name: 'rwoll-blobby-sandbox-0.1.0.tgz', digest: `sha256:${SHA256}` }])]
+    const t = fake({ 'npm --version': ok('12.2.1'), 'blobby-sandbox --version': ok('0.1.0') })
+    await installTools({ names: ['blobby-sandbox'], azure: true, run: t.run, fetch: github(releases).fetch, log: t.log, platform: 'darwin', arch: 'x64' })
+    expect(t.calls.find((call) => call.args[0] === 'install')?.args.at(-1)).toBe(AZURE_SDK)
+    expect(await installTools({ names: ['annotate'], azure: true, run: t.run, log: t.log })).toBe(2)
   })
 
   it('refuses npm too old to enforce the cooldown, before downloading anything', async () => {

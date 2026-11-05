@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // Installs the command-line tools that these skills run, globally with npm, so they don't need npx:
-//   node install-tools.ts [annotate] [blobby-sandbox] [--check] [--dry-run]
+//   node install-tools.ts [annotate] [blobby-sandbox] [--azure] [--check] [--dry-run]
 // With no names, it installs every tool. Each tool comes from its newest GitHub release in rwoll/mono-oss,
 // not from registry.npmjs.org, which some machines can't reach: the script downloads the release's tarball,
 // checks it against the SHA-256 digest GitHub shows for it, and installs that file. Other @rwoll packages
 // it needs come from their own releases; everything else comes from npm's configured registry, only once
 // it has been published for 7 days. npm older than 11.10 silently ignores that cooldown, so the script
 // refuses to run with it. --check only reports what's installed. --dry-run says what it would install.
+// --azure also installs the SDK that blobby-sandbox's azure backend needs.
 //
 // Where registry.npmjs.org is blocked, npm's default registry, the dependencies come from MIRROR instead,
 // for this install only. When a registry serves its downloads from another host, as Azure Artifacts feeds
@@ -37,6 +38,8 @@ export const TOOLS: Readonly<Record<string, string>> = Object.freeze({
 })
 /** blobby-sandbox's smolvm backend needs this next to it, on hosts smolvm runs on. Keep it at blobby-sandbox's peer dependency. */
 export const SMOLMACHINES = 'smolmachines@1.31.0'
+/** blobby-sandbox's azure backend needs this next to it, with --azure. Keep it at blobby-sandbox's peer dependency. */
+export const AZURE_SDK = '@azure/containerapps-sandbox@1.0.0-beta.1'
 const SMOLVM_HOSTS = new Set(['darwin-arm64', 'linux-x64', 'linux-arm64'])
 const VERSION = /^(\d+)\.(\d+)\.(\d+)$/
 
@@ -195,6 +198,7 @@ export interface Options {
   names?: string[]
   check?: boolean
   dryRun?: boolean
+  azure?: boolean
   run?: Runner
   fetch?: typeof fetch
   log?: (line: string) => void
@@ -203,7 +207,7 @@ export interface Options {
 }
 
 /** Installs, or with `check` only reports, the tools. Resolves with the exit code: 0, 1 (failed), or 2 (usage). */
-export async function installTools({ names = [], check = false, dryRun = false, run = runCommand, fetch: fetchFn = fetch, log = console.log, platform = process.platform, arch = process.arch }: Options = {}): Promise<number> {
+export async function installTools({ names = [], check = false, dryRun = false, azure = false, run = runCommand, fetch: fetchFn = fetch, log = console.log, platform = process.platform, arch = process.arch }: Options = {}): Promise<number> {
   const unknown = names.filter((name) => !(name in TOOLS))
   if (unknown.length) {
     log(`Unknown tool: ${unknown.join(', ')}. The tools are ${Object.keys(TOOLS).join(' and ')}.`)
@@ -229,7 +233,14 @@ export async function installTools({ names = [], check = false, dryRun = false, 
       log((error as Error).message)
       return 1
     }
-    const extras = tools.includes('blobby-sandbox') && SMOLVM_HOSTS.has(`${platform}-${arch}`) ? [SMOLMACHINES] : []
+    if (azure && !tools.includes('blobby-sandbox')) {
+      log('--azure is for blobby-sandbox; add blobby-sandbox to the tools to install.')
+      return 2
+    }
+    const extras = [
+      ...(tools.includes('blobby-sandbox') && SMOLVM_HOSTS.has(`${platform}-${arch}`) ? [SMOLMACHINES] : []),
+      ...(azure ? [AZURE_SDK] : []),
+    ]
     const work = mkdtempSync(join(tmpdir(), 'install-tools-'))
     try {
       const files: string[] = []
@@ -296,12 +307,12 @@ export async function installTools({ names = [], check = false, dryRun = false, 
 
 export async function main(argv: string[]): Promise<number> {
   const flags = new Set(argv.filter((arg) => arg.startsWith('-')))
-  const unknown = [...flags].filter((flag) => !['--check', '--dry-run', '--help', '-h'].includes(flag))
+  const unknown = [...flags].filter((flag) => !['--azure', '--check', '--dry-run', '--help', '-h'].includes(flag))
   if (flags.has('--help') || flags.has('-h') || unknown.length) {
-    console.log(`Usage: node install-tools.ts [${Object.keys(TOOLS).join('] [')}] [--check] [--dry-run]`)
+    console.log(`Usage: node install-tools.ts [${Object.keys(TOOLS).join('] [')}] [--azure] [--check] [--dry-run]`)
     return unknown.length ? 2 : 0
   }
-  return installTools({ names: argv.filter((arg) => !arg.startsWith('-')), check: flags.has('--check'), dryRun: flags.has('--dry-run') })
+  return installTools({ names: argv.filter((arg) => !arg.startsWith('-')), check: flags.has('--check'), dryRun: flags.has('--dry-run'), azure: flags.has('--azure') })
 }
 
 const invoked = (() => {

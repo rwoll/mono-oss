@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { chmod, mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
@@ -20,6 +20,8 @@ import {
   otherSize,
   quantity,
   redact,
+  OUTPUT_LIMIT_BYTES,
+  shellQuote,
   SNAPSHOT_OF_LABEL,
   wrapCommand,
   type AzureApi,
@@ -254,58 +256,32 @@ describe('azure backend on a fake sandbox group', () => {
     expect(await azure.snapshots()).toEqual([])
   })
 
-  it('runs a short command in one call, and passes its result through', async () => {
+  it('runs a short command in one call, with the caller\'s user, variables, and limit', async () => {
     const azure = backend(api)
     await azure.create({ name: 'a', image: 'ubuntu' })
-    api.onExec = () => ({ exitCode: 3, stdout: 'héllo\n', stderr: 'oops' })
+    api.onExec = () => ({ exitCode: 0, stdout: `3\n${Buffer.from('héllo\n').toString('base64')}\n${Buffer.from('oops').toString('base64')}\n1\n`, stderr: '' })
     expect(await azure.exec('a', ['sh', '-c', 'echo "$1"', 'sh', "it's"], { user: 'ubuntu', env: { A: 'b c' }, timeoutSeconds: 60 })).toEqual({ exitCode: 3, stdout: 'héllo\n', stderr: 'oops' })
     expect(api.commands).toHaveLength(1)
-    expect(api.commands[0]).toContain(`u='ubuntu'`)
-    expect(api.commands[0]).toContain(`'A=b c' 'timeout' '-k' '5' '60' 'sh' '-c' 'echo "$1"' 'sh' 'it'\\''s'`)
+    expect(api.commands[0]).toContain(shellQuote(`u='ubuntu'`).slice(1, -1))
+    expect(api.commands[0]).toContain(shellQuote(`'A=b c' 'timeout' '-k' '5' '60' 'sh' '-c' 'echo "$1"' 'sh' 'it'\\''s'`).slice(1, -1))
     await expect(azure.exec('a', ['true'], { env: { GH_TOKEN: 'x' } })).rejects.toEqual(isCode('env_blocked'))
     await expect(azure.exec('a', ['true'], { env: { BLOBBY_EXEC_ID: 'x' } })).rejects.toEqual(isCode('invalid_options'))
     await expect(azure.exec('a', ['true'], { user: 'a b' })).rejects.toEqual(isCode('invalid_options'))
+    api.onExec = () => ({ exitCode: 125, stdout: '', stderr: 'mkdir: cannot create directory' })
+    await expect(azure.exec('a', ['true'])).rejects.toEqual(isCode('azure_exec'))
   })
 
   it('passes stdin through a memory-only file the command removes once it is open', async () => {
     const azure = backend(api)
     await azure.create({ name: 'a', image: 'ubuntu' })
+    api.onExec = () => ({ exitCode: 0, stdout: '0\n\n\n1\n', stderr: '' })
     await azure.exec('a', ['cat'], { stdin: 'pa55-w0rd!\n' })
     const [key, file] = [...api.files][0]!
     expect(key).toMatch(/^sbx-\d+:\/run\/blobby-exec\/[0-9a-f]{24}\.stdin$/)
     expect(file).toEqual({ data: Buffer.from('pa55-w0rd!\n'), mode: 0o600 })
     const path = key!.split(':')[1]!
-    expect(api.commands[0]).toContain(`exec 0<'${path}' || exit 125; rm -f -- '${path}'`)
+    expect(api.commands[0]).toContain(shellQuote(`exec 0<'${path}' || exit 125; rm -f -- '${path}'`).slice(1, -1))
     expect(api.commands[0]).not.toContain('pa55')
-  })
-
-  it('runs streaming commands in the background, and decodes their output as it comes', async () => {
-    const azure = backend(api)
-    await azure.create({ name: 'a', image: 'ubuntu' })
-    const euro = Buffer.from('€')
-    const outputs = [Buffer.concat([Buffer.from('one\n'), euro.subarray(0, 2)]), Buffer.concat([euro.subarray(2), Buffer.from('two\n')])]
-    let polls = 0
-    api.onExec = (_, command) => {
-      if (command.includes('nohup setsid')) return { exitCode: 0, stdout: '', stderr: '' }
-      if (command.startsWith('e=$(cat')) {
-        polls += 1
-        const out = outputs[polls - 1] ?? Buffer.alloc(0)
-        const err = polls === 1 ? Buffer.from('warn\n') : Buffer.alloc(0)
-        return { exitCode: 0, stdout: `${polls >= 2 ? '7' : ''}\n${out.toString('base64')}\n${err.toString('base64')}\n`, stderr: '' }
-      }
-      return { exitCode: 0, stdout: '', stderr: '' }
-    }
-    const chunks: { stream: string; text: string }[] = []
-    const result = await azure.exec('a', ['long'], { onOutput: (chunk) => chunks.push(chunk) })
-    expect(result).toEqual({ exitCode: 7, stdout: 'one\n€two\n', stderr: 'warn\n' })
-    expect(chunks).toEqual([
-      { stream: 'stdout', text: 'one\n' },
-      { stream: 'stderr', text: 'warn\n' },
-      { stream: 'stdout', text: '€two\n' },
-    ])
-    expect(api.commands[1]).toMatch(/tail -c \+1 .*tail -c \+1 /)
-    expect(api.commands[2]).toMatch(/tail -c \+7 .*tail -c \+6 /)
-    expect(api.commands.at(-1)).toMatch(/^rm -rf -- '\/run\/blobby-exec\/[0-9a-f]{24}'$/)
   })
 
   it('kills a cancelled command and rejects with cancelled', async () => {
@@ -332,7 +308,7 @@ describe('azure backend on a fake sandbox group', () => {
     await azure.create({ name: 'a', image: 'ubuntu' })
     api.onExec = (_, command) => {
       if (command.startsWith('e=$(cat')) now += 120_000
-      return { exitCode: 0, stdout: command.startsWith('e=$(cat') ? '\n\n\n' : '', stderr: '' }
+      return { exitCode: 0, stdout: command.startsWith('e=$(cat') ? '\n\n\n0\n' : '', stderr: '' }
     }
     expect(await azure.exec('a', ['sleep', '600'], { timeoutSeconds: 1, onOutput: () => {} })).toEqual({ exitCode: 124, stdout: '', stderr: '' })
     expect(api.commands.some((command) => command.includes(KILL_SCRIPT.slice(0, 20)))).toBe(true)
@@ -478,6 +454,69 @@ const sh = (script: string, env: NodeJS.ProcessEnv) =>
   new Promise<{ code: number; stdout: string; stderr: string }>((resolve) => {
     execFile('sh', ['-c', script], { env, encoding: 'utf8' }, (error, stdout, stderr) => resolve({ code: error ? Number(error.code) : 0, stdout, stderr }))
   })
+
+describe('azure commands, in a real shell, with the service\'s 1 MiB output limit', () => {
+  let dir: string
+  let api: FakeApi
+  let largest: number
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'blobby-azure-exec-'))
+    await mkdir(join(dir, 'bin'))
+    await writeFile(join(dir, 'bin', 'getent'), `#!/bin/sh\necho 'root:x:0:0:root:/root:/bin/sh'\n`)
+    await chmod(join(dir, 'bin', 'getent'), 0o755)
+    // The guest's setsid, which macOS lacks.
+    await writeFile(join(dir, 'bin', 'setsid'), '#!/bin/sh\nexec "$@"\n')
+    await chmod(join(dir, 'bin', 'setsid'), 0o755)
+    api = new FakeApi()
+    largest = 0
+    // Runs each command here, with the guest's /run/blobby-exec in a temporary folder, and fails the way the
+    // service does when the output passes 1 MiB.
+    api.onExec = (_, command) =>
+      new Promise((resolve, reject) => {
+        const local = command.replaceAll('/run/blobby-exec', join(dir, 'exec'))
+        execFile('sh', ['-c', local], { env: { PATH: `${join(dir, 'bin')}:${process.env.PATH}` }, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }, (error, stdout, stderr) => {
+          const size = Buffer.byteLength(stdout) + Buffer.byteLength(stderr)
+          largest = Math.max(largest, size)
+          if (size > OUTPUT_LIMIT_BYTES) return reject(new SandboxError('azure_exec', `[adc] output exceeded ${OUTPUT_LIMIT_BYTES} bytes and was truncated; process terminated`))
+          resolve({ exitCode: error ? Number(error.code) || 1 : 0, stdout, stderr })
+        })
+      })
+  })
+  afterEach(() => rm(dir, { recursive: true, force: true }))
+
+  const leftovers = async () => (await readdir(join(dir, 'exec')).catch(() => [])).length
+
+  it('returns a short command\'s small output in one call, and leaves nothing behind', async () => {
+    const azure = backend(api)
+    await azure.create({ name: 'a', image: 'ubuntu' })
+    const before = api.commands.length
+    expect(await azure.exec('a', ['sh', '-c', 'printf "héllo\\n"; printf oops >&2; exit 3'])).toEqual({ exitCode: 3, stdout: 'héllo\n', stderr: 'oops' })
+    expect(api.commands.length - before).toBe(1)
+    expect(await leftovers()).toBe(0)
+  })
+
+  it('returns megabytes of output, such as a screenshot, in calls under the limit', async () => {
+    const azure = backend(api)
+    await azure.create({ name: 'a', image: 'ubuntu' })
+    const result = await azure.exec('a', ['sh', '-c', 'head -c 3000000 /dev/zero | tr "\\0" a; head -c 300000 /dev/zero | tr "\\0" b >&2'])
+    expect([result.exitCode, result.stdout.length, result.stderr.length]).toEqual([0, 3_000_000, 300_000])
+    expect(result.stdout).toBe('a'.repeat(3_000_000))
+    expect(largest).toBeLessThan(OUTPUT_LIMIT_BYTES)
+    expect(await leftovers()).toBe(0)
+  })
+
+  it('streams a background command\'s large output as it comes, in calls under the limit', async () => {
+    const azure = backend(api)
+    await azure.create({ name: 'a', image: 'ubuntu' })
+    const chunks: string[] = []
+    const result = await azure.exec('a', ['sh', '-c', 'printf "€"; head -c 2000000 /dev/zero | tr "\\0" c'], { onOutput: (chunk) => chunks.push(chunk.text) })
+    expect(result).toEqual({ exitCode: 0, stdout: `€${'c'.repeat(2_000_000)}`, stderr: '' })
+    expect(chunks.join('')).toBe(result.stdout)
+    expect(chunks.length).toBeGreaterThan(1)
+    expect(largest).toBeLessThan(OUTPUT_LIMIT_BYTES)
+    expect(await leftovers()).toBe(0)
+  })
+})
 
 describe('the command wrapper, in a real shell', () => {
   let dir: string
