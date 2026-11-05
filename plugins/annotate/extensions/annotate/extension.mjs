@@ -95,7 +95,7 @@ await runCanvasExtension(canvases, {
 	releaseFile: new URL("../../release.json", import.meta.url),
 	plugin: {
 		"name": "annotate",
-		"version": "0.2.0"
+		"version": "0.2.1"
 	}
 });
 export {};
