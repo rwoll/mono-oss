@@ -14,8 +14,8 @@ export interface CanvasKitPluginOptions {
   /** Kebab-case plugin name, unique in the marketplace. */
   name: string;
   description: string;
-  /** Canvas folder names under `canvases/`. */
-  canvases: string[];
+  /** Canvas folder names under `canvases/`. A plugin may have none if it lists skills. */
+  canvases?: string[];
   /** Skill folder names under `skills/` to ship with these canvases instead of in the main plugin. */
   skills?: string[];
   /** Defaults to the project's version. */
@@ -111,9 +111,9 @@ export function planPlugins(project: { name: string; version: string; descriptio
     if (!NAME_PATTERN.test(plugin.name ?? '')) throw new Error(`Plugin names must be kebab-case: ${plugin.name}`);
     if (names.has(plugin.name)) throw new Error(`Two plugins are named ${plugin.name}`);
     if (!plugin.description?.trim()) throw new Error(`Plugin ${plugin.name} needs a description`);
-    if (!plugin.canvases?.length) throw new Error(`Plugin ${plugin.name} lists no canvases`);
+    if (!plugin.canvases?.length && !plugin.skills?.length) throw new Error(`Plugin ${plugin.name} lists no canvases or skills`);
     names.add(plugin.name);
-    for (const canvas of plugin.canvases) {
+    for (const canvas of plugin.canvases ?? []) {
       if (!canvases.includes(canvas)) throw new Error(`Plugin ${plugin.name} lists ${canvas}, which is not a folder in ${CANVASES_DIR}/ with a canvas.ts`);
       const other = placed.get(canvas);
       if (other) throw new Error(`${canvas} is in both ${other} and ${plugin.name}`);
@@ -129,7 +129,7 @@ export function planPlugins(project: { name: string; version: string; descriptio
       name: plugin.name,
       version: plugin.version ?? project.version,
       description: plugin.description,
-      canvases: [...plugin.canvases].sort(),
+      canvases: [...(plugin.canvases ?? [])].sort(),
       skills: [...(plugin.skills ?? [])].sort(),
     });
   }

@@ -2,6 +2,11 @@
 
 Open source tools, `@rwoll` npm packages, and a Copilot plugin by [@rwoll](https://github.com/rwoll).
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/home/hero-dark.png">
+  <img alt="Your coding agent can test it, show it, and ship it. A crew of six Blobbys, the VS Code chat pet, each doing one job: Blobby Sandbox tests on a throwaway desktop, agents-qa self-hosts every build in a hard hat, annotate marks up what it found at an easel, pr-descriptions writes it up, session-summary keeps you posted, and canvas-kit builds the panels you share. Below, the two commands that install them all as the kitchensink Copilot plugin, and the @rwoll npm packages." src="docs/home/hero-light.png">
+</picture>
+
 Install the Copilot plugin, with every skill and canvas below:
 
 ```sh
@@ -30,6 +35,7 @@ get a panel to work in alongside it:
 | [`pr-descriptions`](marketplace/skills/pr-descriptions/SKILL.md) (skill) | Agents write walls of text. This has them write PR and bug report descriptions a person can skim in 30 seconds: the screenshot or video first, then the problem, repro, and what changed, and none of the validation logs or process narrative. |
 | [`annotate`](marketplace/canvases/annotate) (skill and canvas) | A raw screenshot makes the reader hunt for the problem. The agent marks what matters, zooms, captions, and redacts accounts, and you adjust it in the canvas before it goes in a PR or issue. |
 | [`blobby-sandbox`](marketplace/canvases/blobby-sandbox) (skill and canvas) | Lets the agent test a UI change by actually clicking through it, on a throwaway desktop instead of your computer, and shows you what it's doing. Needs the [CLI](packages/blobby-sandbox#readme). |
+| [`agents-qa`](marketplace/canvases/agents-qa) (skill and canvas) | Self-hosting a fast-moving product daily is tedious. A scheduled run tests the VS Code Agents window PRs merged since the last build in a sandbox, and you triage what it found in the canvas: fix, file, investigate, or suppress. |
 | [`session-summary`](marketplace/canvases/session-summary) (canvas) | Long agent sessions are hard to check on. The agent keeps a short executive summary up to date, so you can see where things stand at a glance. |
 | [`canvas-kit`](marketplace/skills/canvas-kit/SKILL.md), [`-testing`](marketplace/skills/canvas-kit-testing/SKILL.md), [`-publishing`](marketplace/skills/canvas-kit-publishing/SKILL.md) (skills) | Teach the agent to build, test, and publish your own canvases with `@rwoll/canvas-kit`. |
 
@@ -103,7 +109,7 @@ See the [canvas-kit guide](packages/canvas-kit#readme) for the API.
 
 ## Copilot plugin
 
-<img src="docs/marketplace/logo.png" alt="kitchensink plugin logo: developer tools overflowing a kitchen sink" width="96" align="right">
+<img src="docs/marketplace/logo.png" alt="kitchensink plugin logo: Blobby, the VS Code chat pet, sitting in a kitchen sink" width="96" align="right">
 
 Everything but the kitchen sink, in one plugin:
 

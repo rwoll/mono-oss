@@ -11,6 +11,10 @@ things.
 
 ## [Unreleased]
 
+### Changed
+
+- A plugin in `canvasKit({ plugins })` can list only `skills`, with no `canvases`.
+
 ## [0.3.0] - 2026-11-04
 
 ### Added

@@ -64,6 +64,11 @@ describe('projects', () => {
     // With every canvas and skill split off, there is no main plugin.
     expect(planPlugins(project, ['summary'], ['triage'], [{ name: 'summary', description: 'Summary.', canvases: ['summary'], skills: ['triage'] }]).map(plan => plan.name)).toEqual(['summary']);
     expect(planPlugins(project, [], [])).toEqual([]);
+    // A plugin can ship only skills.
+    expect(planPlugins(project, [], ['triage'], [{ name: 'skills', description: 'Skills.', skills: ['triage'] }])).toEqual([
+      { name: 'skills', version: '1.2.0', description: 'Skills.', canvases: [], skills: ['triage'] },
+    ]);
+    expect(() => planPlugins(project, [], [], [{ name: 'empty', description: 'x' }])).toThrow('Plugin empty lists no canvases or skills');
 
     expect(() => planPlugins(project, ['board'], [], [{ name: 'demo', description: 'x', canvases: ['board'] }])).toThrow('Two plugins are named demo');
     expect(() => planPlugins(project, ['board'], [], [{ name: 'other', description: 'x', canvases: ['nope'] }])).toThrow(/lists nope/);
