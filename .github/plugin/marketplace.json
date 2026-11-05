@@ -5,34 +5,10 @@
   },
   "plugins": [
     {
-      "name": "annotate",
-      "description": "Annotate screenshots and screen recordings with the agent: zoom, marks, captions, before/after, and redaction, exported to PNG, MP4, or GIF.",
-      "version": "0.2.4",
-      "source": "./plugins/annotate"
-    },
-    {
-      "name": "blobby-sandbox",
-      "description": "See, start, drive, screenshot, and record Blobby sandboxes in Copilot: the blobby-sandbox skill, and a canvas over its CLI.",
-      "version": "0.1.4",
-      "source": "./plugins/blobby-sandbox"
-    },
-    {
-      "name": "canvas-kit",
-      "description": "Skills for building, testing, and publishing Copilot canvases with @rwoll/canvas-kit.",
-      "version": "0.3.2",
-      "source": "./plugins/canvas-kit"
-    },
-    {
-      "name": "pr-descriptions",
-      "description": "Write short, reader-first pull request and bug report descriptions, media first.",
-      "version": "0.3.0",
-      "source": "./plugins/pr-descriptions"
-    },
-    {
-      "name": "session-summary",
-      "description": "An executive summary of this chat's work that the agent keeps up to date on a schedule.",
-      "version": "0.7.0",
-      "source": "./plugins/session-summary"
+      "name": "kitchensink",
+      "description": "Everything but the kitchen sink: annotated screenshots and recordings, disposable desktop sandboxes, a session summary, media-first PR and bug report descriptions, and skills for building canvases.",
+      "version": "0.1.0",
+      "source": "./plugins/kitchensink"
     }
   ]
 }

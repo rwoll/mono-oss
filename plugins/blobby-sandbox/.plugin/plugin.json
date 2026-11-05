@@ -1,7 +1,0 @@
-{
-  "name": "blobby-sandbox",
-  "version": "0.1.4",
-  "description": "See, start, drive, screenshot, and record Blobby sandboxes in Copilot: the blobby-sandbox skill, and a canvas over its CLI.",
-  "skills": "skills/",
-  "extensions": "extensions/"
-}
