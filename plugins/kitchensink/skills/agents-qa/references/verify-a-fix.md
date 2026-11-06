@@ -66,12 +66,12 @@ cd ~/vscode && (setsid env VSCODE_SKIP_PRELAUNCH=1 ./scripts/code.sh --no-sandbo
 ```
 
 - **Sign in.** In Code OSS, sign in with GitHub, then click **Authorize** or **Continue** in the sandbox's Chrome. If Chrome is already signed in to github.com there, that's all it takes. If it would need the account's password or a 2FA code, don't enter them: verify what you can signed out, and say so. Never read, print, or store tokens.
-- **Verify.** Open the Agents window and walk the repro steps. Capture an **after** screenshot for each **before** screenshot in the finding, in the same order and framing.
+- **Verify.** Open the Agents window and walk the repro steps. Record an **after** video of the same repro when the finding has a **before** video, and capture an **after** screenshot for each **before** screenshot, in the same order and framing.
 - **Retest after fixes.** If the live run shows a problem, fix it, push, rebuild, and test again.
 - **Clean up.** Quit Code OSS, then remove your sandbox when you're done (`blobby-sandbox rm $SB --json`).
 
 ## 5. Put it in the pull request
 
-- Upload the screenshots with the `gh` CLI to `https://uploads.github.com/user-attachments/assets`, using `gh auth token`, and put them in a before/after table.
+- Upload the media with the `gh` CLI to `https://uploads.github.com/user-attachments/assets`, using `gh auth token`. Lead with the before and after videos, annotated, or with a before/after screenshot table when one frame shows the change.
 - Add one line: "Validated live on Ubuntu 24.04 <architecture> with Code OSS built from `<commit>`."
 - List anything you couldn't verify.

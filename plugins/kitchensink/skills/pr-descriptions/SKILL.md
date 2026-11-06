@@ -1,6 +1,6 @@
 ---
 name: pr-descriptions
-description: "Write or rewrite pull request and bug report titles and descriptions that a reader can skim in 30 seconds: what it looks like first (annotated screenshots or a short video), then the problem, repro, and user-facing change, with concrete examples. Use whenever creating, updating, or proposing a PR, filing a bug report or issue, or when asked to tighten, shorten, or clean up either."
+description: "Write or rewrite pull request and bug report titles and descriptions that a reader can skim in 30 seconds: what it looks like first (a short annotated video, or a screenshot when one frame makes it obvious), then the problem, repro, and user-facing change, with concrete examples. Use whenever creating, updating, or proposing a PR, filing a bug report or issue, or when asked to tighten, shorten, or clean up either."
 ---
 
 # Pull request and bug report descriptions
@@ -31,8 +31,8 @@ Use only the sections that apply, in this order. Most PRs need three or four.
    here should still know what the PR does.
 3. **`## Before / After`**: the most persuasive section, so it comes first,
    right under the summary. Pick the form that fits:
-   - UI: a table of screenshots, annotated so the change stands out, or a short
-     video for anything that moves (see [Media](#media)).
+   - UI: a short annotated before/after video, or a table of annotated
+     screenshots when one frame shows the change (see [Media](#media)).
    - Behavior that varies by input: a matrix with ✓/✗ or the resulting value.
    - Text, output, or config: two short code blocks or a two-column table.
 
@@ -74,8 +74,8 @@ minimal: what it looks like, how to get there, and what you expected.
   `Inbox only offers Send Positive Feedback, with no way to send negative feedback`.
   No area prefix unless the repository uses one for issues.
 - **Body, in this order:**
-  1. The media: the screenshot that shows the problem, annotated, or a short
-     video when the problem happens over time (see [Media](#media)).
+  1. The media: a short annotated video of the repro, or one annotated
+     screenshot when a single frame makes the problem obvious (see [Media](#media)).
   2. One line on the problem.
   3. **Steps**: numbered, three to five, with the exact setting or input needed.
   4. **Expected** and **Actual**: one or two sentences each, quoting exact UI
@@ -136,11 +136,17 @@ they see, and make it obvious what to look at.
 - **Annotate** when the part that matters isn't obvious at a glance in a full
   screenshot: a box or arrow on it and a label of a few words, or a zoom. Use the
   `annotate` skill if it is available.
-- **Use video when it happens over time**: focus moving, something appearing
-  and disappearing, nothing happening after a click, an animation. Trim it to
-  the repro, 30 seconds or less, add captions for silent recordings, and upload
-  it as MP4, which plays inline. Add a still as well only if one frame tells
-  the story.
+- **Lead with video.** A short video of the repro shows what a still can't:
+  what you did, what happened, and what didn't. Use a still instead only when one
+  frame makes the problem obvious at a glance, such as a wrong label, a typo, or
+  a misaligned control. Subtle problems, anything that moves or changes (focus,
+  drift, flicker, nothing happening after a click), and multi-step repros always
+  get a video.
+- **Make the video easy to follow**: trim it to the repro, 30 seconds or less,
+  speed up the waits, caption each step, and mark what to look at. Upload it as
+  MP4 and put the uploaded URL on its own line, which GitHub plays inline. Put
+  the captions under it in `<details><summary>Transcript</summary>…</details>`.
+  Leave out stills that repeat the video.
 - **Redact before uploading**: account names and avatars, email addresses,
   tokens, and private paths, even in test accounts. Look at the rendered file
   before you upload it.
@@ -168,7 +174,7 @@ they see, and make it obvious what to look at.
 
 1. Read only the title and summary. Do they say what changed for the user?
 2. Is there at least one concrete example: a screenshot, value, quoted message, or table?
-3. Is the media first, annotated where the point isn't obvious, and redacted?
+3. Is the media first, a video unless one frame makes it obvious, annotated, and redacted?
 4. Delete every line in [Leave out](#leave-out).
 5. Is the prose within the length budget?
 6. Write the body to a file and pass it with `--body-file`, so the shell can't
