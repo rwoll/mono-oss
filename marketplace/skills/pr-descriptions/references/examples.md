@@ -114,11 +114,11 @@ From https://github.com/microsoft/vscode/pull/340658:
 Similar to prompts, track changes to the Managed Settings Schema through each SDK roll in case new keys etc. come up with that need to be integrated.
 ````
 
-## Bug report
+## Bug report with a screenshot
 
 Adapted from https://github.com/microsoft/vscode/issues/346310, which had the
-screenshot at the bottom. It now comes first, then one line, steps, expected and
-actual, and the build.
+screenshot at the bottom. One frame shows the problem, so a still is enough. It
+now comes first, then one line, steps, expected and actual, and the build.
 
 ````markdown
 <img width="800" alt="Send Positive Feedback is Inbox's only feedback control" src="https://github.com/user-attachments/assets/ca6e0931-1198-4c4d-bd81-3f7f68e953b1" />
@@ -135,4 +135,41 @@ Inbox's only feedback control is **Send Positive Feedback**, so there's no way t
 **Actual:** Only **Send Positive Feedback**. After one click it becomes a disabled **Feedback Sent**; after reopening Inbox it's back, so positive feedback can be sent on every visit while negative feedback can't be sent at all.
 
 **Build:** VS Code Insiders 1.146.0-insider (`69176e5c7703e4ddf6b91a8ad5daf4597c9bea29`), Linux, with `"chat.agentSessions.inbox.enabled": true`.
+````
+
+## Bug report with a video
+
+From https://github.com/microsoft/vscode/issues/346584. The drift is a few
+pixels per reload, so no single frame shows it. The video comes first, with its
+captions in a transcript, then the usual one line, steps, expected and actual.
+
+````markdown
+A chat window of the Agents window reopens a little larger, and further up and left, after every reload. Blue is where it was; red is where it is after three reloads.
+
+https://github.com/user-attachments/assets/1a7becc5-15a4-41f0-ac71-df974cdfb3b7
+
+<details><summary>Transcript</summary>
+
+- `0:00.0` Chat window bounds outlined in blue
+- `0:04.0` Developer: Reload Window (sped up)
+- `0:07.9` Red: reopened larger, shifted up-left
+- `0:11.8` Reload again (sped up)
+- `0:15.7` Larger again, further up-left
+- `0:19.6` Reload a third time (sped up)
+- `0:23.5` It grows with every reload
+
+</details>
+
+**Steps**
+
+1. Set `"sessions.chatWindows.enabled": true`.
+2. In the Agents window, right-click a session and choose **Open in > New Window**.
+3. Move and resize the chat window.
+4. Focus the main window and run **Developer: Reload Window**. Repeat two more times.
+
+**Expected:** The chat window reopens at the same position and size each time.
+
+**Actual:** It grows by about 32×42 px and moves about 32 px left and 20 px up on each reload.
+
+**Build:** VS Code Insiders 1.146.0-insider, commit `d9cccddf6b34357c58b5bbfb60ea03d4c4d1df65`, Ubuntu 24.04 x64, GNOME on X11.
 ````
