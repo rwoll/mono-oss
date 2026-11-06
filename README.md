@@ -108,6 +108,30 @@ npm create @rwoll/canvas my-canvases -- --repository me/my-canvases --canvas boa
 
 See the [canvas-kit guide](packages/canvas-kit#readme) for the API.
 
+## pr-descriptions
+
+**Pull requests and bug reports people actually read.** Agents write walls of text: what they
+investigated, every file they touched, the test log. Reviewers look at the picture first. This skill
+has your agent lead with an annotated, redacted screenshot or short video, then one line, the repro,
+and what changed.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/pr-descriptions/hero-dark.png">
+  <img alt="The same bug report twice. Left, what agents usually write: a vague title, then long paragraphs with no headings, terminal commands, log output, and test results, about six minutes of reading and no screenshot. Right, with pr-descriptions: a specific title, an annotated screenshot with the account redacted, one line on the problem, three steps, expected and actual, and the build, skimmable in 30 seconds." src="docs/pr-descriptions/hero-light.png">
+</picture>
+
+Real ones, written by an agent with this skill:
+
+| Sample | What to look at |
+| --- | --- |
+| [microsoft/vscode#346308](https://github.com/microsoft/vscode/issues/346308) | A bug report: before and after screenshots first, then one line, steps, expected and actual |
+| [microsoft/vscode#346311](https://github.com/microsoft/vscode/issues/346311) | A bug report that shows the broken case next to the working one |
+| [microsoft/vscode#346327](https://github.com/microsoft/vscode/issues/346327) | A feature request that opens with the screenshot |
+| [microsoft/vscode#346195](https://github.com/microsoft/vscode/pull/346195) | A short pull request: summary, repro, and a before/after table |
+
+It comes in the [Copilot plugin](#copilot-plugin). The [rules](marketplace/skills/pr-descriptions/SKILL.md)
+and [more examples](marketplace/skills/pr-descriptions/references/examples.md) are in the skill.
+
 ## Copilot plugin
 
 <img src="docs/marketplace/logo.png" alt="kitchensink plugin logo: Blobby, the VS Code chat pet, sitting in a kitchen sink" width="96" align="right">

@@ -1,0 +1,163 @@
+<!doctype html>
+<!--
+  The pr-descriptions illustration, in light and dark: the same bug report written the usual way and with the
+  skill. Every name and value in it is made up. render.ts renders it at 1920x1080 (hero.html#light and #dark).
+  Blobby sprites: microsoft/vscode, MIT (see ../LICENSE-blobby-sprites.txt).
+-->
+<html><head><meta charset="utf-8"><title>pr-descriptions</title>
+<style>
+  :root {
+    --bg: #f6f8f7; --fg: #10161a; --muted: #5a666d; --faint: #8c979c; --panel: #ffffff; --border: #e0e5e3; --code: #eff3f1;
+    --bar: #dfe4e2; --bar-strong: #c9d0cd; --accent: #1f9d55; --accent-soft: #e5f5ec; --bad: #c2410c; --bad-soft: #fdeee4;
+    --mark: #e5484d; --shadow: 0 1px 2px rgba(16, 22, 26, .06), 0 10px 28px rgba(16, 22, 26, .07);
+  }
+  :root.dark {
+    --bg: #0e1214; --fg: #edf2f0; --muted: #9ba7ab; --faint: #6d797d; --panel: #151b1e; --border: #263035; --code: #1a2226;
+    --bar: #252e33; --bar-strong: #33404a; --accent: #4ade80; --accent-soft: rgba(74, 222, 128, .12); --bad: #fb923c; --bad-soft: rgba(251, 146, 60, .13);
+    --mark: #f87171; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px rgba(0, 0, 0, .3);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1920px; height: 1080px; background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, sans-serif; -webkit-font-smoothing: antialiased; }
+  .mono, code { font-family: "SF Mono", Menlo, ui-monospace, monospace; }
+  .pixel { image-rendering: pixelated; }
+  .page { position: absolute; inset: 0 84px; }
+
+  header { position: absolute; top: 56px; display: flex; align-items: center; gap: 14px; }
+  header img { height: 60px; }
+  header span { font-size: 29px; font-weight: 600; letter-spacing: -.01em; }
+  h1 { position: absolute; top: 122px; margin: 0; font-size: 70px; font-weight: 800; letter-spacing: -.035em; white-space: nowrap; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .sub { position: absolute; top: 212px; margin: 0; font-size: 27px; color: var(--muted); }
+
+  .cards { position: absolute; top: 290px; left: 0; right: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+  .card { position: relative; height: 720px; background: var(--panel); border: 1px solid var(--border); border-radius: 18px;
+    box-shadow: var(--shadow); overflow: hidden; }
+  .label { display: flex; align-items: center; gap: 12px; height: 64px; padding: 0 26px; border-bottom: 1px solid var(--border);
+    font-size: 19px; font-weight: 700; }
+  .label .time { margin-left: auto; font-size: 16px; font-weight: 700; padding: 4px 11px; border-radius: 999px; }
+  .before .label .time { background: var(--bad-soft); color: var(--bad); }
+  .after .label .time { background: var(--accent-soft); color: var(--accent); }
+  .label img { height: 44px; }
+  .body { padding: 22px 28px; }
+  .after .body { padding: 22px 280px 22px 70px; }
+  .after .body > * { position: relative; }
+  .after .n { left: -52px; top: 0; }
+  .title { font-size: 25px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 14px; }
+
+  /* the wall of text */
+  .before h3 { margin: 16px 0 8px; font-size: 18px; color: var(--fg); }
+  .before h3:first-of-type { margin-top: 2px; }
+  .before p { margin: 0 0 10px; font-size: 15px; line-height: 1.5; color: var(--muted); }
+  .bars i { display: block; height: 10px; border-radius: 5px; background: var(--bar); margin: 9px 0; }
+  .before pre { margin: 0 0 10px; background: var(--code); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; line-height: 1.45; color: var(--faint); white-space: pre; overflow: hidden; }
+  .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 190px; background: linear-gradient(to bottom, transparent, var(--panel) 70%);
+    display: flex; align-items: flex-end; justify-content: center; padding-bottom: 24px; gap: 14px; font-size: 18px; color: var(--muted); }
+  .fade img { height: 64px; }
+  .fade b { color: var(--bad); }
+
+  /* the skimmable report */
+  .shot-wrap { position: relative; }
+  .shot { position: relative; height: 236px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border);
+    background: radial-gradient(130% 120% at 20% 10%, #2f6fe0, #0d2a6b); }
+  .win { position: absolute; left: 20px; right: 20px; top: 18px; bottom: 0; background: #1e1f22; border: 1px solid #34373c; border-bottom: none;
+    border-radius: 8px 8px 0 0; display: grid; grid-template-columns: 170px 1fr; overflow: hidden; }
+  .side { background: #18191b; border-right: 1px solid #2c2e32; padding: 12px 12px; font-size: 13px; color: #9da3a8; line-height: 2.1; }
+  .side b { color: #e3e6e8; font-weight: 600; }
+  .main { position: relative; padding: 14px 18px; color: #d9dde0; font-size: 14px; }
+  .acct { position: absolute; right: 14px; top: 10px; display: flex; align-items: center; gap: 8px; }
+  .acct .px { width: 26px; height: 26px; border-radius: 50%; background:
+    conic-gradient(#6b7280 0 25%, #9ca3af 0 50%, #4b5563 0 75%, #a3a9b3 0); filter: none; }
+  .acct .name { width: 92px; height: 12px; border-radius: 3px; background: repeating-linear-gradient(90deg, #6b7280 0 8px, #9ca3af 8px 16px); }
+  .composer { position: absolute; left: 18px; right: 18px; bottom: 16px; height: 46px; border: 1px solid #3a3d42; border-radius: 8px;
+    font-size: 14px; color: #7d848a; padding: 13px 14px; }
+  .composer .send { position: absolute; right: 8px; top: 8px; height: 28px; padding: 0 12px; border-radius: 6px; background: #2b6fe0; color: #fff; font-weight: 600; display: grid; place-items: center; }
+  .line { height: 8px; border-radius: 4px; background: #33363b; margin: 10px 0; }
+  .box { position: absolute; border: 3px solid var(--mark); border-radius: 5px; }
+  .tag { position: absolute; font-size: 13px; font-weight: 700; color: #fff; background: var(--mark); border-radius: 5px 5px 0 0; padding: 2px 8px; white-space: nowrap; }
+  .redact { position: absolute; width: 140px; height: 34px; border-radius: 4px; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff;
+    background: repeating-conic-gradient(#4b5563 0 25%, #6b7280 0 50%) 0 0 / 12px 12px; text-shadow: 0 1px 2px #000; }
+
+  .one { margin: 16px 0 8px; font-size: 20px; line-height: 1.4; font-weight: 600; }
+  .after ol { margin: 0 0 8px; padding-left: 24px; font-size: 18px; line-height: 1.5; }
+  .row { font-size: 18px; line-height: 1.5; margin: 4px 0; }
+  .row b { font-weight: 700; }
+  .build { font-size: 15px; color: var(--muted); margin-top: 8px; }
+
+  /* callouts on the skimmable report */
+  .n { position: absolute; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--panel);
+    font-weight: 800; font-size: 18px; display: grid; place-items: center; box-shadow: 0 0 0 4px var(--panel); }
+  .keys { position: absolute; right: 26px; top: 84px; width: 230px; display: flex; flex-direction: column; gap: 10px; }
+  .keys div { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; }
+  .keys .n { position: static; width: 26px; height: 26px; font-size: 14px; box-shadow: none; flex: none; }
+</style></head>
+<body>
+<div class="page">
+  <header><img class="pixel" src="buddy-yapping-insiders-96.png" alt=""><span>pr-descriptions</span></header>
+  <h1>Pull requests and bug reports people <em>actually read</em>.</h1>
+  <p class="sub">A skill that makes your agent lead with the picture, then the problem, the repro, and what changed. Skimmable in 30 seconds.</p>
+
+  <div class="cards">
+    <div class="card before">
+      <div class="label">What agents usually write<span class="time">≈ 6 min to read</span></div>
+      <div class="body">
+        <div class="title">Issue with composer send functionality</div>
+        <p>I was testing the new Inbox experience in the Agents window and noticed that there may be an issue with how the composer handles sending, which could potentially be confusing to users in some cases. To investigate, I first opened the developer tools and reloaded the window, then looked at <code>composerWidget.ts</code> and traced <code>onDidSubmit</code> through the session service, the inbox model, and the sidebar list, and initially I suspected a race between the focus tracker and the list refresh, but after adding logging it looked more like the send handler just never surfaces anything, although it might also be the way the sidebar re-renders after a new untitled session is created, so I'm not completely sure yet.</p>
+        <pre class="mono">$ code-insiders --version
+1.146.0-insider 69176e5c7703e4ddf6b91a8ad5daf4597c9bea29 x64
+$ npm run watch-client
+[10:41:58] Starting compilation... [10:42:09] Finished compilation with 0 errors after 11042 ms
+2026-11-05 10:42:17.381 [info] composer: submit (len=34, mode=agent)
+2026-11-05 10:42:17.390 [trace] sessions: create untitled-7f3a2c (provider=copilot)
+2026-11-05 10:42:17.402 [trace] inbox: refresh (items=6, working=1)
+2026-11-05 10:42:17.415 [debug] sidebar: rerender rows=7 focus=composer
+2026-11-05 10:42:17.416 [warn] notifications: no handler for session.created</pre>
+        <p>I then tried the same thing from a regular session and it seemed to work differently, which suggests the Inbox path is the problem, but I also checked whether the setting <code>chat.agentSessions.inbox.enabled</code> changes anything and it does not appear to, and I tried disabling extensions and running with a clean profile with the same result. Some possible fixes could be showing a toast, opening the session, or adding a link, but there may be accessibility implications for screen readers that would need to be considered as well, and I am not sure which approach the team would prefer here.</p>
+        <pre class="mono">$ npm run test-node -- --grep "composer|inbox"
+  ✔ composer submits on Enter (12ms)  ✔ inbox lists working sessions (31ms)
+  ✔ inbox composer clears after send (8ms)  ✔ sidebar renders new rows (44ms)
+  1,284 passing (41s)  3 pending
+$ git log --oneline -5 -- src/vs/sessions/contrib/inbox</pre>
+        <p>For reference, my environment is Ubuntu 24.04 on x64 with VS Code Insiders, GNOME on X11, signed in with a test account, and I first noticed this when…</p>
+</div>
+      <div class="fade"><img class="pixel" src="buddy-dizzy-insiders-128.png" alt="">…and 2,100 more words. <b>No screenshot.</b></div>
+    </div>
+
+    <div class="card after">
+      <div class="label">With pr-descriptions<span class="time">30 s to skim</span></div>
+      <div class="body">
+        <div class="title" style="position:relative">Send gives no sign it worked</div>
+        <div class="shot-wrap"><span class="n" style="top: 8px">1</span><div class="shot">
+          <div class="win">
+            <div class="side"><b>New Session</b><br>Inbox<br>Sessions<br>· Fix login flow<br>· Add subtract</div>
+            <div class="main">
+              <div class="acct"><span class="px"></span><span class="name"></span></div>
+              <div class="line" style="width:52%"></div><div class="line" style="width:68%"></div><div class="line" style="width:40%"></div>
+              <div class="composer">Pitch your idea…<span class="send">Send</span></div>
+            </div>
+          </div>
+          <div class="box" style="left: 206px; right: 30px; bottom: 6px; height: 60px"></div>
+          <div class="tag" style="left: 206px; bottom: 66px">Clears; nothing else happens</div>
+          <div class="redact" style="right: 30px; top: 22px">redacted</div>
+        </div></div>
+        <div class="one"><span class="n">2</span>Pressing <b>Send</b> clears the box with no confirmation or link to the new session.</div>
+        <ol><span class="n" style="top: -2px">3</span><li>Click <b>Inbox</b>.</li><li>Type a request in the composer.</li><li>Press <b>Send</b>.</li></ol>
+        <div class="row"><span class="n">4</span><b>Expected:</b> the session opens, or a confirmation links to it.</div>
+        <div class="row"><b>Actual:</b> the box clears; it looks like the message was lost.</div>
+        <div class="build"><span class="n" style="top: -6px">5</span>Build: Insiders 1.146.0, Linux</div>
+      </div>
+      <div class="keys">
+        <div style="font-size:14px;letter-spacing:.1em;color:var(--muted)">SKIM IT</div>
+        <div><span class="n">1</span>Picture first</div>
+        <div style="padding-left:36px;font-weight:400;color:var(--muted);margin-top:-8px">annotated, account redacted</div>
+        <div><span class="n">2</span>One line</div>
+        <div><span class="n">3</span>Steps</div>
+        <div><span class="n">4</span>Expected and actual</div>
+        <div><span class="n">5</span>Build</div>
+        <div style="margin-top:6px;font-weight:400;color:var(--muted)">No logs, no diff tour, no "I investigated…"</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>if (location.hash === '#dark') document.documentElement.classList.add('dark')</script>
+</body></html>
