@@ -10,9 +10,11 @@ document renders to a flat PNG or MP4 (`annotate render`) and plays in
 the annotate canvas, where the user can fix a mark by dragging it. The CLI needs
 Node.js 24; video needs ffmpeg.
 
-**Setup.** Run `annotate --version`. If the command is missing, or the canvas says
-it's too old, ask the user, then run `node scripts/install-tools.ts annotate` from
-this skill's folder. It installs `@rwoll/annotate` globally from its newest GitHub
+**Setup.** Once per session, run `node scripts/install-tools.ts annotate --check`
+from this skill's folder. It prints the installed version, and says when `annotate`
+is missing or older than its newest release. Then, or when the canvas says it's too
+old, ask the user, and run `node scripts/install-tools.ts annotate` from this
+skill's folder. It installs `@rwoll/annotate` globally from its newest GitHub
 release, after checking the download against GitHub's digest; its other
 dependencies come from npm's registry, only once they're 7 days old.
 Don't run the CLI with npx.

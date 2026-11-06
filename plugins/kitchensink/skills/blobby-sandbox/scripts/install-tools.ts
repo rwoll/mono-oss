@@ -6,7 +6,8 @@
 // checks it against the SHA-256 digest GitHub shows for it, and installs that file. Other @rwoll packages
 // it needs come from their own releases; everything else comes from npm's configured registry, only once
 // it has been published for 7 days. npm older than 11.10 silently ignores that cooldown, so the script
-// refuses to run with it. --check only reports what's installed. --dry-run says what it would install.
+// refuses to run with it. --check only reports what's installed, and which tools are older than their newest
+// release. --dry-run says what it would install.
 // --azure also installs the SDK that blobby-sandbox's azure backend needs.
 //
 // Where registry.npmjs.org is blocked, npm's default registry, the dependencies come from MIRROR instead,
@@ -287,10 +288,13 @@ export async function installTools({ names = [], check = false, dryRun = false, 
   }
 
   let missing = 0
+  const installed = new Map<string, string>()
   for (const tool of tools) {
     const result = await run(platform === 'win32' ? `${tool}.cmd` : tool, ['--version']).catch(() => null)
     if (result?.code === 0) {
       log(`${tool} ${result.stdout.trim()}`)
+      const version = /\d+\.\d+\.\d+/.exec(result.stdout)?.[0]
+      if (version) installed.set(tool, version)
       continue
     }
     missing++
@@ -301,6 +305,18 @@ export async function installTools({ names = [], check = false, dryRun = false, 
     const prefix = await run(npm, ['prefix', '--global']).catch(() => null)
     const bin = prefix?.code === 0 ? (platform === 'win32' ? prefix.stdout.trim() : join(prefix.stdout.trim(), 'bin')) : "npm's global bin folder"
     log(`${tool} was installed, but it isn't on PATH. Add ${bin} to PATH, then open a new terminal.`)
+  }
+  if (check && installed.size) {
+    try {
+      for (const release of await newestReleases([...installed.keys()], fetchFn)) {
+        const version = installed.get(release.tool)!
+        if (atLeast(version, release.version)) continue
+        missing++
+        log(`${release.tool} ${version} is older than its newest release, ${release.version}. Run this script without --check to update it.`)
+      }
+    } catch (error) {
+      log(`Couldn't check for newer releases: ${(error as Error).message}`)
+    }
   }
   return missing ? 1 : 0
 }
