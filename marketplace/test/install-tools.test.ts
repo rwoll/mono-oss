@@ -169,11 +169,24 @@ describe('install-tools', () => {
   })
 
   it('only reports with --check, and rejects unknown tools', async () => {
-    const t = fake({ 'annotate --version': ok('0.1.0'), 'blobby-sandbox --version': null })
-    expect(await installTools({ check: true, run: t.run, fetch: github([]).fetch, log: t.log, platform: 'darwin' })).toBe(1)
+    const t = fake({ 'annotate --version': ok('0.2.0'), 'blobby-sandbox --version': null })
+    expect(await installTools({ check: true, run: t.run, fetch: github(annotateReleases).fetch, log: t.log, platform: 'darwin' })).toBe(1)
     expect(t.calls.map((call) => call.command)).toEqual(['annotate', 'blobby-sandbox'])
-    expect(t.lines).toEqual(['annotate 0.1.0', 'blobby-sandbox is not installed. Run this script without --check to install it.'])
+    expect(t.lines).toEqual(['annotate 0.2.0', 'blobby-sandbox is not installed. Run this script without --check to install it.'])
     expect(await installTools({ names: ['canvas-kit'], run: t.run, log: t.log })).toBe(2)
+  })
+
+  it('says with --check when an installed tool is older than its newest release, and installs nothing', async () => {
+    const t = fake({ 'annotate --version': ok('annotate 0.1.0\n') })
+    const gh = github(annotateReleases)
+    expect(await installTools({ names: ['annotate'], check: true, run: t.run, fetch: gh.fetch, log: t.log })).toBe(1)
+    expect(t.lines.at(-1)).toBe('annotate 0.1.0 is older than its newest release, 0.2.0. Run this script without --check to update it.')
+    expect(gh.urls.every((url) => url.startsWith('https://api.github.com/'))).toBe(true)
+
+    const offline = fake({ 'annotate --version': ok('0.1.0') })
+    const down = (async () => new Response('', { status: 503 })) as unknown as typeof fetch
+    expect(await installTools({ names: ['annotate'], check: true, run: offline.run, fetch: down, log: offline.log })).toBe(0)
+    expect(offline.lines.at(-1)).toMatch(/^Couldn't check for newer releases: GitHub's API answered 503/)
   })
 
   it('compares versions', () => {
