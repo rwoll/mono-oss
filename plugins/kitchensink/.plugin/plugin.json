@@ -1,6 +1,6 @@
 {
   "name": "kitchensink",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Everything but the kitchen sink: annotated screenshots and recordings, disposable desktop sandboxes, scheduled QA runs of the VS Code Agents window with a triage canvas, a session summary, media-first PR and bug report descriptions, and skills for building canvases.",
   "skills": "skills/",
   "extensions": "extensions/"

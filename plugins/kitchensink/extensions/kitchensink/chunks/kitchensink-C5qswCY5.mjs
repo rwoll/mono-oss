@@ -10769,16 +10769,16 @@ var runningItem = object({
 	state: _enum(ITEM_STATES).default("running")
 });
 var summaryInput = object({
-	headline: line(240).describe("One line on where the work stands."),
+	headline: line(240).describe("One line on where the work stands right now."),
 	status: _enum(STATUSES),
-	executiveSummary: markdown(4e3).default("").describe("2-4 Markdown sentences: the goal, the current outcome, the key risk or decision, and the next milestone."),
+	executiveSummary: markdown(4e3).default("").describe("Where things stand now, for someone returning after hours or days, in 2-4 Markdown sentences: what is happening and why, what changed since the last summary, and what it waits on (the user or something else) with the next milestone. No project background."),
 	running: array(union([line(120).transform((title) => ({
 		title,
 		detail: "",
 		state: "running"
-	})), runningItem.strict()])).max(12).default([]).describe("Workstreams in flight, not individual commands or tool calls."),
+	})), runningItem.strict()])).max(12).default([]).describe("Every open workstream, including parked ones (\"parked, waiting on you\"), not individual commands or tool calls."),
 	attention: array(line(300)).max(8).default([]).describe("What needs the user: decisions, approvals, or questions."),
-	progress: array(line(300)).max(10).default([]).describe("Recent results."),
+	progress: array(line(300)).max(10).default([]).describe("Recent results that still matter, newest first, at most 5; drop superseded ones."),
 	next: array(line(300)).max(8).default([]).describe("The next steps."),
 	notes: string().trim().max(1e3).default("")
 }).strict();
@@ -10801,6 +10801,12 @@ var summary = object({
 var pending = object({
 	trigger: _enum(["schedule", "manual"]),
 	requestedAt: string()
+});
+/** The summary the user last looked at: the panel was visible and focused for a few seconds. */
+var seen = object({
+	at: string(),
+	revision: number().int().min(1),
+	headline: string()
 });
 var outcome = object({
 	kind: _enum([
@@ -10831,13 +10837,25 @@ function settle(request, agent, now) {
 		detail: "The agent did not pick up the request."
 	};
 }
-function refreshPrompt(instanceId, trigger) {
+/** "25 min", "3 h", or "2 d": how long ago, for the refresh prompt. */
+function ago(ms) {
+	const minutes = Math.max(0, Math.round(ms / 6e4));
+	if (minutes < 90) return `${minutes} min`;
+	const hours = Math.round(minutes / 60);
+	return hours < 36 ? `${hours} h` : `${Math.round(hours / 24)} d`;
+}
+function refreshPrompt(instanceId, trigger, previous, now = Date.now(), lastSeen) {
+	const unread = lastSeen && previous?.revision !== void 0 && lastSeen.revision < previous.revision;
 	return [
 		`[session-summary-refresh:${trigger}]`,
-		`The Session summary canvas asks for a refresh (${trigger === "manual" ? "requested by the user" : "scheduled"}). Call invoke_canvas_action with instanceId ${JSON.stringify(instanceId)}, actionName "update_summary", and a concise executive summary of this chat's work.`,
+		`The Session summary canvas asks for a refresh (${trigger === "manual" ? "requested by the user" : "scheduled"}). Call invoke_canvas_action with instanceId ${JSON.stringify(instanceId)}, actionName "update_summary", and a concise summary of where this chat's work stands now.`,
+		...previous ? [`- The last summary, ${ago(now - Date.parse(previous.updatedAt))} ago, said: ${JSON.stringify(previous.headline)}.`] : [],
+		...unread ? [`- The user last read this panel ${ago(now - Date.parse(lastSeen.at))} ago, when it said: ${JSON.stringify(lastSeen.headline)}. Catch them up from there: what changed since then, in order of importance.`] : previous ? ["- Lead with what changed since the last summary."] : [],
 		"- Use only facts you have observed, and say so when you are unsure.",
-		"- executiveSummary: 2-4 Markdown sentences on the goal, the current outcome, the key risk or decision, and the next milestone, not a repeat of the lists.",
-		"- Say whether the work is on track, the meaningful workstreams, anything that needs the user, recent results, and the next milestone. Do not list individual commands, tool calls, or finished shell jobs.",
+		"- Write for the user coming back after hours or days without reading the chat. Open with a few words naming what this chat works on, then where it stands; leave out longer background and definitions.",
+		"- Make every sentence stand on its own: say what a PR or issue does, not only its number, and say what an earlier question asked, never just when it was asked.",
+		"- executiveSummary: 2-4 Markdown sentences: what is happening now and why, what changed since the last summary, and what it waits on (the user or something else) with the next milestone. If the user's latest question or request is still open, say what it was and where it stands. Not a repeat of the lists.",
+		"- running: every open workstream, including parked ones, with their state. progress: at most 5 results that still matter, newest first. Do not list individual commands, tool calls, or finished shell jobs.",
 		`- ${REFERENCE_GUIDANCE}`,
 		"- If the work is done, cancelled, or blocked with nothing to monitor, pause these refreshes with actionName \"update_job\" and {\"id\":\"refresh\",\"enabled\":false}; resume them with {\"id\":\"refresh\",\"enabled\":true} when substantive work starts again. Follow what the user asked for, and change the interval only when they ask.",
 		"- Do not start new work. Afterwards, reply with at most one short line and carry on."
@@ -10870,13 +10888,16 @@ var canvas_default = defineCanvas({
 		/** Skip a scheduled refresh when the agent is idle and has done nothing since the last summary. */
 		skipWhenIdle: boolean(),
 		pending: pending.nullable(),
-		lastOutcome: outcome.nullable()
+		lastOutcome: outcome.nullable(),
+		/** The summary the user last looked at, so a refresh can catch them up from it. */
+		seen: seen.nullable().default(null)
 	}),
 	init: () => ({
 		summary: null,
 		skipWhenIdle: true,
 		pending: null,
-		lastOutcome: null
+		lastOutcome: null,
+		seen: null
 	}),
 	persist: { key: ({ sessionId }) => sessionId ?? "local" },
 	status: (state) => state.summary?.headline ?? "Waiting for the first summary",
@@ -10918,6 +10939,23 @@ var canvas_default = defineCanvas({
 					mode: "enqueue"
 				});
 				return { sent: true };
+			}
+		}),
+		mark_seen: action({
+			description: "Record that the user looked at this summary: the page calls it once the panel has been visible and focused for a few seconds.",
+			expose: "ui",
+			input: object({ revision: number().int().min(1) }).strict(),
+			run: (ctx, { revision }) => {
+				const current = ctx.state.summary;
+				if (!current || current.revision !== revision || ctx.state.seen?.revision === revision) return;
+				ctx.setState((state) => ({
+					...state,
+					seen: {
+						at: new Date(ctx.now()).toISOString(),
+						revision,
+						headline: current.headline
+					}
+				}));
 			}
 		}),
 		set_skip_when_idle: action({
@@ -10980,7 +11018,7 @@ var canvas_default = defineCanvas({
 			}));
 			try {
 				await ctx.sendToAgent({
-					prompt: refreshPrompt(instanceId, trigger),
+					prompt: refreshPrompt(instanceId, trigger, current ?? void 0, now, ctx.state.seen),
 					displayPrompt: "Session summary · refresh",
 					mode: "immediate"
 				});
