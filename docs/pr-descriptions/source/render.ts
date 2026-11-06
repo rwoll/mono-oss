@@ -1,4 +1,4 @@
-// Renders hero-light.png and hero-dark.png, the pr-descriptions illustration, from the pages here, with the installed Chrome.
+// Renders logo.png, and hero-light.png and hero-dark.png, the pr-descriptions illustration, from the pages here, with the installed Chrome.
 // Run from oss/ after `pnpm install`: node docs/pr-descriptions/source/render.ts
 import { createRequire } from 'node:module'
 
@@ -7,6 +7,7 @@ const require = createRequire(new URL('../../../packages/blobby-sandbox/package.
 const { chromium } = require('playwright-core') as typeof import('playwright-core')
 
 const pages = [
+  { page: 'logo.html', out: 'logo.png', width: 512, height: 512, transparent: true },
   { page: 'hero.html#light', out: 'hero-light.png', width: 1920, height: 1080 },
   { page: 'hero.html#dark', out: 'hero-dark.png', width: 1920, height: 1080 },
 ]

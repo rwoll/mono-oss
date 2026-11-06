@@ -1,7 +1,14 @@
+<img src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/session-summary/logo.png" alt="session-summary logo: Blobby, the VS Code chat pet, in sunglasses, next to a status card" width="96" align="right">
+
 # Session summary
 
 An executive summary of this chat's work that the agent keeps up to date on a
 schedule. Built with [`@rwoll/canvas-kit`](https://github.com/rwoll/mono-oss/tree/main/packages/canvas-kit).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/session-summary/hero-dark.png">
+  <img alt="session-summary: check on long agent work at a glance. A Copilot chat with 186 tool calls since you looked, next to the Session summary canvas: a headline, Waiting on you, a short executive summary, what needs your attention, what's running, and what's next, refreshing in 7 minutes. Below: on a schedule, quiet when idle, and one per chat." src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/session-summary/hero-light.png">
+</picture>
 
 ```sh
 copilot plugin marketplace add rwoll/mono-oss#stable

@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/canvas-kit/logo.png" alt="canvas-kit logo: a chat bubble opening a canvas panel with a checklist" width="96" align="right">
+<img src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/canvas-kit/logo.png" alt="canvas-kit logo: Blobby, the VS Code chat pet, next to a canvas panel with a checklist" width="96" align="right">
 
 # @rwoll/canvas-kit
 

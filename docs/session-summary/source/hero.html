@@ -1,0 +1,141 @@
+<!doctype html>
+<!--
+  The session-summary README hero, in light and dark. render.ts renders it at 1920x1080 (hero.html#light and #dark).
+  Every name and value in it is made up. Blobby sprites: microsoft/vscode, MIT (see ../LICENSE-blobby-sprites.txt).
+-->
+<html><head><meta charset="utf-8"><title>session-summary</title>
+<style>
+  :root {
+    --bg: #f8f6f7; --fg: #1a1016; --muted: #6a5d64; --faint: #9a8d94; --panel: #ffffff; --border: #ebe2e6; --code: #f4eef1;
+    --accent: #c2367a; --accent-strong: #a32565; --accent-soft: #fbe8f1; --ok: #1a7f37; --ok-soft: #e6f4ea; --warn: #9a5b00; --warn-soft: #fdf0d5;
+    --run: #2949a8; --run-soft: #e8eefc; --bar: #ece5e9; --shadow: 0 1px 2px rgba(26, 16, 22, .06), 0 10px 28px rgba(26, 16, 22, .07);
+  }
+  :root.dark {
+    --bg: #120d10; --fg: #f3edf0; --muted: #a9999f; --faint: #75666c; --panel: #1b1418; --border: #33262c; --code: #22191e;
+    --accent: #f472b6; --accent-strong: #f9a8d4; --accent-soft: rgba(244, 114, 182, .13); --ok: #3fb950; --ok-soft: rgba(63, 185, 80, .14);
+    --warn: #f5c451; --warn-soft: rgba(240, 171, 0, .15); --run: #93c5fd; --run-soft: rgba(96, 165, 250, .15); --bar: #2a2026;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px rgba(0, 0, 0, .3);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1920px; height: 1080px; background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, sans-serif; -webkit-font-smoothing: antialiased; }
+  .mono, code { font-family: "SF Mono", Menlo, ui-monospace, monospace; }
+  .pixel { image-rendering: pixelated; }
+  .page { position: absolute; inset: 0 84px; }
+
+  header { position: absolute; top: 60px; display: flex; align-items: center; gap: 16px; }
+  header img { width: 50px; height: 50px; }
+  header span { font-size: 29px; font-weight: 600; letter-spacing: -.01em; }
+  h1 { position: absolute; top: 118px; margin: 0; font-size: 68px; font-weight: 800; letter-spacing: -.035em; white-space: nowrap; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .sub { position: absolute; top: 205px; margin: 0; font-size: 26px; color: var(--muted); }
+
+  .window { position: absolute; top: 270px; left: 0; right: 0; height: 470px; border: 1px solid var(--border); border-radius: 16px;
+    background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+  .titlebar { height: 46px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 600; color: var(--muted); position: relative; }
+  .dots { position: absolute; left: 18px; display: flex; gap: 9px; }
+  .dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--border); }
+  .columns { display: grid; grid-template-columns: 620px 1fr; height: 424px; }
+
+  /* the chat: hours of tool calls nobody wants to scroll */
+  .chat { border-right: 1px solid var(--border); padding: 16px 22px; position: relative; overflow: hidden; }
+  .chat h3 { margin: 0 0 10px; font-size: 18px; font-weight: 600; color: var(--muted); padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .tool { display: flex; gap: 10px; align-items: center; font-size: 15px; color: var(--muted); margin: 7px 0; white-space: nowrap; }
+  .tool code { font-size: 14px; color: var(--fg); background: var(--code); padding: 1px 7px; border-radius: 5px; }
+  .tool .ok { color: var(--ok); font-weight: 700; }
+  .msg { font-size: 15px; line-height: 1.45; color: var(--muted); margin: 9px 0; }
+  .bars i { display: block; height: 8px; border-radius: 4px; background: var(--bar); margin: 8px 0; }
+  .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; background: linear-gradient(to bottom, transparent, var(--panel) 75%);
+    display: flex; align-items: flex-end; gap: 12px; padding: 0 22px 16px; font-size: 17px; color: var(--muted); }
+  .fade img { height: 56px; }
+  .fade b { color: var(--fg); }
+
+  /* the Session summary canvas */
+  .canvas { padding: 0; display: flex; flex-direction: column; }
+  .chead { height: 50px; padding: 0 22px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); font-size: 17px; font-weight: 600; }
+  .chead .clock { margin-left: auto; font: 600 15px "SF Mono", Menlo, monospace; color: var(--accent-strong); background: var(--accent-soft); padding: 3px 10px; border-radius: 999px; }
+  .chead .refresh { width: 30px; height: 30px; border: 1px solid var(--border); border-radius: 8px; display: grid; place-items: center; color: var(--muted); font-size: 17px; }
+  .sum { padding: 14px 26px; }
+  .meta { font-size: 14px; color: var(--muted); display: flex; gap: 10px; align-items: center; }
+  .status { font-size: 13px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); }
+  .headline { margin: 8px 0 12px; font-size: 23px; font-weight: 700; letter-spacing: -.01em; line-height: 1.3; }
+  .label { font-size: 13px; letter-spacing: .1em; font-weight: 700; color: var(--muted); margin: 0 0 6px; }
+  .exec { font-size: 16.5px; line-height: 1.5; margin: 0 0 12px; }
+  .ref { color: var(--accent-strong); font-weight: 600; }
+  .attention { border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 10px 10px 0; padding: 9px 14px; margin-bottom: 12px; font-size: 16px; }
+  .attention .label { color: var(--accent-strong); }
+  .grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 26px; }
+  .row { display: flex; align-items: center; gap: 10px; font-size: 15.5px; margin: 6px 0; }
+  .row span:first-child { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { font-size: 12.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+  .b-run { background: var(--run-soft); color: var(--run); } .b-wait { background: var(--warn-soft); color: var(--warn); } .b-done { background: var(--ok-soft); color: var(--ok); }
+  ul { margin: 0; padding-left: 20px; font-size: 15.5px; line-height: 1.5; }
+
+  .caption { position: absolute; top: 756px; left: 0; right: 0; text-align: center; font-size: 19px; color: var(--muted); }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 7px; background: var(--accent); color: #fff; font-weight: 600; font-size: 17px; }
+  :root.dark .pill { color: #2a0b1a; }
+
+  .cols { position: absolute; top: 812px; left: 0; right: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; }
+  .col { padding: 0 34px; border-right: 1px solid var(--border); display: flex; gap: 16px; align-items: flex-start; }
+  .col:first-child { padding-left: 0; } .col:last-child { padding-right: 0; border-right: none; }
+  .col img { height: 72px; flex: none; }
+  .col h4 { margin: 4px 0 6px; font-size: 22px; font-weight: 700; }
+  .col p { margin: 0; font-size: 18px; line-height: 1.45; color: var(--muted); }
+</style></head>
+<body>
+<div class="page">
+  <header><img src="../logo.png" alt=""><span>session-summary</span></header>
+  <h1>Check on long agent work <em>at a glance</em>.</h1>
+  <p class="sub">A canvas next to your chat where the agent keeps a short executive summary up to date, on a schedule.</p>
+
+  <div class="window">
+    <div class="titlebar"><div class="dots"><i></i><i></i><i></i></div>✦ Copilot · release-prep</div>
+    <div class="columns">
+      <div class="chat">
+        <h3>Chat · 2 h 14 m</h3>
+        <div class="tool"><span class="ok">✓</span><code>bash</code> pnpm install --frozen-lockfile</div>
+        <div class="tool"><span class="ok">✓</span><code>grep</code> "retryPolicy" in src/</div>
+        <div class="tool"><span class="ok">✓</span><code>edit</code> src/client/retry.ts</div>
+        <div class="msg">The retries now back off. Running the suite again before I open the PR…</div>
+        <div class="tool"><span class="ok">✓</span><code>bash</code> pnpm test -- --grep retry</div>
+        <div class="bars"><i style="width:92%"></i><i style="width:70%"></i></div>
+        <div class="tool"><span class="ok">✓</span><code>bash</code> gh pr create --draft</div>
+        <div class="tool"><span class="ok">✓</span><code>bash</code> gh pr checks 512 --watch</div>
+        <div class="tool"><span class="ok">✓</span><code>view</code> docs/release.md</div>
+        <div class="bars"><i style="width:84%"></i><i style="width:96%"></i><i style="width:60%"></i></div>
+        <div class="fade"><img class="pixel" src="buddy-sleep-insiders-96.png" alt=""><span><b>186 tool calls</b> since you looked.</span></div>
+      </div>
+      <div class="canvas">
+        <div class="chead">Session summary<span class="clock">↻ 7:42</span><span class="refresh">⟳</span></div>
+        <div class="sum">
+          <div class="meta">Updated 2 min ago <span class="status">Waiting on you</span></div>
+          <div class="headline">Retry fix is in a draft PR; release notes wait on your review.</div>
+          <p class="exec">Flaky uploads came from retries without backoff. <span class="ref">acme/app#512</span> adds exponential backoff with tests, and CI is green. The release can ship once the notes are approved.</p>
+          <div class="attention"><p class="label">NEEDS YOUR ATTENTION</p>Approve the release notes in <span class="ref">acme/app#514</span>.</div>
+          <div class="grid">
+            <div>
+              <p class="label">RUNNING</p>
+              <div class="row"><span>Retry fix, acme/app#512</span><span class="badge b-done">Done</span></div>
+              <div class="row"><span>Release notes</span><span class="badge b-wait">Waiting</span></div>
+              <div class="row"><span>Nightly e2e on staging</span><span class="badge b-run">Running</span></div>
+            </div>
+            <div>
+              <p class="label">NEXT UP</p>
+              <ul><li>Tag v2.4.0 after approval</li><li>Close the flaky-upload issue</li></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="caption">Select any line and <span class="pill">Ask agent</span> to get the details in chat</div>
+
+  <div class="cols">
+    <div class="col"><img class="pixel" src="buddy-cool-insiders-96.png" alt=""><div><h4>On a schedule</h4><p>Refreshes every 10 minutes, or whenever you ask.</p></div></div>
+    <div class="col"><img class="pixel" src="buddy-sleep-insiders-96.png" alt=""><div><h4>Quiet when idle</h4><p>Skips refreshes when nothing happened, so an idle chat costs no model turns.</p></div></div>
+    <div class="col"><img class="pixel" src="buddy-yapping-insiders-96.png" alt=""><div><h4>One per chat</h4><p>Each chat keeps its own summary, saved privately on your machine.</p></div></div>
+  </div>
+</div>
+<script>if (location.hash === '#dark') document.documentElement.classList.add('dark')</script>
+</body></html>

@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/annotate/logo.png" alt="annotate logo: a screenshot with a numbered highlight and an arrow pointing at it" width="96" align="right">
+<img src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/annotate/logo.png" alt="annotate logo: Blobby, the VS Code chat pet, next to a screenshot with a numbered red box" width="96" align="right">
 
 # @rwoll/annotate
 
