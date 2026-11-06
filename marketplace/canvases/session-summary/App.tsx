@@ -95,6 +95,32 @@ function RefText({ children }: { children: string }) {
   )
 }
 
+/** How long the panel stays visible and focused before the summary counts as read. */
+const SEEN_AFTER_MS = 3_000
+
+/** Tells the canvas when the user has looked at this revision of the summary. */
+function useMarkSeen(revision: number | undefined, seenRevision: number | undefined) {
+  const [markSeen] = useAction('mark_seen')
+  useEffect(() => {
+    if (revision === undefined || revision === seenRevision) return
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const check = () => {
+      clearTimeout(timer)
+      if (document.visibilityState === 'visible' && document.hasFocus()) timer = setTimeout(() => void markSeen({ revision }), SEEN_AFTER_MS)
+    }
+    check()
+    document.addEventListener('visibilitychange', check)
+    window.addEventListener('focus', check)
+    window.addEventListener('blur', check)
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('visibilitychange', check)
+      window.removeEventListener('focus', check)
+      window.removeEventListener('blur', check)
+    }
+  }, [revision, seenRevision, markSeen])
+}
+
 function App() {
   const { state, agent, status } = useCanvas()
   const jobs = useJobs()
@@ -104,6 +130,7 @@ function App() {
   const refresh = jobs.jobs.find((job) => job.id === 'refresh')
   const { summary, pending, lastOutcome } = state
   const updating = !!pending && !unanswered(pending, agent)
+  useMarkSeen(summary?.revision, state.seen?.revision)
 
   const refreshNow = () => {
     if (refreshLocked) return

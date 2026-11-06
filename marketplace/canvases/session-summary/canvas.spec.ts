@@ -164,3 +164,12 @@ test('Alt+Enter opens the question box, and Escape cancels it without sending', 
   await expect(page.getByRole('button', { name: 'Ask agent' })).toBeFocused()
   expect(agent.messages).toEqual([])
 })
+
+test('the summary counts as read once the panel has been visible and focused for a few seconds', async ({ openCanvas, agent }) => {
+  const opened = await openCanvas()
+  await agent.invoke('update_summary', { headline: 'Shipping the importer', status: 'working' })
+  await expect(opened.page.getByText('Shipping the importer')).toBeVisible()
+  expect(opened.state()?.seen).toBeNull()
+  await expect.poll(() => opened.state()?.seen?.headline, { timeout: 6_000 }).toBe('Shipping the importer')
+  expect(opened.state()?.seen?.revision).toBe(opened.state()?.summary?.revision)
+})

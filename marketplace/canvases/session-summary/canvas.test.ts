@@ -1,6 +1,6 @@
 import { createTestCanvas, type TestCanvas } from '@rwoll/canvas-kit/testing'
 import { afterEach, describe, expect, it } from 'vitest'
-import canvas, { DEBOUNCE_MS, EXPIRE_MS, MAX_PASSAGE, MAX_QUESTION, questionPrompt, refreshPrompt, settle } from './canvas.ts'
+import canvas, { ago, DEBOUNCE_MS, EXPIRE_MS, MAX_PASSAGE, MAX_QUESTION, questionPrompt, refreshPrompt, settle } from './canvas.ts'
 
 const T0 = Date.parse('2026-10-01T09:00:00Z')
 const MINUTE = 60_000
@@ -202,6 +202,42 @@ describe('Session summary canvas', () => {
     expect(again.state('other')?.summary?.headline).toBe('Shipping the importer')
     await again.close()
   })
+  it('asks for what changed since the last summary, and for the current state rather than the background', () => {
+    const at = Date.parse('2026-11-06T12:00:00Z')
+    const prompt = refreshPrompt('summary', 'schedule', { headline: 'Fixing seven findings', updatedAt: '2026-11-06T11:35:00Z' }, at)
+    expect(prompt).toContain('- The last summary, 25 min ago, said: "Fixing seven findings".')
+    expect(prompt).toContain('- Lead with what changed since the last summary.')
+    expect(prompt).toMatch(/leave out longer background/)
+    expect(prompt).not.toMatch(/the goal/)
+    expect(refreshPrompt('summary', 'schedule')).not.toContain('The last summary')
+    expect(prompt).toMatch(/without reading the chat/)
+    expect(prompt).toMatch(/never just when it was asked/)
+
+    const unread = refreshPrompt('summary', 'schedule', { headline: 'Fixing seven findings', updatedAt: '2026-11-06T11:35:00Z', revision: 9 }, at, { at: '2026-11-04T12:00:00Z', revision: 4, headline: 'Plan approved' })
+    expect(unread).toContain('- The user last read this panel 2 d ago, when it said: "Plan approved". Catch them up from there')
+    expect(unread).not.toContain('Lead with what changed since the last summary.')
+    const read = refreshPrompt('summary', 'schedule', { headline: 'x', updatedAt: '2026-11-06T11:35:00Z', revision: 9 }, at, { at: '2026-11-06T11:40:00Z', revision: 9, headline: 'x' })
+    expect(read).not.toContain('last read')
+    expect([ago(0), ago(89 * 60_000), ago(3 * 3_600_000), ago(3 * 86_400_000)]).toEqual(['0 min', '89 min', '3 h', '3 d'])
+  })
+
+  it('remembers the summary the user last looked at, and passes it to the next refresh', async () => {
+    let now = T0
+    const h = await createTestCanvas(canvas, { now: () => now, sessionId: 'chat-seen' })
+    try {
+      await h.open('summary')
+      await h.invoke('summary', 'update_summary', SUMMARY)
+      const revision = h.state('summary')!.summary!.revision
+      await h.invoke('summary', 'mark_seen', { revision }, 'ui')
+      expect(h.state('summary')?.seen).toEqual({ at: iso(T0), revision, headline: SUMMARY.headline })
+      now += 60_000
+      await h.invoke('summary', 'mark_seen', { revision: revision + 1 }, 'ui')
+      expect(h.state('summary')?.seen?.at).toBe(iso(T0))
+    } finally {
+      await h.close()
+    }
+  })
+
   it('keeps the canvas ID and the refresh tag that agent instructions use', () => {
     expect(canvas.id).toBe('session-executive-summary')
     expect(refreshPrompt('summary', 'schedule').split('\n')[0]).toBe('[session-summary-refresh:schedule]')

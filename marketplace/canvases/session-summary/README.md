@@ -19,8 +19,14 @@ Ask the agent to open `session-executive-summary` with a stable instance ID, suc
 as `session-summary`.
 
 - **Summary.** The agent writes it with `update_summary`: a headline, a status, a
-  short Markdown executive summary, and what is running, what needs you, recent
-  progress, and next steps. GitHub issue and pull request URLs show as short
+  short Markdown executive summary of where things stand now, and what is running
+  (including parked work), what needs you, recent progress, and next steps. It's
+  written for someone coming back after hours or days: what changed since the last
+  summary and what it waits on, opening with a few words on what the chat is
+  about. Each refresh tells the agent what the last summary said and how long ago.
+- **Catching you up.** The page records the summary you last read once the panel
+  has been visible and focused for 3 seconds. When newer summaries came out since,
+  the next refresh asks the agent to catch you up from the one you read. GitHub issue and pull request URLs show as short
   `owner/repo#42` links.
 - **Refreshing.** The `refresh` job asks the agent for a new summary every 10
   minutes (1 minute to 1 day), and the refresh button asks at once. The clock in

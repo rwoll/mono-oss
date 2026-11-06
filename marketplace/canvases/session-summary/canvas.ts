@@ -32,18 +32,20 @@ const runningItem = z.object({
 
 const summaryInput = z
   .object({
-    headline: line(240).describe('One line on where the work stands.'),
+    headline: line(240).describe('One line on where the work stands right now.'),
     status: z.enum(STATUSES),
     executiveSummary: markdown(4000)
       .default('')
-      .describe('2-4 Markdown sentences: the goal, the current outcome, the key risk or decision, and the next milestone.'),
+      .describe(
+        'Where things stand now, for someone returning after hours or days, in 2-4 Markdown sentences: what is happening and why, what changed since the last summary, and what it waits on (the user or something else) with the next milestone. No project background.',
+      ),
     running: z
       .array(z.union([line(120).transform((title) => ({ title, detail: '', state: 'running' as const })), runningItem.strict()]))
       .max(12)
       .default([])
-      .describe('Workstreams in flight, not individual commands or tool calls.'),
+      .describe('Every open workstream, including parked ones ("parked, waiting on you"), not individual commands or tool calls.'),
     attention: z.array(line(300)).max(8).default([]).describe('What needs the user: decisions, approvals, or questions.'),
-    progress: z.array(line(300)).max(10).default([]).describe('Recent results.'),
+    progress: z.array(line(300)).max(10).default([]).describe('Recent results that still matter, newest first, at most 5; drop superseded ones.'),
     next: z.array(line(300)).max(8).default([]).describe('The next steps.'),
     notes: z.string().trim().max(1000).default(''),
   })
@@ -64,6 +66,9 @@ const summary = z.object({
 
 const pending = z.object({ trigger: z.enum(['schedule', 'manual']), requestedAt: z.string() })
 
+/** The summary the user last looked at: the panel was visible and focused for a few seconds. */
+const seen = z.object({ at: z.string(), revision: z.number().int().min(1), headline: z.string() })
+
 const outcome = z.object({
   kind: z.enum(['skipped', 'unanswered', 'expired', 'send_failed']),
   at: z.string(),
@@ -72,6 +77,7 @@ const outcome = z.object({
 
 export type Summary = z.output<typeof summary>
 export type PendingRefresh = z.output<typeof pending>
+export type Seen = z.output<typeof seen>
 export type RefreshOutcome = z.output<typeof outcome>
 
 /**
@@ -89,13 +95,36 @@ export function settle(request: PendingRefresh, agent: AgentActivity, now: numbe
   return undefined
 }
 
-export function refreshPrompt(instanceId: string, trigger: PendingRefresh['trigger']): string {
+/** "25 min", "3 h", or "2 d": how long ago, for the refresh prompt. */
+export function ago(ms: number): string {
+  const minutes = Math.max(0, Math.round(ms / 60_000))
+  if (minutes < 90) return `${minutes} min`
+  const hours = Math.round(minutes / 60)
+  return hours < 36 ? `${hours} h` : `${Math.round(hours / 24)} d`
+}
+
+export function refreshPrompt(
+  instanceId: string,
+  trigger: PendingRefresh['trigger'],
+  previous?: { headline: string; updatedAt: string; revision?: number },
+  now = Date.now(),
+  lastSeen?: Seen | null,
+): string {
+  const unread = lastSeen && previous?.revision !== undefined && lastSeen.revision < previous.revision
   return [
     `[session-summary-refresh:${trigger}]`,
-    `The Session summary canvas asks for a refresh (${trigger === 'manual' ? 'requested by the user' : 'scheduled'}). Call invoke_canvas_action with instanceId ${JSON.stringify(instanceId)}, actionName "update_summary", and a concise executive summary of this chat's work.`,
+    `The Session summary canvas asks for a refresh (${trigger === 'manual' ? 'requested by the user' : 'scheduled'}). Call invoke_canvas_action with instanceId ${JSON.stringify(instanceId)}, actionName "update_summary", and a concise summary of where this chat's work stands now.`,
+    ...(previous ? [`- The last summary, ${ago(now - Date.parse(previous.updatedAt))} ago, said: ${JSON.stringify(previous.headline)}.`] : []),
+    ...(unread
+      ? [`- The user last read this panel ${ago(now - Date.parse(lastSeen.at))} ago, when it said: ${JSON.stringify(lastSeen.headline)}. Catch them up from there: what changed since then, in order of importance.`]
+      : previous
+        ? ['- Lead with what changed since the last summary.']
+        : []),
     '- Use only facts you have observed, and say so when you are unsure.',
-    '- executiveSummary: 2-4 Markdown sentences on the goal, the current outcome, the key risk or decision, and the next milestone, not a repeat of the lists.',
-    '- Say whether the work is on track, the meaningful workstreams, anything that needs the user, recent results, and the next milestone. Do not list individual commands, tool calls, or finished shell jobs.',
+    '- Write for the user coming back after hours or days without reading the chat. Open with a few words naming what this chat works on, then where it stands; leave out longer background and definitions.',
+    '- Make every sentence stand on its own: say what a PR or issue does, not only its number, and say what an earlier question asked, never just when it was asked.',
+    '- executiveSummary: 2-4 Markdown sentences: what is happening now and why, what changed since the last summary, and what it waits on (the user or something else) with the next milestone. If the user\'s latest question or request is still open, say what it was and where it stands. Not a repeat of the lists.',
+    '- running: every open workstream, including parked ones, with their state. progress: at most 5 results that still matter, newest first. Do not list individual commands, tool calls, or finished shell jobs.',
     `- ${REFERENCE_GUIDANCE}`,
     '- If the work is done, cancelled, or blocked with nothing to monitor, pause these refreshes with actionName "update_job" and {"id":"refresh","enabled":false}; resume them with {"id":"refresh","enabled":true} when substantive work starts again. Follow what the user asked for, and change the interval only when they ask.',
     '- Do not start new work. Afterwards, reply with at most one short line and carry on.',
@@ -132,8 +161,10 @@ export default defineCanvas({
     skipWhenIdle: z.boolean(),
     pending: pending.nullable(),
     lastOutcome: outcome.nullable(),
+    /** The summary the user last looked at, so a refresh can catch them up from it. */
+    seen: seen.nullable().default(null),
   }),
-  init: () => ({ summary: null, skipWhenIdle: true, pending: null, lastOutcome: null }),
+  init: () => ({ summary: null, skipWhenIdle: true, pending: null, lastOutcome: null, seen: null }),
   // One summary per chat, kept when the panel or the chat is reopened.
   persist: { key: ({ sessionId }) => sessionId ?? 'local' },
   status: (state) => state.summary?.headline ?? 'Waiting for the first summary',
@@ -165,6 +196,16 @@ export default defineCanvas({
           mode: 'enqueue',
         })
         return { sent: true as const }
+      },
+    }),
+    mark_seen: action({
+      description: 'Record that the user looked at this summary: the page calls it once the panel has been visible and focused for a few seconds.',
+      expose: 'ui',
+      input: z.object({ revision: z.number().int().min(1) }).strict(),
+      run: (ctx, { revision }) => {
+        const current = ctx.state.summary
+        if (!current || current.revision !== revision || ctx.state.seen?.revision === revision) return
+        ctx.setState((state) => ({ ...state, seen: { at: new Date(ctx.now()).toISOString(), revision, headline: current.headline } }))
       },
     }),
     set_skip_when_idle: action({
@@ -212,7 +253,7 @@ export default defineCanvas({
         if (!instanceId) return
         ctx.setState((state) => ({ ...state, pending: { trigger, requestedAt: at } }))
         try {
-          await ctx.sendToAgent({ prompt: refreshPrompt(instanceId, trigger), displayPrompt: 'Session summary · refresh', mode: 'immediate' })
+          await ctx.sendToAgent({ prompt: refreshPrompt(instanceId, trigger, current ?? undefined, now, ctx.state.seen), displayPrompt: 'Session summary · refresh', mode: 'immediate' })
         } catch (error) {
           ctx.setState((state) => ({ ...state, pending: null, lastOutcome: { kind: 'send_failed', at, detail: error instanceof Error ? error.message : String(error) } }))
         }
