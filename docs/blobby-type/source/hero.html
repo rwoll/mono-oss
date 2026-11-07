@@ -1,0 +1,134 @@
+<!doctype html>
+<!--
+  The Blobby Type README hero, in light and dark. render.ts renders it at 1920x1080 (hero.html#light and #dark).
+  It mirrors the app's Practice and Learn fingers screens. Blobby sprites: microsoft/vscode, MIT (see ../LICENSE-blobby-sprites.txt).
+-->
+<html><head><meta charset="utf-8"><title>Blobby Type</title>
+<style>
+  :root {
+    --bg: #f4f8f5; --fg: #0f1a14; --muted: #5d6b63; --faint: #9aa79f; --panel: #ffffff; --border: #e0e8e3; --card: #f6faf7;
+    --accent: #1f8a55; --accent-strong: #146c41; --accent-soft: #e2f4e9; --mint: #78e3a6; --ink: #0f2118; --rose: #e2506b; --rose-soft: #fde4e9;
+    --bar: #e6ece8; --key-alpha: .2; --shadow: 0 1px 2px rgba(15, 26, 20, .06), 0 10px 28px rgba(15, 26, 20, .07);
+  }
+  :root.dark {
+    --bg: #0d1310; --fg: #eef4f0; --muted: #9fb0a6; --faint: #66766d; --panel: #151d18; --border: #26332b; --card: #1a241e;
+    --accent: #6ee7a4; --accent-strong: #a7f3c8; --accent-soft: rgba(110, 231, 164, .13); --rose: #f7869a; --rose-soft: rgba(247, 134, 154, .16);
+    --bar: #24302a; --key-alpha: .16; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px rgba(0, 0, 0, .3);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1920px; height: 1080px; background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, sans-serif; -webkit-font-smoothing: antialiased; }
+  .mono, code { font-family: "SF Mono", Menlo, ui-monospace, monospace; }
+  .pixel { image-rendering: pixelated; }
+  .page { position: absolute; inset: 0 84px; }
+
+  header { position: absolute; top: 60px; display: flex; align-items: center; gap: 16px; }
+  header img { width: 50px; height: 50px; }
+  header span { font-size: 29px; font-weight: 600; letter-spacing: -.01em; }
+  h1 { position: absolute; top: 118px; margin: 0; font-size: 70px; font-weight: 800; letter-spacing: -.035em; white-space: nowrap; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .sub { position: absolute; top: 207px; margin: 0; font-size: 26px; color: var(--muted); }
+
+  .window { position: absolute; top: 272px; left: 0; right: 0; height: 468px; border: 1px solid var(--border); border-radius: 16px;
+    background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+  .titlebar { height: 46px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 600; color: var(--muted); position: relative; }
+  .dots { position: absolute; left: 18px; display: flex; gap: 9px; }
+  .dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--border); }
+  .columns { display: grid; grid-template-columns: 960px 1fr; height: 420px; }
+  .label { font-size: 13px; letter-spacing: .12em; font-weight: 700; color: var(--muted); margin: 0; display: flex; align-items: center; gap: 10px; }
+  .label .live { color: var(--accent); }
+  .label .live::before { content: "●"; margin-right: 6px; }
+
+  /* Practice */
+  .practice { padding: 20px 28px; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 16px; }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .metric { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; }
+  .metric small { display: block; font: 700 11px "SF Mono", Menlo, monospace; letter-spacing: .08em; color: var(--muted); }
+  .metric b { font-size: 34px; font-weight: 650; letter-spacing: -.02em; }
+  .metric span { font-size: 15px; color: var(--muted); margin-left: 4px; }
+  .prompt { font: 500 29px/1.55 "SF Mono", Menlo, monospace; color: var(--faint); }
+  .prompt .t { color: var(--accent); }
+  .prompt .d { opacity: .5; }
+  .prompt .slip { color: var(--rose); background: var(--rose-soft); text-decoration: underline; }
+  .prompt .cur { color: var(--ink); background: var(--mint); border-radius: 3px; }
+  .progress { height: 7px; border-radius: 4px; background: var(--bar); }
+  .progress i { display: block; width: 22%; height: 100%; border-radius: 4px; background: var(--accent); }
+  .input { display: flex; align-items: center; gap: 12px; border: 1.5px solid var(--accent); border-radius: 12px; padding: 10px 16px;
+    font: 500 22px "SF Mono", Menlo, monospace; }
+  .input .caret { width: 2px; height: 26px; background: var(--accent); margin-left: -8px; }
+
+  /* Learn fingers */
+  .lesson { padding: 20px 28px; display: flex; flex-direction: column; gap: 14px; }
+  .target { display: flex; align-items: center; gap: 16px; }
+  .target .key { font: 700 34px "SF Mono", Menlo, monospace; width: 62px; height: 58px; display: grid; place-items: center; border-radius: 12px;
+    background: #69cfc2; color: #0f2118; }
+  .target b { font-size: 23px; display: block; }
+  .target p { margin: 3px 0 0; font-size: 16px; color: var(--muted); }
+  .keyboard { display: flex; flex-direction: column; gap: 5px; align-items: center; margin-top: 4px; }
+  .keyboard div { display: flex; gap: 5px; }
+  .keyboard i { font: 600 13px "SF Mono", Menlo, monospace; font-style: normal; width: 37px; height: 34px; border-radius: 6px; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--f) calc(var(--key-alpha) * 100%), transparent); border: 1px solid color-mix(in srgb, var(--f) 40%, transparent); }
+  .keyboard i.on { background: var(--f); border-color: var(--f); color: #0f2118; box-shadow: 0 0 0 2px var(--f); }
+  .keyboard .wide { width: 70px; } .keyboard .space { width: 300px; }
+  .lp { --f: #f59ea5; } .lr { --f: #f2c766; } .lm { --f: #87bdf5; } .li { --f: #7dd996; }
+  .ri { --f: #69cfc2; } .rm { --f: #baa8f2; } .rr { --f: #f5ab6e; } .rp { --f: #e39ccf; } .th { --f: #bac7bf; }
+  .note { font-size: 14px; color: var(--muted); text-align: center; }
+
+  .caption { position: absolute; top: 758px; left: 0; right: 0; text-align: center; font-size: 19px; color: var(--muted); }
+  .pill { display: inline-block; padding: 1px 10px; border-radius: 7px; background: var(--accent); color: #fff; font: 600 16px "SF Mono", Menlo, monospace; }
+  :root.dark .pill { color: #0b2418; }
+
+  .cols { position: absolute; top: 816px; left: 0; right: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; }
+  .col { padding: 0 34px; border-right: 1px solid var(--border); display: flex; gap: 18px; align-items: flex-start; }
+  .col:first-child { padding-left: 0; } .col:last-child { padding-right: 0; border-right: none; }
+  .col img { height: 72px; flex: none; }
+  .col h4 { margin: 4px 0 6px; font-size: 22px; font-weight: 700; }
+  .col p { margin: 0; font-size: 18px; line-height: 1.45; color: var(--muted); }
+  .col code { white-space: nowrap; font-size: 16px; color: var(--accent-strong); background: var(--accent-soft); padding: 1px 7px; border-radius: 5px; }
+</style></head>
+<body>
+<div class="page">
+  <header><img src="../logo.png" alt=""><span>Blobby Type</span></header>
+  <h1>Type faster, with <em>every finger at home</em>.</h1>
+  <p class="sub">A native macOS app for timed typing drills and untimed finger lessons, with Blobby cheering you on.</p>
+
+  <div class="window">
+    <div class="titlebar"><div class="dots"><i></i><i></i><i></i></div>Blobby Type</div>
+    <div class="columns">
+      <div class="practice">
+        <p class="label">PRACTICE · EVERYDAY WORDS · 60S <span class="live">IN THE FLOW</span></p>
+        <div class="metrics">
+          <div class="metric"><small>SPEED</small><b>64</b><span>wpm</span></div>
+          <div class="metric"><small>ACCURACY</small><b>98</b><span>%</span></div>
+          <div class="metric"><small>TIME LEFT</small><b>48</b><span>sec</span></div>
+          <div class="metric"><small>PERSONAL BEST</small><b>61</b><span>wpm</span></div>
+        </div>
+        <div class="prompt"><span class="t">calm<span class="d">·</span><wbr>focus<span class="d">·</span><wbr>helps<span class="d">·</span><wbr>you<span class="d">·</span><wbr>type<span class="d">·</span><wbr>fa</span><span class="slip">s</span><span class="cur">t</span>er<span class="d">·</span><wbr>every<span class="d">·</span><wbr>day<span class="d">·</span><wbr>with<span class="d">·</span><wbr>a<span class="d">·</span><wbr>little<span class="d">·</span><wbr>rhythm<span class="d">·</span><wbr>and<span class="d">·</span><wbr>a<span class="d">·</span><wbr>lot<span class="d">·</span><wbr>of<span class="d">·</span><wbr>practice<span class="d">·</span><wbr>one<span class="d">·</span><wbr>word<span class="d">·</span><wbr>at<span class="d">·</span><wbr>a<span class="d">·</span><wbr>time</div>
+        <div class="progress"><i></i></div>
+        <div class="input"><span style="color:var(--accent)">⌨</span>calm focus helps you type fax<span class="caret"></span></div>
+      </div>
+      <div class="lesson">
+        <p class="label">LEARN FINGERS · 6. OPPOSITE-HAND SHIFT</p>
+        <div class="target"><span class="key">J</span><div><b>Right index finger</b><p>Hold left Shift with your left pinky, tap J, then release.</p></div></div>
+        <div class="keyboard">
+          <div><i class="lp">1</i><i class="lr">2</i><i class="lm">3</i><i class="li">4</i><i class="li">5</i><i class="ri">6</i><i class="ri">7</i><i class="rm">8</i><i class="rr">9</i><i class="rp">0</i><i class="rp">-</i><i class="rp">=</i></div>
+          <div><i class="lp">Q</i><i class="lr">W</i><i class="lm">E</i><i class="li">R</i><i class="li">T</i><i class="ri">Y</i><i class="ri">U</i><i class="rm">I</i><i class="rr">O</i><i class="rp">P</i><i class="rp">[</i><i class="rp">]</i></div>
+          <div><i class="lp">A</i><i class="lr">S</i><i class="lm">D</i><i class="li">F</i><i class="li">G</i><i class="ri">H</i><i class="ri on">J</i><i class="rm">K</i><i class="rr">L</i><i class="rp">;</i><i class="rp">'</i></div>
+          <div><i class="lp wide on">L Shift</i><i class="lp">Z</i><i class="lr">X</i><i class="lm">C</i><i class="li">V</i><i class="li">B</i><i class="ri">N</i><i class="ri">M</i><i class="rm">,</i><i class="rr">.</i><i class="rp">/</i><i class="rp wide">R Shift</i></div>
+          <div><i class="th space">Space · either thumb</i></div>
+        </div>
+        <div class="note">US QWERTY · colors match the fingers</div>
+      </div>
+    </div>
+  </div>
+  <div class="caption">Press <span class="pill">⌘L</span> to learn which finger to use, and <span class="pill">⌘R</span> to start another round</div>
+
+  <div class="cols">
+    <div class="col"><img class="pixel" src="buddy-typing-insiders-96.png" alt=""><div><h4>Timed drills</h4><p>Words, punctuation, or code for 30, 60, or 120 seconds, with live WPM and accuracy.</p></div></div>
+    <div class="col"><img class="pixel" src="buddy-idle-insiders-96.png" alt=""><div><h4>Finger lessons</h4><p>Six untimed lessons, from the F and J anchors to opposite-hand Shift.</p></div></div>
+    <div class="col"><img class="pixel" src="buddy-cool-insiders-96.png" alt=""><div><h4>Yours, offline</h4><p>Build it with <code>bash build.sh</code>. No dependencies, no network, and your results stay on your Mac.</p></div></div>
+  </div>
+</div>
+<script>if (location.hash === '#dark') document.documentElement.classList.add('dark')</script>
+</body></html>

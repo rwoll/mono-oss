@@ -23,6 +23,7 @@ copilot plugin install kitchensink@rwoll
     <td align="center" width="166"><a href="#session-summary"><img src="docs/session-summary/logo.png" alt="" width="88"><br><b>session-summary</b></a><br>status at a glance</td>
     <td align="center" width="166"><a href="#canvas-kit"><img src="docs/canvas-kit/logo.png" alt="" width="88"><br><b>canvas-kit</b></a><br>build canvases</td>
     <td align="center" width="166"><a href="#blobby-sandbox"><img src="docs/blobby-sandbox/logo.png" alt="" width="88"><br><b>Blobby Sandbox</b></a><br>test desktops</td>
+    <td align="center" width="166"><a href="#blobby-type"><img src="docs/blobby-type/logo.png" alt="" width="88"><br><b>Blobby Type</b></a><br>faster typing</td>
   </tr>
 </table>
 
@@ -139,6 +140,25 @@ blobby-sandbox view demo                      # or watch it live in your browser
 It's early. See the [Blobby Sandbox guide](packages/blobby-sandbox#readme) to install it and sign VS Code
 Insiders in to a test account.
 
+## Blobby Type
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/blobby-type/hero-dark.png">
+  <img alt="Blobby Type: type faster, with every finger at home. A Mac window shows timed practice at 64 WPM and 98 percent accuracy, with the next character highlighted and a slip marked. Beside it, Learn fingers highlights J for the right index finger and left Shift for the left pinky on a color-coded US QWERTY keyboard. Below: timed drills, six finger lessons, and offline results." src="docs/blobby-type/hero-light.png">
+</picture>
+
+**Build speed without your hands wandering all over the keyboard.** Practice timed drills with live
+WPM and accuracy, then slow down in untimed lessons that show which finger and Shift hand to use for
+the next key. It's a native SwiftUI app with no dependencies, analytics, or network access.
+
+```sh
+cd apps/blobby-type
+bash build.sh
+open "dist/Blobby Type.app"
+```
+
+Requires macOS 14 or newer. See the [Blobby Type guide](apps/blobby-type#readme) for drills, lessons, and scoring.
+
 ## What's here
 
 Tools for working with coding agents, especially GitHub Copilot: give the agent a safe place to try
@@ -149,6 +169,7 @@ things, have it show you what it found, and build the panels you and it work in 
 | [**annotate**](packages/annotate#readme) | Turns screenshots and recordings into ones that explain themselves: numbered steps, zoom, captions, before/after, and redaction, from one JSON document. | [`@rwoll/annotate`](https://www.npmjs.com/package/@rwoll/annotate) |
 | [**canvas-kit**](packages/canvas-kit#readme) | Builds Copilot canvases, the interactive panels you and your agent share, in TypeScript and React, with tests and one-push publishing. | [`@rwoll/canvas-kit`](https://www.npmjs.com/package/@rwoll/canvas-kit), [`@rwoll/create-canvas`](packages/create-canvas#readme) |
 | [**Blobby Sandbox**](packages/blobby-sandbox#readme) | Gives your agent a disposable Linux desktop to test on, set up by a recipe, that it can see, drive, and record, away from your own apps and accounts. | [`@rwoll/blobby-sandbox`](https://www.npmjs.com/package/@rwoll/blobby-sandbox) (early) |
+| [**Blobby Type**](apps/blobby-type#readme) | Builds typing speed and accuracy in timed drills, and teaches which finger to use for each key with untimed lessons, in a native macOS app with no dependencies. | Build from [source](apps/blobby-type) |
 
 ### Skills and canvases
 

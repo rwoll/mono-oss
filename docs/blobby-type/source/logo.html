@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- The Blobby Type logo: Blobby peeking over a keyboard, with the next key lit. Blobby: microsoft/vscode, MIT (see ../LICENSE-blobby-sprites.txt). render.ts renders it. -->
+<html><head><meta charset="utf-8"><style>
+  html, body { margin: 0; width: 512px; height: 512px; background: transparent; }
+  .icon { position: absolute; inset: 16px; border-radius: 108px; overflow: hidden;
+    background: radial-gradient(120% 120% at 25% 15%, #3ccf8e 0%, #1c7a50 45%, #08281b 100%); }
+  /* Everything sits on Blobby's pixel grid: one sprite pixel is 8 px at 1x, 24 px here. */
+  svg { position: absolute; inset: 0; width: 480px; height: 480px; shape-rendering: crispEdges; }
+  img { position: absolute; image-rendering: pixelated; width: 288px; height: 288px; left: 96px; top: 60px; }
+</style></head><body>
+<div class="icon">
+  <svg viewBox="0 0 480 480">
+    <!-- sparkle -->
+    <g fill="#c9f7dc"><rect x="372" y="60" width="24" height="72"/><rect x="348" y="84" width="72" height="24"/></g>
+  </svg>
+  <img src="buddy-idle-insiders-96.png" alt="">
+  <svg viewBox="0 0 480 480">
+    <!-- keyboard: lip, body, two rows of keys, and a shadow, stepped like pixel art -->
+    <rect x="48" y="324" width="384" height="24" fill="#ffffff"/>
+    <rect x="48" y="348" width="384" height="72" fill="#e3f1e8"/>
+    <rect x="48" y="420" width="384" height="24" fill="#9cc4ad"/>
+    <g fill="#bcdcc9">
+      <rect x="72" y="348" width="48" height="24"/><rect x="144" y="348" width="48" height="24"/>
+      <rect x="216" y="348" width="48" height="24"/><rect x="360" y="348" width="48" height="24"/>
+      <rect x="72" y="396" width="48" height="24"/><rect x="144" y="396" width="192" height="24"/><rect x="360" y="396" width="48" height="24"/>
+    </g>
+    <!-- the next key to press, lit the way the app highlights it -->
+    <rect x="288" y="348" width="48" height="24" fill="#2fbf71"/>
+  </svg>
+</div>
+</body></html>
