@@ -87,6 +87,7 @@ Every chat with the canvas open shows the same decisions; changes are saved unde
 
 - The page shows only images and videos inside the QA folder, by their real paths, through the canvas kit's token-checked files route. **Report** and other files open only from inside the QA folder, and anything that could run opens in its folder instead.
 - Run text comes from an agent that read the Agents window and GitHub, so it is shown without HTML and passed to agents as fenced data. Your notes are passed as your instructions.
+- The run tests only PRs by repository members, reads only members' comments and reviews, and treats what it reads and sees in the sandbox as untrusted.
 - The scheduled run only reports. Filing issues, opening pull requests, and starting sessions happen only after you Send.
 
 ## Develop

@@ -41,7 +41,7 @@ describe('agents-qa skill scripts', () => {
   it("pick-prs takes the PRs in this build and not the last run's, by merge commit", async () => {
   const root = await mkdtemp(join(tmpdir(), 'agents-qa-pick-'));
   try {
-    const [base, build, inside, test, later, earlier] = ['a', 'b', 'c', 'd', 'e', 'f'].map(c => c.repeat(40));
+    const [base, build, inside, test, later, earlier, outsider] = ['a', 'b', 'c', 'd', 'e', 'f', '0'].map(c => c.repeat(40));
     await mkdir(join(root, 'runs', 'prev'), { recursive: true });
     await writeFile(
       join(root, 'runs', 'prev', 'findings.json'),
@@ -60,18 +60,20 @@ const dates = { ${JSON.stringify(base)}: '2026-10-28T00:00:00Z', ${JSON.stringif
 const commit = (args[1] ?? '').startsWith('repos/microsoft/vscode/commits/') ? [null, args[1].split('/').pop()] : null;
 if (commit && joined.endsWith('--jq .sha')) console.log(commit[1]);
 else if (commit) console.log(dates[commit[1]]);
-else if (joined.includes('/compare/${base}...${build}')) console.log(${JSON.stringify([inside, test, build].join('\n'))});
+else if (joined.includes('/compare/${base}...${build}')) console.log(${JSON.stringify([inside, test, outsider, build].join('\n'))});
 else if (args[0] === 'pr') console.log(JSON.stringify(${JSON.stringify([
       pr(1, inside, '2026-10-28T10:00:00Z'),
       pr(2, test, '2026-10-28T11:00:00Z'),
       pr(3, build, '2026-10-28T23:00:00Z'),
       pr(4, later, '2026-10-29T05:00:00Z'),
       pr(5, earlier, '2026-10-27T05:00:00Z'),
+      pr(6, outsider, '2026-10-28T12:00:00Z'),
     ])}));
 else if (args[1] === 'graphql') console.log(JSON.stringify({ data: { repository: {
-  p1: { files: { nodes: [{ path: 'src/vs/sessions/browser/list.ts' }, { path: 'src/vs/sessions/test/browser/list.test.ts' }] } },
-  p2: { files: { nodes: [{ path: 'src/vs/sessions/test/browser/x.test.ts' }] } },
-  p3: { files: { nodes: [{ path: 'build/gulpfile.js' }, { path: 'package.json' }] } },
+  p1: { authorAssociation: 'MEMBER', files: { nodes: [{ path: 'src/vs/sessions/browser/list.ts' }, { path: 'src/vs/sessions/test/browser/list.test.ts' }] } },
+  p2: { authorAssociation: 'MEMBER', files: { nodes: [{ path: 'src/vs/sessions/test/browser/x.test.ts' }] } },
+  p3: { authorAssociation: 'OWNER', files: { nodes: [{ path: 'build/gulpfile.js' }, { path: 'package.json' }] } },
+  p6: { authorAssociation: 'CONTRIBUTOR', files: { nodes: [{ path: 'src/vs/sessions/browser/list.ts' }] } },
 } } }));
 else { console.error('unexpected: ' + joined); process.exit(1); }
 `,
@@ -93,6 +95,8 @@ else { console.error('unexpected: ' + joined); process.exit(1); }
       ],
     );
     expect(picked.notYetInBuild).toBe(1);
+    expect(picked.notByMembers).toEqual(['https://github.com/microsoft/vscode/pull/6']);
+    expect(JSON.stringify(picked)).not.toContain('PR 6');
     expect(result.stdout).toMatch(/3 PRs are in this build and not the base: 1 touch the Agents window/);
   } finally {
     await rm(root, { recursive: true, force: true });

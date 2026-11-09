@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// The pull requests a run should look at: every PR merged into microsoft/vscode main whose merge commit is in
-// this build but was not in the build the last run tested. Choosing by build, not by date, means no PR falls
+// The pull requests a run should look at: every PR by a repository member merged into microsoft/vscode main whose
+// merge commit is in this build but was not in the build the last run tested. Choosing by build, not by date, means no PR falls
 // between runs, and a PR merged after this build was made is picked up by the next run.
 //   node pick-prs.ts <this build's commit> [--base <commit>] [--out <file>]
 // Without --base, the base is the last complete run's build, or the build of 24 hours earlier on a first run.
@@ -18,6 +18,8 @@ type Json = any
 const REPO = 'microsoft/vscode'
 const SHA = /^[0-9a-f]{7,40}$/
 const DAY_MS = 24 * 60 * 60 * 1000
+// Anyone can open a PR, so only PRs by members of the repository's organization are tested.
+const MEMBERS = new Set(['MEMBER', 'OWNER'])
 // Paths whose changes show up in the Agents window. A hint for the agent, which makes the final call.
 const AGENTS_PATHS = [
   'src/vs/sessions/',
@@ -103,13 +105,18 @@ const merged: Json[] = JSON.parse(
 const picked = merged.filter((pr) => inBuild.has(pr.mergeCommit?.oid)).sort((a, b) => Date.parse(a.mergedAt) - Date.parse(b.mergedAt))
 const notYetInBuild = merged.filter((pr) => !inBuild.has(pr.mergeCommit?.oid) && Date.parse(pr.mergedAt) > Date.parse(buildDate)).length
 
-// Changed files, 50 PRs per GraphQL request.
+// Changed files and whether a repository member wrote the PR, 50 PRs per GraphQL request.
 const files = new Map<number, string[]>()
+const byMember = new Set<number>()
 for (let index = 0; index < picked.length; index += 50) {
   const batch = picked.slice(index, index + 50)
-  const fields = batch.map((pr) => `p${pr.number}: pullRequest(number: ${pr.number}) { files(first: 100) { nodes { path } } }`).join(' ')
+  const fields = batch.map((pr) => `p${pr.number}: pullRequest(number: ${pr.number}) { authorAssociation files(first: 100) { nodes { path } } }`).join(' ')
   const data = JSON.parse(gh(['api', 'graphql', '-f', `query=query { repository(owner: "microsoft", name: "vscode") { ${fields} } }`]))
-  for (const pr of batch) files.set(pr.number, (data.data.repository[`p${pr.number}`]?.files?.nodes ?? []).map((node: Json) => node.path))
+  for (const pr of batch) {
+    const node = data.data.repository[`p${pr.number}`]
+    files.set(pr.number, (node?.files?.nodes ?? []).map((file: Json) => file.path))
+    if (MEMBERS.has(node?.authorAssociation)) byMember.add(pr.number)
+  }
 }
 
 function relevance(paths: string[]): string {
@@ -121,7 +128,9 @@ function relevance(paths: string[]): string {
 }
 const dirs = (paths: string[]) => [...new Set(paths.map((path) => path.split('/').slice(0, 5).join('/')))].slice(0, 6)
 
-const prs = picked.map((pr) => {
+// PRs by anyone else are listed by URL only, so their titles never reach the agent.
+const notByMembers = picked.filter((pr) => !byMember.has(pr.number)).map((pr) => pr.url)
+const prs = picked.filter((pr) => byMember.has(pr.number)).map((pr) => {
   const paths = files.get(pr.number) ?? []
   return { url: pr.url, number: pr.number, title: pr.title, mergedAt: pr.mergedAt, author: pr.author?.login ?? null, relevance: relevance(paths), paths: dirs(paths) }
 })
@@ -130,6 +139,7 @@ const result = {
   build: { commit: buildSha, date: buildDate },
   notYetInBuild,
   prs,
+  notByMembers,
 }
 
 if (values.out) writeFileSync(values.out, `${JSON.stringify(result, null, 2)}\n`)
@@ -145,5 +155,6 @@ else {
   log(`${prs.length} PRs are in this build and not the base: ${count('agents-window')} touch the Agents window, ${count('other')} other, ${count('test-only')} test-only, ${count('engineering')} engineering.`)
   for (const pr of prs.filter((entry) => entry.relevance === 'agents-window')) log(`  #${pr.number}  ${pr.title}`)
 }
+if (notByMembers.length) log(`${notByMembers.length} PRs in this build are not by a repository member; they are left out.`)
 if (notYetInBuild) log(`${notYetInBuild} merged PRs are not in this build yet; the next run picks them up.`)
 if (values.out) log(`Full list: ${values.out}`)
