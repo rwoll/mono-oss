@@ -1,6 +1,6 @@
 {
   "name": "@rwoll/agent-test-server",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Fake LLM and MCP servers that tests and agents drive through an SDK or CLI. Speaks OpenAI Chat Completions and Responses and Anthropic Messages, for testing BYOK and MCP clients such as VS Code.",
   "keywords": [
     "llm",

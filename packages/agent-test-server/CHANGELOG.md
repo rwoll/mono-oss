@@ -6,6 +6,8 @@ Notable changes to `@rwoll/agent-test-server`. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-10
+
 ### Added
 
 - A fake LLM server for the OpenAI Chat Completions, OpenAI Responses (with
@@ -19,3 +21,5 @@ Notable changes to `@rwoll/agent-test-server`. The format follows
 - Isolated sessions, each with its own API key, rules, log, and MCP servers.
 - `chatLanguageModels.json` and `mcp.json` for VS Code's Custom Endpoint provider.
 - A TypeScript SDK, Playwright Test fixtures, and the `agent-test-server` CLI.
+
+[0.1.0]: https://github.com/rwoll/mono-oss/releases/tag/agent-test-server@0.1.0
