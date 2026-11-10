@@ -1,0 +1,79 @@
+{
+  "name": "@rwoll/agent-test-server",
+  "version": "0.0.0",
+  "description": "Fake LLM and MCP servers that tests and agents drive through an SDK or CLI. Speaks OpenAI Chat Completions and Responses and Anthropic Messages, for testing BYOK and MCP clients such as VS Code.",
+  "keywords": [
+    "llm",
+    "mock",
+    "fake",
+    "testing",
+    "byok",
+    "openai",
+    "anthropic",
+    "mcp",
+    "vscode",
+    "agents"
+  ],
+  "license": "MIT",
+  "author": "Ross A. Wollman",
+  "homepage": "https://github.com/rwoll/mono-oss/tree/main/packages/agent-test-server#readme",
+  "bugs": "https://github.com/rwoll/mono-oss/issues",
+  "type": "module",
+  "bin": {
+    "agent-test-server": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./playwright": {
+      "types": "./dist/playwright.d.ts",
+      "default": "./dist/playwright.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.tsbuildinfo"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node -e \"fs.chmodSync('dist/cli.js', 0o755)\"",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.4.0",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@playwright/test": "^1.60.0"
+  },
+  "peerDependenciesMeta": {
+    "@playwright/test": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "1.4.0",
+    "@github/copilot-sdk": "catalog:",
+    "@modelcontextprotocol/client": "2.4.0",
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "openai": "7.47.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rwoll/mono-oss.git",
+    "directory": "packages/agent-test-server"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

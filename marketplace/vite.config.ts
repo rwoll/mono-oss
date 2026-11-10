@@ -9,11 +9,11 @@ export default defineConfig({
       plugins: [
         {
           name: 'kitchensink',
-          version: '0.2.4',
+          version: '0.3.0',
           description:
-            'Everything but the kitchen sink: annotated screenshots and recordings, disposable desktop sandboxes, scheduled QA runs of the VS Code Agents window with a triage canvas, a session summary, media-first PR and bug report descriptions, and skills for building canvases.',
+            'Everything but the kitchen sink: annotated screenshots and recordings, disposable desktop sandboxes, a fake LLM and MCP server for testing, scheduled QA runs of the VS Code Agents window with a triage canvas, a session summary, media-first PR and bug report descriptions, and skills for building canvases.',
           canvases: ['agents-qa', 'annotate', 'blobby-sandbox', 'session-summary'],
-          skills: ['agents-qa', 'annotate', 'blobby-sandbox', 'canvas-kit', 'canvas-kit-publishing', 'canvas-kit-testing', 'pr-descriptions'],
+          skills: ['agent-test-server', 'agents-qa', 'annotate', 'blobby-sandbox', 'canvas-kit', 'canvas-kit-publishing', 'canvas-kit-testing', 'pr-descriptions'],
         },
       ],
     }),

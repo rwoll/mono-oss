@@ -1,0 +1,116 @@
+<!doctype html>
+<!--
+  The agent-test-server README hero, in light and dark. render.ts renders it at 1920x1080 (hero.html#light and #dark).
+  Every name and value in it is made up. Blobby sprites: microsoft/vscode, MIT (see ../LICENSE-blobby-sprites.txt).
+-->
+<html><head><meta charset="utf-8"><title>agent-test-server</title>
+<style>
+  :root {
+    --bg: #f7f8f3; --fg: #161a0c; --muted: #61684f; --faint: #959c84; --panel: #ffffff; --border: #e3e7d6; --code: #f2f5e8;
+    --accent: #5a7d0a; --accent-strong: #456106; --accent-soft: #eef6d6; --user: #eef2f7; --tool: #f5f7ef;
+    --term: #15190c; --term-fg: #e2e8d4; --term-muted: #858f6c; --term-accent: #c6e84a; --term-string: #ffc94d;
+    --shadow: 0 1px 2px rgba(15, 26, 19, .06), 0 10px 28px rgba(15, 26, 19, .07);
+  }
+  :root.dark {
+    --bg: #0e100a; --fg: #eef2e4; --muted: #a8b096; --faint: #727a5f; --panel: #161a10; --border: #2c3220; --code: #1f2416;
+    --accent: #c6e84a; --accent-strong: #dcf28a; --accent-soft: rgba(198, 232, 74, .13); --user: #22271a; --tool: #1b2014;
+    --term: #080a05; --term-fg: #e2e8d4; --term-muted: #78825f; --term-accent: #c6e84a; --term-string: #ffc94d;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px rgba(0, 0, 0, .3);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1920px; height: 1080px; background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, sans-serif; -webkit-font-smoothing: antialiased; }
+  .mono, code, pre { font-family: "SF Mono", Menlo, ui-monospace, monospace; }
+  .pixel { image-rendering: pixelated; }
+  .page { position: absolute; inset: 0 84px; }
+
+  header { position: absolute; top: 60px; display: flex; align-items: center; gap: 16px; }
+  header img { width: 50px; height: 50px; }
+  header span { font-size: 29px; font-weight: 600; letter-spacing: -.01em; }
+  h1 { position: absolute; top: 118px; margin: 0; font-size: 68px; font-weight: 800; letter-spacing: -.035em; white-space: nowrap; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .sub { position: absolute; top: 205px; margin: 0; font-size: 26px; color: var(--muted); white-space: nowrap; }
+
+  .window { position: absolute; top: 270px; left: 0; right: 0; height: 470px; border: 1px solid var(--border); border-radius: 16px;
+    background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+  .titlebar { height: 46px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 600; color: var(--muted); position: relative; }
+  .dots { position: absolute; left: 18px; display: flex; gap: 9px; }
+  .dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--border); }
+  .columns { display: grid; grid-template-columns: 640px 1fr; height: 424px; }
+
+  /* VS Code's chat, talking to the fake model */
+  .chat { border-right: 1px solid var(--border); padding: 18px 24px; display: flex; flex-direction: column; gap: 14px; }
+  .chat h3 { margin: 0; font-size: 18px; font-weight: 600; color: var(--muted); padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .user { align-self: flex-end; background: var(--user); border-radius: 14px; padding: 10px 16px; font-size: 19px; }
+  .toolcall { border: 1px solid var(--border); background: var(--tool); border-radius: 10px; padding: 10px 14px; font-size: 16px; color: var(--muted); }
+  .toolcall b { color: var(--fg); font-weight: 600; }
+  .toolcall .ok { color: var(--accent); font-weight: 700; margin-right: 6px; }
+  .toolcall code { font-size: 14.5px; background: var(--code); padding: 1px 7px; border-radius: 5px; color: var(--fg); }
+  .answer { font-size: 19px; line-height: 1.45; }
+  .input { margin-top: auto; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 10px;
+    font-size: 16px; color: var(--faint); }
+  .picker { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--fg); background: var(--accent-soft);
+    border-radius: 8px; padding: 4px 10px; font-weight: 600; }
+  .picker small { color: var(--muted); font-weight: 500; font-size: 14px; }
+
+  /* the agent's terminal, scripting the same conversation */
+  .term { background: var(--term); color: var(--term-fg); padding: 20px 26px; }
+  .term pre { margin: 0; font-size: 16.5px; line-height: 1.85; white-space: pre; }
+  .term .p { color: var(--term-accent); }
+  .term .c { color: var(--term-muted); }
+  .term .s { color: var(--term-string); }
+
+  .caption { position: absolute; top: 756px; left: 0; right: 0; text-align: center; font-size: 19px; color: var(--muted); }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 7px; background: var(--accent); color: #fff; font-weight: 600; font-size: 17px; }
+  :root.dark .pill { color: #1d2805; }
+
+  .cols { position: absolute; top: 812px; left: 0; right: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; }
+  .col { padding: 0 34px; border-right: 1px solid var(--border); display: flex; gap: 18px; align-items: flex-start; }
+  .col:first-child { padding-left: 0; } .col:last-child { padding-right: 0; border-right: none; }
+  .col .sprite { width: 126px; flex: none; display: flex; justify-content: center; }
+  .col img { height: 72px; }
+  .col h4 { margin: 4px 0 6px; font-size: 22px; font-weight: 700; }
+  .col p { margin: 0 0 12px; font-size: 18px; line-height: 1.45; color: var(--muted); }
+  .col code { display: inline-block; font-size: 15.5px; background: var(--code); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; color: var(--fg); }
+</style></head>
+<body>
+<div class="page">
+  <header><img src="../logo.png" alt=""><span>agent-test-server</span></header>
+  <h1>A model that does <em>exactly what you say</em>.</h1>
+  <p class="sub">A fake LLM and MCP server for testing VS Code and other clients. Script it from tests, or let your agent drive it.</p>
+
+  <div class="window">
+    <div class="titlebar"><div class="dots"><i></i><i></i><i></i></div>VS Code · weather-app</div>
+    <div class="columns">
+      <div class="chat">
+        <h3>Chat</h3>
+        <div class="user">What's the weather in Paris?</div>
+        <div class="toolcall"><span class="ok">✓</span>Ran <b>get_forecast</b> from the <b>weather</b> MCP server <code>{"city":"Paris"}</code></div>
+        <div class="answer">It's sunny in Paris, 22°C.</div>
+        <div class="user">Will it rain tomorrow?</div>
+        <div class="answer">No rain expected tomorrow.</div>
+        <div class="input">Ask about your code<span class="picker">test-model <small>Agent Test Server</small></span></div>
+      </div>
+      <div class="term"><pre><span class="p">$</span> agent-test-server start
+<span class="p">$</span> agent-test-server mcp tool weather get_forecast --text <span class="s">"Sunny"</span>
+<span class="p">$</span> agent-test-server reply --when-user weather --tool-call get_forecast --args <span class="s">'{"city":"Paris"}'</span>
+<span class="p">$</span> agent-test-server reply <span class="s">"It's sunny in Paris, 22°C."</span> --when-tool-result get_forecast
+<span class="p">$</span> agent-test-server reply <span class="s">"No rain expected tomorrow."</span> --when-user tomorrow
+<span class="p">$</span> agent-test-server config vscode --write chatLanguageModels.json --write-mcp mcp.json
+<span class="c"># ask in VS Code, then check what it sent</span>
+<span class="p">$</span> agent-test-server requests wait --kind mcp --tool get_forecast
+{ <span class="s">"id"</span>: <span class="s">"r4"</span>, <span class="s">"kind"</span>: <span class="s">"mcp"</span>, <span class="s">"status"</span>: <span class="s">"completed"</span>,
+  <span class="s">"mcp"</span>: { <span class="s">"tool"</span>: <span class="s">"get_forecast"</span>, <span class="s">"arguments"</span>: { <span class="s">"city"</span>: <span class="s">"Paris"</span> } } }</pre></div>
+    </div>
+  </div>
+  <div class="caption">The same rules answer <span class="pill">Chat Completions</span> <span class="pill">Responses</span> <span class="pill">Messages</span> and MCP, streaming or not</div>
+
+  <div class="cols">
+    <div class="col"><div class="sprite"><img class="pixel" src="buddy-typing-insiders-96.png" alt=""></div><div><h4>Script it</h4><p>Rules from tests with the SDK, or from your agent with the CLI.</p><code>reply "Hi" --stream 4:50</code></div></div>
+    <div class="col"><div class="sprite"><img class="pixel" src="buddy-worry-insiders-96.png" alt=""></div><div><h4>Break it on cue</h4><p>Rate limits, overloads, dropped streams, and hangs.</p><code>fail --status 429 --once</code></div></div>
+    <div class="col"><div class="sprite"><img class="pixel" src="buddy-yapping-insiders-96.png" alt=""></div><div><h4>Play the model</h4><p>Hold any request and answer it by hand.</p><code>respond r7 "pong"</code></div></div>
+  </div>
+</div>
+<script>if (location.hash === '#dark') document.documentElement.classList.add('dark')</script>
+</body></html>

@@ -169,10 +169,14 @@ describe('install-tools', () => {
   })
 
   it('only reports with --check, and rejects unknown tools', async () => {
-    const t = fake({ 'annotate --version': ok('0.2.0'), 'blobby-sandbox --version': null })
+    const t = fake({ 'agent-test-server --version': null, 'annotate --version': ok('0.2.0'), 'blobby-sandbox --version': null })
     expect(await installTools({ check: true, run: t.run, fetch: github(annotateReleases).fetch, log: t.log, platform: 'darwin' })).toBe(1)
-    expect(t.calls.map((call) => call.command)).toEqual(['annotate', 'blobby-sandbox'])
-    expect(t.lines).toEqual(['annotate 0.2.0', 'blobby-sandbox is not installed. Run this script without --check to install it.'])
+    expect(t.calls.map((call) => call.command)).toEqual(['agent-test-server', 'annotate', 'blobby-sandbox'])
+    expect(t.lines).toEqual([
+      'agent-test-server is not installed. Run this script without --check to install it.',
+      'annotate 0.2.0',
+      'blobby-sandbox is not installed. Run this script without --check to install it.',
+    ])
     expect(await installTools({ names: ['canvas-kit'], run: t.run, log: t.log })).toBe(2)
   })
 

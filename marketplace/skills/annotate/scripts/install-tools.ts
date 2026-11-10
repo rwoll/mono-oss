@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Installs the command-line tools that these skills run, globally with npm, so they don't need npx:
-//   node install-tools.ts [annotate] [blobby-sandbox] [--azure] [--check] [--dry-run]
+//   node install-tools.ts [agent-test-server] [annotate] [blobby-sandbox] [--azure] [--check] [--dry-run]
 // With no names, it installs every tool. Each tool comes from its newest GitHub release in rwoll/mono-oss,
 // not from registry.npmjs.org, which some machines can't reach: the script downloads the release's tarball,
 // checks it against the SHA-256 digest GitHub shows for it, and installs that file. Other @rwoll packages
@@ -34,6 +34,7 @@ export const COOLDOWN_DAYS = 7
 export const MIN_NPM = '11.10.0'
 /** Each tool's command and the package that provides it. */
 export const TOOLS: Readonly<Record<string, string>> = Object.freeze({
+  'agent-test-server': '@rwoll/agent-test-server',
   annotate: '@rwoll/annotate',
   'blobby-sandbox': '@rwoll/blobby-sandbox',
 })
@@ -211,7 +212,7 @@ export interface Options {
 export async function installTools({ names = [], check = false, dryRun = false, azure = false, run = runCommand, fetch: fetchFn = fetch, log = console.log, platform = process.platform, arch = process.arch }: Options = {}): Promise<number> {
   const unknown = names.filter((name) => !(name in TOOLS))
   if (unknown.length) {
-    log(`Unknown tool: ${unknown.join(', ')}. The tools are ${Object.keys(TOOLS).join(' and ')}.`)
+    log(`Unknown tool: ${unknown.join(', ')}. The tools are ${Object.keys(TOOLS).join(', ')}.`)
     return 2
   }
   const tools = names.length ? [...new Set(names)] : Object.keys(TOOLS)

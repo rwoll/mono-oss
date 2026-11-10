@@ -23,6 +23,7 @@ copilot plugin install kitchensink@rwoll
     <td align="center" width="166"><a href="#session-summary"><img src="docs/session-summary/logo.png" alt="" width="88"><br><b>session-summary</b></a><br>status at a glance</td>
     <td align="center" width="166"><a href="#canvas-kit"><img src="docs/canvas-kit/logo.png" alt="" width="88"><br><b>canvas-kit</b></a><br>build canvases</td>
     <td align="center" width="166"><a href="#blobby-sandbox"><img src="docs/blobby-sandbox/logo.png" alt="" width="88"><br><b>Blobby Sandbox</b></a><br>test desktops</td>
+    <td align="center" width="166"><a href="#agent-test-server"><img src="docs/agent-test-server/logo.png" alt="" width="88"><br><b>agent-test-server</b></a><br>fake LLM and MCP</td>
     <td align="center" width="166"><a href="#blobby-type"><img src="docs/blobby-type/logo.png" alt="" width="88"><br><b>Blobby Type</b></a><br>faster typing</td>
   </tr>
 </table>
@@ -140,6 +141,28 @@ blobby-sandbox view demo                      # or watch it live in your browser
 It's early. See the [Blobby Sandbox guide](packages/blobby-sandbox#readme) to install it and sign VS Code
 Insiders in to a test account.
 
+## agent-test-server
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/agent-test-server/hero-dark.png">
+  <img alt="A model that does exactly what you say. VS Code's chat, using test-model from Agent Test Server, asks for the weather in Paris, runs get_forecast from a weather MCP server, and answers that it's sunny. Beside it, the terminal commands that scripted those replies and the MCP tool, wrote VS Code's configuration, and then waited for the tool call and showed its arguments. Below: script it, break it on cue, and play the model." src="docs/agent-test-server/hero-light.png">
+</picture>
+
+**Test chat clients against a model that does exactly what you say.** A fake LLM and MCP server that
+speaks the OpenAI Chat Completions and Responses APIs and Anthropic's Messages API. Script replies, tool
+calls, and failures once for all three, from tests with the SDK or from your agent with the CLI, then check
+exactly what the client sent. It writes the configuration for VS Code's bring-your-own-key models and MCP
+servers.
+
+```sh
+agent-test-server start
+agent-test-server reply "Sunny, 22°C." --when-user weather
+agent-test-server config vscode --write <user-data-dir>/User/chatLanguageModels.json
+```
+
+See the [agent-test-server guide](packages/agent-test-server#readme) to install it and script replies, faults,
+and MCP tools.
+
 ## Blobby Type
 
 <picture>
@@ -169,6 +192,7 @@ things, have it show you what it found, and build the panels you and it work in 
 | [**annotate**](packages/annotate#readme) | Turns screenshots and recordings into ones that explain themselves: numbered steps, zoom, captions, before/after, and redaction, from one JSON document. | [`@rwoll/annotate`](https://www.npmjs.com/package/@rwoll/annotate) |
 | [**canvas-kit**](packages/canvas-kit#readme) | Builds Copilot canvases, the interactive panels you and your agent share, in TypeScript and React, with tests and one-push publishing. | [`@rwoll/canvas-kit`](https://www.npmjs.com/package/@rwoll/canvas-kit), [`@rwoll/create-canvas`](packages/create-canvas#readme) |
 | [**Blobby Sandbox**](packages/blobby-sandbox#readme) | Gives your agent a disposable Linux desktop to test on, set up by a recipe, that it can see, drive, and record, away from your own apps and accounts. | [`@rwoll/blobby-sandbox`](https://www.npmjs.com/package/@rwoll/blobby-sandbox) (early) |
+| [**agent-test-server**](packages/agent-test-server#readme) | Tests chat clients, such as VS Code's bring-your-own-key models, against a fake LLM and MCP server that answers exactly as scripted, fails on cue, and logs every request. | [`@rwoll/agent-test-server`](https://www.npmjs.com/package/@rwoll/agent-test-server) |
 | [**Blobby Type**](apps/blobby-type#readme) | Builds typing speed and accuracy in timed drills, and teaches which finger to use for each key with untimed lessons, in a native macOS app with no dependencies. | Build from [source](apps/blobby-type) |
 
 ### Skills and canvases
@@ -184,6 +208,7 @@ get a panel to work in alongside it:
 | [`session-summary`](marketplace/canvases/session-summary) (canvas) | Long agent sessions are hard to check on. The agent keeps a short executive summary up to date, so you can see where things stand at a glance. |
 | [`canvas-kit`](marketplace/skills/canvas-kit/SKILL.md), [`-testing`](marketplace/skills/canvas-kit-testing/SKILL.md), [`-publishing`](marketplace/skills/canvas-kit-publishing/SKILL.md) (skills) | Teach the agent to build, test, and publish your own canvases with `@rwoll/canvas-kit`. |
 | [`blobby-sandbox`](marketplace/canvases/blobby-sandbox) (skill and canvas) | Lets the agent test a UI change by actually clicking through it, on a throwaway desktop instead of your computer, and shows you what it's doing. Needs the [CLI](packages/blobby-sandbox#readme). |
+| [`agent-test-server`](marketplace/skills/agent-test-server/SKILL.md) (skill) | Real models are slow, cost money, and answer differently every run. The agent scripts a fake one instead, points VS Code or another client at it, breaks it on cue, and checks what the client sent. Needs the [CLI](packages/agent-test-server#readme). |
 
 ## Copilot plugin
 
