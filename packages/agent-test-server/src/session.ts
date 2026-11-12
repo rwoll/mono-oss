@@ -23,6 +23,8 @@ export interface LogEntry {
   path: string
   headers: Record<string, string>
   body: unknown
+  /** Set when a server in no-auth mode accepted the request without the session's API key. */
+  unauthenticated?: true
   llm?: { protocol: Protocol; model: string; nth: number; request: LlmRequest; ruleId?: string; builtin?: string; unmatched?: boolean }
   mcp?: { server: string; method: string; tool?: string; arguments?: unknown }
   response?: { status: number; id?: string; items?: PlanItem[]; reply?: Reply; result?: unknown; error?: unknown; eventsSent?: number }

@@ -81,6 +81,39 @@ every interface and say how the client reaches the server:
 agent-test-server start --host 0.0.0.0 --port 4317 --public-url http://<address the client can reach>:4317
 ```
 
+## Use it in a container or CI desktop
+
+VS Code keeps a Custom Endpoint group's API key in its secret storage; the `apiKey` in
+`chatLanguageModels.json` only points at it. So a VS Code that a script set up, such as a
+signed-out one in a disposable container with no network, has no key to send. Its requests
+arrive with an empty bearer token, the server answers 401, and the chat shows
+"Incorrect API key provided".
+
+When the server runs on the same machine as the client, start it with `--no-auth`:
+
+```sh
+agent-test-server start --no-auth       # prints "noAuth": true, and a warning on stderr
+agent-test-server config vscode --write <user-data-dir>/User/chatLanguageModels.json   # written without apiKey
+```
+
+In no-auth mode:
+
+- **LLM and MCP requests don't need a session API key.** At the server's root URL, a request
+  with no key, an empty key, or an unknown key goes to the `default` session, the one `start`
+  creates. It is always the default; no other session can take its place. A request that carries
+  another session's key goes to that session, and so does one to that session's own URL
+  (`/s/<id>/...`), with or without the key. Tests that use several sessions keep working.
+- **It only listens on loopback.** `start --no-auth` refuses any `--host` other than
+  `127.0.0.1`, `::1`, or `localhost`, and there is no override: without keys, anyone who can
+  reach the port could use the server and fill its request log. To serve other machines, keep
+  API keys on.
+- **The admin API still needs the admin token.**
+- **You can tell it's on.** Responses carry `x-agent-test-server-no-auth: 1`, `status` reports
+  `noAuth: true`, and the request log marks each request that came without its session's key
+  with `unauthenticated: true`.
+
+From the SDK, pass `startServer({ noAuth: true })`.
+
 ## Use it with the Copilot SDK
 
 Pass the session as a BYOK provider to `@github/copilot-sdk`. All three APIs work, streaming or

@@ -13,12 +13,16 @@ export interface VscodeConfigOptions {
 /**
  * Provider groups for VS Code's `chatLanguageModels.json`, using the built-in Copilot
  * extension's Custom Endpoint (`customendpoint`) BYOK provider.
+ *
+ * Leave `apiKey` undefined for a server in no-auth mode. VS Code treats the file's `apiKey` as a
+ * reference into its secret storage, never as the key itself, so a key written here is not sent
+ * unless it was also entered in VS Code. Without one, VS Code sends an empty key.
  */
-export function vscodeLanguageModels(llmBaseUrl: string, apiKey: string, models: ModelDef[], options: VscodeConfigOptions = {}): unknown[] {
+export function vscodeLanguageModels(llmBaseUrl: string, apiKey: string | undefined, models: ModelDef[], options: VscodeConfigOptions = {}): unknown[] {
   return [{
     name: options.name ?? 'Agent Test Server',
     vendor: 'customendpoint',
-    apiKey,
+    ...(apiKey === undefined ? {} : { apiKey }),
     models: models.map(model => {
       const protocol = options.protocol ?? model.protocol
       return {

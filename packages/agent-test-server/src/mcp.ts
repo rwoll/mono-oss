@@ -8,6 +8,15 @@ import { flattenHeaders, toWebRequest, writeWebResponse } from './http.ts'
 /** Serves each session's fake MCP servers over Streamable HTTP and records their traffic. */
 export class McpHost {
   private readonly handlers = new Map<string, McpHttpHandler>()
+  private readonly unauthenticated: (session: Session, headers: Record<string, string>) => boolean
+
+  constructor(unauthenticated: (session: Session, headers: Record<string, string>) => boolean = () => false) {
+    this.unauthenticated = unauthenticated
+  }
+
+  private mark(session: Session, headers: Record<string, string>): { unauthenticated?: true } {
+    return this.unauthenticated(session, headers) ? { unauthenticated: true } : {}
+  }
 
   async handle(session: Session, name: string, req: IncomingMessage, res: ServerResponse, url: URL, body: Buffer): Promise<void> {
     if (!session.mcpServers.has(name)) {
@@ -61,7 +70,7 @@ export class McpHost {
       if (typeof message !== 'object' || message === null) continue
       const method = (message as { method?: unknown }).method
       if (typeof method !== 'string' || method === 'tools/call' || method.startsWith('notifications/')) continue
-      session.add({ kind: 'mcp', status: 'completed', method: 'POST', path: url.pathname, headers, body: message, mcp: { server: name, method } })
+      session.add({ kind: 'mcp', status: 'completed', method: 'POST', path: url.pathname, headers, body: message, mcp: { server: name, method }, ...this.mark(session, headers) })
     }
   }
 
@@ -82,6 +91,7 @@ export class McpHost {
       kind: 'mcp', status: 'in_progress', method: 'POST', path: `/mcp/${server}`, headers,
       body: { method: 'tools/call', params: { name: tool.name, arguments: args } },
       mcp: { server, method: 'tools/call', tool: tool.name, arguments: args },
+      ...this.mark(session, headers),
     })
     if (tool.delayMs) await sleep(tool.delayMs)
     let result = tool.result ?? { text: `${tool.name} called with ${JSON.stringify(args ?? {})}` }

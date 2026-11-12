@@ -69,7 +69,8 @@ export class AgentTestClient {
     return this.call('GET', '/sessions')
   }
 
-  status(): Promise<{ name: string; url: string; sessions: string[] }> {
+  /** `noAuth` is set when the server accepts LLM and MCP requests without a session API key. */
+  status(): Promise<{ name: string; url: string; sessions: string[]; noAuth?: true }> {
     return this.call('GET', '/status')
   }
 

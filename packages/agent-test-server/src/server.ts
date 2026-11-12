@@ -27,6 +27,14 @@ export interface ServerOptions {
   apiKey?: string
   /** Reject LLM requests that don't carry the session's API key. Defaults to true. */
   requireApiKey?: boolean
+  /**
+   * Accept LLM and MCP requests without a session API key, for clients that can't be given one.
+   * A request to the server's root URL with no key, an empty key, or an unknown key goes to the
+   * default session; one that carries another session's key goes to that session. Only allowed
+   * when `host` is loopback (127.0.0.1, ::1, or localhost). The admin API still needs the admin
+   * token. Defaults to false.
+   */
+  noAuth?: boolean
   /** Loaded into the default session. */
   scenario?: ScenarioInput
 }
@@ -49,12 +57,26 @@ export interface SessionInfo {
 const PROTOCOL_PATHS: Record<string, Protocol> = { '/chat/completions': 'chat', '/responses': 'responses', '/messages': 'messages' }
 const DEFAULT_SESSION = 'default'
 
+/** Set on every LLM and MCP response from a server in no-auth mode. */
+const NO_AUTH_HEADER = 'x-agent-test-server-no-auth'
+
+/** Whether a `host` to listen on is only reachable from this machine. */
+export function isLoopbackHost(host: string): boolean {
+  return host === 'localhost' || host === '::1' || /^127(\.\d{1,3}){3}$/.test(host)
+}
+
+function presentedKeys(headers: Record<string, string>): string[] {
+  const bearer = /^Bearer\s+(.+)$/i.exec(headers.authorization ?? '')?.[1]
+  return [bearer, headers['x-api-key'], headers['api-key']].filter((key): key is string => !!key)
+}
+
 /** The fake LLM and MCP server. Drive it through the admin API, usually with the SDK or CLI. */
 export class AgentTestServer {
   readonly adminToken: string
   readonly requireApiKey: boolean
+  readonly noAuth: boolean
   private readonly sessions = new Map<string, Session>()
-  private readonly mcp = new McpHost()
+  private readonly mcp = new McpHost((session, headers) => this.unauthenticated(session, headers))
   private readonly http: Server
   private readonly options: ServerOptions
   private listenUrl = ''
@@ -62,7 +84,8 @@ export class AgentTestServer {
   private constructor(options: ServerOptions) {
     this.options = options
     this.adminToken = options.adminToken ?? `ats-admin-${randomBytes(16).toString('hex')}`
-    this.requireApiKey = options.requireApiKey ?? true
+    this.noAuth = options.noAuth ?? false
+    this.requireApiKey = !this.noAuth && (options.requireApiKey ?? true)
     this.sessions.set(DEFAULT_SESSION, new Session(DEFAULT_SESSION, options.apiKey))
     this.http = createServer((req, res) => {
       this.route(req, res).catch(error => {
@@ -76,12 +99,20 @@ export class AgentTestServer {
   }
 
   static async start(options: ServerOptions = {}): Promise<AgentTestServer> {
+    const listenHost = options.host ?? '127.0.0.1'
+    if (options.noAuth && !isLoopbackHost(listenHost)) {
+      throw new Error(`No-auth mode only listens on loopback (127.0.0.1, ::1, or localhost), not ${listenHost}: without API keys, anyone who can reach the port can use the server.`)
+    }
     const server = new AgentTestServer(options)
     await new Promise<void>((resolve, reject) => {
       server.http.once('error', reject)
-      server.http.listen(options.port ?? 0, options.host ?? '127.0.0.1', () => resolve())
+      server.http.listen(options.port ?? 0, listenHost, () => resolve())
     })
     const address = server.http.address() as AddressInfo
+    if (options.noAuth && !isLoopbackHost(address.address)) {
+      await server.close()
+      throw new Error(`No-auth mode only listens on loopback, but ${listenHost} resolved to ${address.address}.`)
+    }
     const host = address.family === 'IPv6' ? `[${address.address}]` : address.address
     server.listenUrl = `http://${host === '0.0.0.0' || host === '[::]' ? '127.0.0.1' : host}:${address.port}`
     if (options.scenario) server.load(server.session(DEFAULT_SESSION), options.scenario)
@@ -147,6 +178,12 @@ export class AgentTestServer {
       session = this.session(decodeURIComponent(scoped[1]!))
       path = scoped[2] ?? '/'
     }
+    const keys = presentedKeys(flattenHeaders(req.headers))
+    if (this.noAuth) {
+      res.setHeader(NO_AUTH_HEADER, '1')
+      // At the root URL, a session's key selects it, so a client that does send its key reaches its own session.
+      if (!scoped) session = [...this.sessions.values()].find(candidate => keys.includes(candidate.apiKey)) ?? session
+    }
     const mcp = /^\/mcp\/([^/]+)\/?$/.exec(path)
     if (mcp) return this.mcp.handle(session, decodeURIComponent(mcp[1]!), req, res, url, await readBody(req))
     const api = path.replace(/^\/v1(?=\/)/, '')
@@ -168,9 +205,12 @@ export class AgentTestServer {
 
   private authorized(session: Session, req: IncomingMessage): boolean {
     if (!this.requireApiKey) return true
-    const headers = flattenHeaders(req.headers)
-    const bearer = /^Bearer\s+(.+)$/i.exec(headers.authorization ?? '')?.[1]
-    return [bearer, headers['x-api-key'], headers['api-key']].includes(session.apiKey)
+    return presentedKeys(flattenHeaders(req.headers)).includes(session.apiKey)
+  }
+
+  /** In no-auth mode, whether a request reached the session without its API key. */
+  private unauthenticated(session: Session, headers: Record<string, string>): boolean {
+    return this.noAuth && !presentedKeys(headers).includes(session.apiKey)
   }
 
   private async llm(session: Session, protocol: Protocol, req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
@@ -185,7 +225,8 @@ export class AgentTestServer {
     } catch {
       body = raw.toString('utf8')
     }
-    const entry = session.add({ kind: 'llm', status: 'in_progress', method: 'POST', path: url.pathname, headers: flattenHeaders(req.headers), body })
+    const headers = flattenHeaders(req.headers)
+    const entry = session.add({ kind: 'llm', status: 'in_progress', method: 'POST', path: url.pathname, headers, body, ...(this.unauthenticated(session, headers) ? { unauthenticated: true } : {}) })
     const fail = (failure: Failure & { code?: string }, note?: string) => {
       if (note) entry.notes.push(note)
       const error = errorBody(protocol, failure)
@@ -310,7 +351,7 @@ export class AgentTestServer {
 
   private async adminRoute(method: string, parts: string[], input: unknown, url: URL, res: ServerResponse): Promise<unknown> {
     const [resource, sessionId, sub, subId, action] = parts
-    if (resource === 'status' && method === 'GET') return { name: '@rwoll/agent-test-server', url: this.url, sessions: [...this.sessions.keys()] }
+    if (resource === 'status' && method === 'GET') return { name: '@rwoll/agent-test-server', url: this.url, sessions: [...this.sessions.keys()], ...(this.noAuth ? { noAuth: true } : {}) }
     if (resource === 'reset' && method === 'POST') {
       for (const session of this.sessions.values()) {
         session.reset()
@@ -398,7 +439,7 @@ export class AgentTestServer {
         const protocol = url.searchParams.get('protocol')
         const info = this.info(session)
         return {
-          chatLanguageModels: vscodeLanguageModels(info.llmBaseUrl, info.apiKey, info.models, { protocol: protocol ? Protocol.parse(protocol) : undefined, name: url.searchParams.get('name') ?? undefined }),
+          chatLanguageModels: vscodeLanguageModels(info.llmBaseUrl, this.noAuth ? undefined : info.apiKey, info.models, { protocol: protocol ? Protocol.parse(protocol) : undefined, name: url.searchParams.get('name') ?? undefined }),
           mcp: vscodeMcpServers(info.mcpServers),
         }
       }

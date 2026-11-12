@@ -9,7 +9,7 @@ import { parseArgs } from 'node:util'
 import { AgentTestClient, AgentTestServerError, type SessionHandle } from './client.ts'
 import type { Matcher, McpToolInput, ReplyInput, ReplyPart, RuleInput } from './scenario.ts'
 import { PROTOCOLS, scenarioJsonSchema, type Protocol } from './scenario.ts'
-import { AgentTestServer } from './server.ts'
+import { AgentTestServer, isLoopbackHost } from './server.ts'
 import type { LogEntry, RequestFilter } from './session.ts'
 import { lastUserText } from './normalize.ts'
 
@@ -22,9 +22,15 @@ Server:
   start                        Start a server in the background and save its URL and admin token
                                to the state file. --port, --host, --public-url, --api-key,
                                --admin-token, --scenario <file>, --unmatched <text|error|manual>.
+                               --no-auth accepts LLM and MCP requests without a session API key,
+                               for clients that can't be given one: a request with no key, an
+                               empty key, or an unknown key goes to the default session. Only on
+                               loopback (--host 127.0.0.1, ::1, or localhost). The admin API
+                               still needs the admin token.
   serve                        Same as start, in the foreground.
   stop                         Stop the server in the state file.
-  status                       The server and the session's URLs, API key, models, and MCP servers.
+  status                       The server and the session's URLs, API key, models, and MCP servers,
+                               and noAuth: true in no-auth mode.
 
 Sessions (each has its own API key, rules, request log, and MCP servers):
   session create [--id <id>]   Create a session. Use it with --session <id> or AGENT_TEST_SERVER_SESSION.
@@ -73,7 +79,9 @@ MCP:
 VS Code:
   config vscode                chatLanguageModels.json (Custom Endpoint provider) and mcp.json content.
                                --protocol overrides each model's; --write <file> and --write-mcp <file>
-                               write the files.
+                               write the files. In no-auth mode the models file has no apiKey:
+                               VS Code reads keys only from its secret storage, and sends an
+                               empty one.
 
 Connection: --state <file> (default ~/.agent-test-server/server.json, or AGENT_TEST_SERVER_STATE),
 or --url and --admin-token (AGENT_TEST_SERVER_URL, AGENT_TEST_SERVER_ADMIN_TOKEN).
@@ -91,6 +99,7 @@ const options = {
   port: { type: 'string' },
   'public-url': { type: 'string' },
   'api-key': { type: 'string' },
+  'no-auth': { type: 'boolean' },
   scenario: { type: 'string' },
   // rules
   'when-user': { type: 'string' },
@@ -288,6 +297,7 @@ function summary(entry: LogEntry): unknown {
     time: entry.time,
     kind: entry.kind,
     status: entry.status,
+    ...(entry.unauthenticated ? { unauthenticated: true } : {}),
     ...(llm ? {
       protocol: llm.protocol,
       model: llm.model,
@@ -306,6 +316,13 @@ async function serve(values: Values, background: boolean): Promise<void> {
   const path = statePath(values)
   const existing = readState(path)
   if (existing?.pid && isAlive(existing.pid)) throw new UsageError(`A server is already running (pid ${existing.pid}, ${existing.url}). Stop it first, or pass another --state.`)
+  const noAuth = values['no-auth'] ?? false
+  if (noAuth && !isLoopbackHost(values.host ?? '127.0.0.1')) {
+    throw new UsageError(`--no-auth only works on loopback (--host 127.0.0.1, ::1, or localhost), not --host ${values.host}: without API keys, anyone who can reach the port can use the server.`)
+  }
+  const warn = () => {
+    if (noAuth) process.stderr.write('agent-test-server: warning: no-auth mode. LLM and MCP requests are accepted without a session API key, from this machine only. The admin API still needs the admin token.\n')
+  }
   if (background) {
     mkdirSync(dirname(path), { recursive: true })
     rmSync(path, { force: true })
@@ -316,7 +333,10 @@ async function serve(values: Values, background: boolean): Promise<void> {
     child.unref()
     for (let i = 0; i < 100; i++) {
       const state = readState(path)
-      if (state && state.pid === child.pid) return print(await describe(new AgentTestClient(state), 'default', path, state.pid))
+      if (state && state.pid === child.pid) {
+        warn()
+        return print(await describe(new AgentTestClient(state), 'default', path, state.pid))
+      }
       if (child.exitCode !== null) break
       await sleep(100)
     }
@@ -329,6 +349,7 @@ async function serve(values: Values, background: boolean): Promise<void> {
     publicUrl: values['public-url'],
     apiKey: values['api-key'],
     adminToken: values['admin-token'],
+    noAuth,
     scenario: values.unmatched ? { ...scenario, unmatched: values.unmatched } : scenario,
   })
   writeState(path, { url: server.url, adminToken: server.adminToken, pid: process.pid })
@@ -340,12 +361,13 @@ async function serve(values: Values, background: boolean): Promise<void> {
   }
   process.once('SIGINT', shutdown)
   process.once('SIGTERM', shutdown)
+  warn()
   print(await describe(new AgentTestClient(server), 'default', path, process.pid))
 }
 
 async function describe(client: AgentTestClient, session: string, state: string, pid?: number): Promise<unknown> {
-  const info = await client.session(session).info()
-  return { url: client.url, adminToken: client.adminToken, pid, state, session: info }
+  const [status, info] = await Promise.all([client.status(), client.session(session).info()])
+  return { url: client.url, adminToken: client.adminToken, pid, state, ...(status.noAuth ? { noAuth: true } : {}), session: info }
 }
 
 function isAlive(pid: number): boolean {
