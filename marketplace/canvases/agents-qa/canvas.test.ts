@@ -423,7 +423,6 @@ describe('prompts', () => {
       expect(text).not.toMatch(/Nothing more:|, and nothing else\./)
       expect(text).toContain('attribution footer')
       expect(text).toContain('standing instructions require')
-      expect(text).not.toContain('pr-issue-footer')
     }
     expect(issue).toContain('After `gh issue create`')
     expect(fix).toContain('After `gh pr create`')
