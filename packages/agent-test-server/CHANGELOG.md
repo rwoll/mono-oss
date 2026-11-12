@@ -6,6 +6,8 @@ Notable changes to `@rwoll/agent-test-server`. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-12
+
 ### Added
 
 - `start --no-auth` and `startServer({ noAuth: true })`: an opt-in mode that accepts LLM and
@@ -40,4 +42,5 @@ Notable changes to `@rwoll/agent-test-server`. The format follows
 - `chatLanguageModels.json` and `mcp.json` for VS Code's Custom Endpoint provider.
 - A TypeScript SDK, Playwright Test fixtures, and the `agent-test-server` CLI.
 
+[0.2.0]: https://github.com/rwoll/mono-oss/releases/tag/agent-test-server@0.2.0
 [0.1.0]: https://github.com/rwoll/mono-oss/releases/tag/agent-test-server@0.1.0
