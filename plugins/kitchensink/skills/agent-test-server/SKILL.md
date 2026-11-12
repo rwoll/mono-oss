@@ -39,6 +39,16 @@ with the base URL without `/v1`.
 When the client runs in a container or VM, start with `--host 0.0.0.0 --public-url
 http://<address the client can reach>:<port> --port <port>`.
 
+**When VS Code can't be given the key**, start with `agent-test-server start --no-auth`
+(version 0.2.0 or later). VS Code reads a Custom Endpoint group's API key only from its secret
+storage, never from `chatLanguageModels.json`, so a VS Code set up by a script, such as a
+signed-out one in a disposable container, sends an empty key and gets 401 ("Incorrect API key
+provided"). With `--no-auth`, LLM and MCP requests with no key, an empty key, or an unknown key
+go to the `default` session, and `config vscode` writes the file without `apiKey`. It only
+works when the server runs on the client's machine: it refuses any `--host` but `127.0.0.1`,
+`::1`, or `localhost`. The admin API still needs the admin token. `start` and `status` print
+`noAuth: true`, and `requests` marks those requests `unauthenticated: true`.
+
 Stop it with `agent-test-server stop` when you're done.
 
 ## Script the model
