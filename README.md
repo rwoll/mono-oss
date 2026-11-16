@@ -17,15 +17,19 @@ copilot plugin install kitchensink@rwoll
 
 <table>
   <tr>
-    <td align="center" width="166"><a href="#pr-descriptions"><img src="docs/pr-descriptions/logo.png" alt="" width="88"><br><b>pr-descriptions</b></a><br>skimmable PRs</td>
-    <td align="center" width="166"><a href="#annotate"><img src="docs/annotate/logo.png" alt="" width="88"><br><b>annotate</b></a><br>marked-up media</td>
-    <td align="center" width="166"><a href="#agents-qa"><img src="docs/agents-qa/logo.png" alt="" width="88"><br><b>agents-qa</b></a><br>daily QA</td>
-    <td align="center" width="166"><a href="#session-summary"><img src="docs/session-summary/logo.png" alt="" width="88"><br><b>session-summary</b></a><br>status at a glance</td>
-    <td align="center" width="166"><a href="#bakeoff"><img src="docs/bakeoff/logo.png" alt="" width="88"><br><b>bakeoff</b></a><br>pick the best</td>
-    <td align="center" width="166"><a href="#canvas-kit"><img src="docs/canvas-kit/logo.png" alt="" width="88"><br><b>canvas-kit</b></a><br>build canvases</td>
-    <td align="center" width="166"><a href="#blobby-sandbox"><img src="docs/blobby-sandbox/logo.png" alt="" width="88"><br><b>Blobby Sandbox</b></a><br>test desktops</td>
-    <td align="center" width="166"><a href="#agent-test-server"><img src="docs/agent-test-server/logo.png" alt="" width="88"><br><b>agent-test-server</b></a><br>fake LLM and MCP</td>
-    <td align="center" width="166"><a href="#blobby-type"><img src="docs/blobby-type/logo.png" alt="" width="88"><br><b>Blobby Type</b></a><br>faster typing</td>
+    <td align="center" width="277"><a href="#pr-descriptions"><img src="docs/pr-descriptions/logo.png" alt="" width="88"><br><b>pr-descriptions</b></a><br>skimmable PRs</td>
+    <td align="center" width="277"><a href="#annotate"><img src="docs/annotate/logo.png" alt="" width="88"><br><b>annotate</b></a><br>marked-up media</td>
+    <td align="center" width="277"><a href="#agents-qa"><img src="docs/agents-qa/logo.png" alt="" width="88"><br><b>agents-qa</b></a><br>daily QA</td>
+  </tr>
+  <tr>
+    <td align="center" width="277"><a href="#session-summary"><img src="docs/session-summary/logo.png" alt="" width="88"><br><b>session-summary</b></a><br>status at a glance</td>
+    <td align="center" width="277"><a href="#bakeoff"><img src="docs/bakeoff/logo.png" alt="" width="88"><br><b>bakeoff</b></a><br>pick the best</td>
+    <td align="center" width="277"><a href="#canvas-kit"><img src="docs/canvas-kit/logo.png" alt="" width="88"><br><b>canvas-kit</b></a><br>build canvases</td>
+  </tr>
+  <tr>
+    <td align="center" width="277"><a href="#blobby-sandbox"><img src="docs/blobby-sandbox/logo.png" alt="" width="88"><br><b>Blobby Sandbox</b></a><br>test desktops</td>
+    <td align="center" width="277"><a href="#agent-test-server"><img src="docs/agent-test-server/logo.png" alt="" width="88"><br><b>agent-test-server</b></a><br>fake LLM and MCP</td>
+    <td align="center" width="277"><a href="#blobby-type"><img src="docs/blobby-type/logo.png" alt="" width="88"><br><b>Blobby Type</b></a><br>faster typing</td>
   </tr>
 </table>
 
