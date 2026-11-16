@@ -118,6 +118,15 @@ function NoteField({ value, onSave, label, placeholder, disabled, single, field 
 
 export { NoteField }
 
+/** Opens a variant alone, as large as the panel allows. */
+export function ExpandButton({ variant, onExpand }: { variant: Variant; onExpand: () => void }) {
+  return (
+    <button type="button" className="expand" aria-label={`Expand ${variant.label}`} title="Show this variant alone, as large as the panel allows" onClick={onExpand}>
+      Expand
+    </button>
+  )
+}
+
 export interface CardActions {
   vote(variant: string, vote: Vote | null): void
   note(variant: string, note: string): Promise<unknown>
@@ -134,10 +143,11 @@ interface CardProps extends ViewOptions {
   /** An earlier round: what was decided, with nothing to change. */
   readOnly: boolean
   actions: CardActions
+  onExpand(): void
 }
 
 /** One variant in the grid: what it is, the vote, and the note with its pins and quotes. */
-export function VariantCard({ bakeoff, variant, entry, blind, readOnly, actions, ...view }: CardProps) {
+export function VariantCard({ bakeoff, variant, entry, blind, readOnly, actions, onExpand, ...view }: CardProps) {
   const body = useRef<HTMLDivElement>(null)
   const note = useRef<HTMLTextAreaElement>(null)
   const [selected, setSelected] = useState('')
@@ -182,6 +192,7 @@ export function VariantCard({ bakeoff, variant, entry, blind, readOnly, actions,
             {made}
           </span>
         )}
+        <ExpandButton variant={variant} onExpand={onExpand} />
       </div>
       <div className="variant-body" ref={body}>
         <Preview bakeoff={bakeoff} variant={variant} {...view} pins={pins} onPin={readOnly ? undefined : (x, y) => void mark({ x, y })} onUnpin={readOnly ? undefined : (n) => actions.unmark(variant.id, n)} />

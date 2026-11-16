@@ -100,6 +100,16 @@ test('renders Markdown, quotes selected text, and shows HTML mocks without runni
     await expect(frame.locator('body')).toHaveCSS('background-color', 'rgb(0, 0, 0)')
   }
 
+  // Expanded, the mock fills the panel, and a click in it does not take the keys away.
+  await page.getByRole('button', { name: 'Expand B' }).click()
+  const expanded = page.getByRole('dialog', { name: 'Variant B, expanded' })
+  await expanded.locator('iframe').click({ position: { x: 200, y: 200 } })
+  await expect(expanded).toBeFocused()
+  await page.keyboard.press('ArrowLeft')
+  await expect(page.getByRole('dialog', { name: 'Variant A, expanded' }).getByRole('columnheader', { name: 'Phase' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toBeHidden()
+
   await page.getByRole('button', { name: 'Source' }).click()
   await expect(a.locator('pre')).toContainText('| Phase | From |')
   await expect(page.getByRole('article', { name: 'Variant B' }).locator('pre')).toContainText('<button>Ask the agent</button>')
@@ -114,6 +124,24 @@ test('picks head to head, asks for another round, and uses the winner', async ({
   await page.getByRole('button', { name: 'Head to head' }).click()
   await expect(page.getByText('Match 1 of 1.')).toBeVisible()
   await expect(page.getByRole('region', { name: 'Decide' })).toBeHidden()
+
+  // The two variants share the panel's height: the page does not scroll, and each scrolls in its own box.
+  await page.setViewportSize({ width: 1200, height: 800 })
+  const preview = page.getByRole('article', { name: 'Variant A' }).locator('.preview')
+  await expect.poll(async () => (await preview.boundingBox())?.height).toBeGreaterThan(500)
+  expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight)).toBe(0)
+
+  // Expanded, a variant fills the panel; the arrow keys flip between the two and pick nothing.
+  await page.getByRole('button', { name: 'Expand A' }).click()
+  await expect(page.getByRole('dialog', { name: 'Variant A, expanded' })).toContainText('One')
+  await page.keyboard.press('ArrowRight')
+  const expanded = page.getByRole('dialog', { name: 'Variant B, expanded' })
+  await expect(expanded).toContainText('Two')
+  expect((await expanded.locator('.preview').boundingBox())?.width).toBeGreaterThan(1100)
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toBeHidden()
+  await expect(page.getByText('Match 1 of 1.')).toBeVisible()
+
   await page.getByRole('button', { name: 'B is better' }).click()
   await expect(page.getByRole('status')).toContainText('B won head to head')
   await page.getByRole('button', { name: 'Back to the grid' }).click()

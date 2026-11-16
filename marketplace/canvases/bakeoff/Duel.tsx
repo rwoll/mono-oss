@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useKeysBack } from './hooks.ts'
 import type { Variant } from './schema.ts'
-import { Preview, type ViewOptions } from './Variant.tsx'
+import { ExpandButton, Preview, type ViewOptions } from './Variant.tsx'
 
 interface DuelProps extends ViewOptions {
   bakeoff: string
@@ -9,13 +10,17 @@ interface DuelProps extends ViewOptions {
   /** The variant that won every match it played. */
   onWinner(variant: string): void
   onDone(): void
+  /** Show one variant alone, with the variants on screen to flip between. */
+  onExpand(variant: string, among: string[]): void
+  /** A variant is expanded over the match: the keys belong to it, and pick nothing. */
+  paused: boolean
 }
 
 /**
  * Two variants at a time: the one the user would rather get stays and meets the next, so N variants
  * take N - 1 matches. It shows no votes, notes, or what made a variant, so nothing sways the pick.
  */
-export function Duel({ bakeoff, variants, onWinner, onDone, ...view }: DuelProps) {
+export function Duel({ bakeoff, variants, onWinner, onDone, onExpand, paused, ...view }: DuelProps) {
   const [match, setMatch] = useState({ champion: 0, challenger: 1, done: false })
   const champion = variants[match.champion]
   const challenger = variants[match.challenger]
@@ -31,7 +36,7 @@ export function Duel({ bakeoff, variants, onWinner, onDone, ...view }: DuelProps
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.metaKey || event.ctrlKey || event.altKey || (event.target instanceof HTMLElement && event.target.matches('input, textarea, select'))) return
+      if (paused || event.metaKey || event.ctrlKey || event.altKey || (event.target instanceof HTMLElement && event.target.matches('input, textarea, select'))) return
       const side = event.key === 'ArrowLeft' ? 'left' : event.key === 'ArrowRight' ? 'right' : event.key === '=' ? 'tie' : null
       if (!side) return
       event.preventDefault()
@@ -40,12 +45,15 @@ export function Duel({ bakeoff, variants, onWinner, onDone, ...view }: DuelProps
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   })
+  useKeysBack(() => (document.activeElement as HTMLElement | null)?.blur())
 
   if (!champion || !challenger) return <p className="notice">Head to head needs at least two variants that are not dropped.</p>
+  const onScreen = match.done ? [champion.id] : [champion.id, challenger.id]
   const side = (variant: Variant) => (
     <article className="variant" aria-label={`Variant ${variant.label}`}>
       <div className="variant-head">
         <span className="letter">{variant.label}</span>
+        <ExpandButton variant={variant} onExpand={() => onExpand(variant.id, onScreen)} />
       </div>
       <Preview bakeoff={bakeoff} variant={variant} {...view} />
     </article>

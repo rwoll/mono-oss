@@ -44,3 +44,25 @@ export function useContent(bakeoff: string, variant: Variant): { content?: strin
   }, [id, key])
   return loaded?.key === key ? loaded : {}
 }
+
+/**
+ * A click in an HTML mock moves the keyboard into its frame, where this page's keys do nothing: take
+ * it back. Tab still goes in, so the mock can be scrolled from the keyboard.
+ */
+export function useKeysBack(back: () => void): void {
+  useEffect(() => {
+    let tabbed = 0
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Tab') tabbed = Date.now()
+    }
+    const onBlur = () => {
+      if (document.activeElement instanceof HTMLIFrameElement && Date.now() - tabbed > 200) setTimeout(back)
+    }
+    window.addEventListener('keydown', onKey, true)
+    window.addEventListener('blur', onBlur)
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      window.removeEventListener('blur', onBlur)
+    }
+  })
+}

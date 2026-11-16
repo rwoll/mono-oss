@@ -1,5 +1,5 @@
-/* Comparing takes room: this canvas uses a wide panel when it has one. */
-:root { --width: 1280px; }
+/* Comparing takes room: this canvas uses the whole panel, however wide. */
+:root { --width: none; }
 
 /* Toolbar */
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
@@ -22,13 +22,14 @@ button.link:hover:not(:disabled) { background: none; filter: brightness(1.15); }
 
 /* Variants */
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); align-items: start; gap: 18px 20px; }
-.duel { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); align-items: start; gap: 20px; }
-.duel.one { grid-template-columns: minmax(0, 560px); justify-content: center; }
+.duel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); flex: 1; min-height: 0; gap: 20px; }
+.duel.one { grid-template-columns: minmax(0, 1fr); }
 .variant { display: grid; align-content: start; gap: 6px; min-width: 0; }
 .variant-head { display: flex; align-items: center; gap: 8px; min-height: 20px; font-size: 12px; white-space: nowrap; }
 /* Every letter looks the same, so color favors no variant. */
 .letter { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 4px; border-radius: var(--radius); background: var(--tint); font-weight: 700; }
 .made { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.expand { min-height: 20px; margin-left: auto; padding: 0 6px; font-size: 12px; }
 .variant-body { min-width: 0; }
 .preview { position: relative; border: 1px solid var(--hairline); border-radius: var(--radius); overflow: hidden; }
 .preview-message { padding: 12px; border: 1px solid var(--hairline); }
@@ -54,8 +55,7 @@ button.link:hover:not(:disabled) { background: none; filter: brightness(1.15); }
 .bd-checker { background: repeating-conic-gradient(#d9dde2 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
 .shot { position: relative; display: inline-block; line-height: 0; }
 .shot.pinnable img { cursor: crosshair; }
-.preview.media img, .preview.media video { display: block; max-width: 100%; max-height: 260px; }
-.duel .preview.media img, .duel .preview.media video { max-height: 60vh; }
+.preview.media img, .preview.media video { display: block; max-width: 100%; max-height: clamp(240px, 50vh, 640px); }
 .pin {
   position: absolute; display: grid; place-items: center; width: 18px; min-height: 18px; height: 18px; margin: -9px 0 0 -9px; padding: 0;
   border: 1.5px solid #fff; border-radius: 50%; background: #cf222e; color: #fff; font-size: 11px; line-height: 1; font-weight: 700;
@@ -64,8 +64,7 @@ button.link:hover:not(:disabled) { background: none; filter: brightness(1.15); }
 button.pin:hover { background: #a40e26; }
 
 /* Markdown and text */
-.preview.doc { max-height: 320px; overflow: auto; padding: 10px 12px; }
-.duel .preview.doc { max-height: 65vh; }
+.preview.doc { max-height: clamp(280px, 60vh, 800px); overflow: auto; padding: 10px 12px; }
 .source { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/17px var(--mono); }
 .quote-button { justify-self: start; }
 .quotes { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; font-size: 12px; }
@@ -74,9 +73,45 @@ button.pin:hover { background: #a40e26; }
 .pin.inline { position: static; flex: none; margin: 0; box-shadow: none; border: 0; align-self: center; }
 
 /* HTML mocks */
-.preview.frame { height: 240px; resize: vertical; }
-.duel .preview.frame { height: 50vh; }
+.preview.frame { height: clamp(240px, 50vh, 640px); resize: vertical; }
 .preview.frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+
+/*
+ * Head to head and an expanded variant give a preview all the room there is: head to head takes the
+ * panel's height, so the page does not scroll and each variant scrolls inside its own box. The page
+ * footer (canvas-kit's version line) is 28px.
+ */
+.app.fill { display: flex; flex-direction: column; height: calc(100dvh - 28px); min-height: 420px; }
+.app.fill .page { display: flex; flex-direction: column; flex: 1; width: 100%; min-height: 0; margin: 0; }
+.app.fill .page > * { flex: none; }
+.app.fill .page > .duel { flex: 1; }
+.duel .variant { grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
+:is(.duel, .expanded) .preview { min-height: 0; }
+:is(.duel, .expanded) .preview.doc { max-height: none; }
+:is(.duel, .expanded) .preview.frame { height: auto; resize: none; }
+:is(.duel, .expanded) .preview.media { container-type: size; }
+:is(.duel, .expanded) .preview.media :is(img, video) { max-width: calc(100cqw - 24px); max-height: calc(100cqh - 24px); }
+
+.expanded { width: calc(100% - 16px); max-width: none; height: calc(100% - 16px); max-height: none; padding: 8px 12px 12px; overflow: hidden; }
+.expanded[open] { display: flex; flex-direction: column; gap: 8px; }
+.expanded:focus { outline: none; }
+.expanded-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.expanded-bar .keys { margin-left: auto; font-size: 12px; }
+.expanded > .preview { flex: 1; }
+.expanded > .preview-message { margin: 0; }
+/* Prose stays a readable width, centered, however wide the panel is. */
+.expanded .preview.doc > .ui-markdown { max-width: 980px; margin: 0 auto; }
+
+/* A narrow panel stacks the two, each a good part of the panel's height, and the page scrolls. */
+@media (max-width: 640px) {
+  .app.fill { display: block; height: auto; min-height: 0; }
+  .app.fill .page { display: grid; }
+  .duel { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .duel .preview.doc { max-height: 65vh; }
+  .duel .preview.frame { height: 60vh; }
+  .duel .preview.media { container-type: normal; }
+  .duel .preview.media :is(img, video) { max-width: 100%; max-height: 60vh; }
+}
 
 /* Outcome */
 .outcome { gap: 6px; padding-top: 10px; border-top: 1px solid var(--hairline); }

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Header } from '../../ui'
 import { Duel } from './Duel.tsx'
+import { Expanded } from './Expanded.tsx'
 import { client, saved, track, useCanvas } from './hooks.ts'
-import type { Round, Variant } from './schema.ts'
+import type { Mark, Round, Variant } from './schema.ts'
 import { formatCredits, madeWith } from './shared.ts'
 import { NoteField, VariantCard, type Backdrop, type CardActions } from './Variant.tsx'
 import '../../ui/theme.css'
@@ -31,6 +32,8 @@ function App() {
   const [blind, setBlind] = useState(true)
   const [error, setError] = useState<string>()
   const [sending, setSending] = useState(false)
+  // The variant shown alone over the page, and the ones to flip between from there.
+  const [expanded, setExpanded] = useState<{ id: string; among: readonly string[] } | null>(null)
   // The round on screen: the latest, unless the user is looking back at an earlier one.
   const [viewing, setViewing] = useState<{ round: number | null; rounds: number }>({ round: null, rounds: state.rounds.length })
   if (viewing.rounds !== state.rounds.length) setViewing({ round: null, rounds: state.rounds.length })
@@ -47,6 +50,10 @@ function App() {
   const credits = shown.filter(({ variant, entry }) => variant.credits !== null && !entry.carried)
   const hasProvenance = shown.some(({ variant }) => madeWith(variant))
   const contenders = shown.filter(({ entry }) => entry.vote !== 'drop').map(({ variant }) => variant)
+  const duel = layout === 'duel' && !readOnly && shown.length > 0
+  const alone = expanded ? variants.get(expanded.id) : undefined
+  // Head to head shows no notes, so it shows no pins either.
+  const alonePins = duel ? undefined : round.entries.find((entry) => entry.variant === alone?.id)?.marks.filter((mark): mark is Extract<Mark, { x: number }> => 'x' in mark)
 
   /** Run an action, and say so when it fails. */
   const attempt = async <T,>(action: () => Promise<T>): Promise<T | undefined> => {
@@ -81,7 +88,7 @@ function App() {
   ]
 
   return (
-    <>
+    <div className={duel ? 'app fill' : 'app'}>
       <Header title={`Bakeoff · ${state.title}`} badge={<span className={`pill ${readOnly ? 'status-idle' : 'status-working'}`}>Round {round.number}</span>} />
       <main className="page">
         {shown.length > 0 && (
@@ -161,12 +168,30 @@ function App() {
         )}
 
         {shown.length > 0 &&
-          (layout === 'duel' && !readOnly ? (
-            <Duel bakeoff={state.id} variants={contenders} {...view} onWinner={(variant) => actions.vote(variant, 'pick')} onDone={() => setLayout('grid')} />
+          (duel ? (
+            <Duel
+              bakeoff={state.id}
+              variants={contenders}
+              {...view}
+              onWinner={(variant) => actions.vote(variant, 'pick')}
+              onDone={() => setLayout('grid')}
+              onExpand={(id, among) => setExpanded({ id, among })}
+              paused={alone !== undefined}
+            />
           ) : (
             <div className="grid">
               {shown.map(({ entry, variant }) => (
-                <VariantCard key={variant.id} bakeoff={state.id} variant={variant} entry={entry} blind={blind && !readOnly} readOnly={readOnly} actions={actions} {...view} />
+                <VariantCard
+                  key={variant.id}
+                  bakeoff={state.id}
+                  variant={variant}
+                  entry={entry}
+                  blind={blind && !readOnly}
+                  readOnly={readOnly}
+                  actions={actions}
+                  onExpand={() => setExpanded({ id: variant.id, among: shown.map((each) => each.variant.id) })}
+                  {...view}
+                />
               ))}
             </div>
           ))}
@@ -210,7 +235,18 @@ function App() {
           </section>
         )}
       </main>
-    </>
+      {expanded && alone && (
+        <Expanded
+          bakeoff={state.id}
+          variants={expanded.among.flatMap((id) => variants.get(id) ?? [])}
+          current={alone}
+          pins={alonePins}
+          {...view}
+          onShow={(id) => setExpanded({ ...expanded, id })}
+          onClose={() => setExpanded(null)}
+        />
+      )}
+    </div>
   )
 }
 
