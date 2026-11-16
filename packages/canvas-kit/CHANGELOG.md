@@ -11,6 +11,11 @@ things.
 
 ## [Unreleased]
 
+### Added
+
+- The `Markdown` component in the `ui/` folder renders tables, and shows an image
+  as a labeled placeholder, since pages cannot load images from elsewhere.
+
 ### Changed
 
 - A plugin in `canvasKit({ plugins })` can list only `skills`, with no `canvases`.

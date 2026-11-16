@@ -24,6 +24,7 @@ copilot plugin install kitchensink@rwoll
 | [`agent-test-server`](https://github.com/rwoll/mono-oss/blob/main/marketplace/skills/agent-test-server/SKILL.md) | A skill to test LLM and MCP clients, such as VS Code's BYOK models, against a fake server with [`@rwoll/agent-test-server`](https://github.com/rwoll/mono-oss/tree/main/packages/agent-test-server). |
 | [`agents-qa`](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases/agents-qa) | Scheduled QA runs of the VS Code Agents window in a Blobby sandbox (a skill), and a canvas to triage what they find. |
 | [`session-summary`](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases/session-summary) | A canvas with an executive summary of the chat that the agent keeps up to date. |
+| [`bakeoff`](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases/bakeoff) | A canvas to compare variants the agent made (images, Markdown, HTML mocks), blind or head to head, vote and comment, and send the result back for another round, and a [skill](https://github.com/rwoll/mono-oss/blob/main/marketplace/skills/bakeoff/SKILL.md) to make the variants from one brief on the models you name. |
 
 Skills live in [skills/](https://github.com/rwoll/mono-oss/tree/main/marketplace/skills)
 and canvases in [canvases/](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases),

@@ -1,0 +1,143 @@
+<!doctype html>
+<!--
+  The bakeoff README hero, in light and dark. render.ts renders it at 1920x1080 (hero.html#light and #dark).
+  Every name and value in it is made up. Blobby sprites: microsoft/vscode, MIT (see ../LICENSE-blobby-sprites.txt).
+-->
+<html><head><meta charset="utf-8"><title>bakeoff</title>
+<style>
+  :root {
+    --bg: #faf6f2; --fg: #1f150e; --muted: #6e5f54; --faint: #a39386; --panel: #ffffff; --border: #ece2d9; --code: #f5eee8; --tile: #ffffff;
+    --accent: #b5642f; --ok: #1a7f37; --ok-soft: #e6f4ea; --blue: #0969da; --blue-soft: #e3effd; --bad: #cf222e; --bad-soft: #fde8ea;
+    --shadow: 0 1px 2px rgba(31, 21, 14, .06), 0 10px 28px rgba(31, 21, 14, .07);
+  }
+  :root.dark {
+    --bg: #130e0a; --fg: #f5eee8; --muted: #b0a094; --faint: #7a6b5f; --panel: #1c1510; --border: #35281f; --code: #241b15; --tile: #0d1117;
+    --accent: #e9a26c; --ok: #3fb950; --ok-soft: rgba(63, 185, 80, .16); --blue: #4493f8; --blue-soft: rgba(68, 147, 248, .16); --bad: #f85149; --bad-soft: rgba(248, 81, 73, .16);
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px rgba(0, 0, 0, .3);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1920px; height: 1080px; background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, sans-serif; -webkit-font-smoothing: antialiased; }
+  .pixel { image-rendering: pixelated; }
+  .page { position: absolute; inset: 0 84px; }
+
+  header { position: absolute; top: 60px; display: flex; align-items: center; gap: 16px; }
+  header img { width: 50px; height: 50px; }
+  header span { font-size: 29px; font-weight: 600; letter-spacing: -.01em; }
+  h1 { position: absolute; top: 118px; margin: 0; font-size: 68px; font-weight: 800; letter-spacing: -.035em; white-space: nowrap; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .sub { position: absolute; top: 205px; margin: 0; font-size: 26px; color: var(--muted); white-space: nowrap; }
+
+  .window { position: absolute; top: 264px; left: 0; right: 0; height: 580px; border: 1px solid var(--border); border-radius: 16px;
+    background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+  .titlebar { height: 46px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 600; color: var(--muted); position: relative; }
+  .dots { position: absolute; left: 18px; display: flex; gap: 9px; }
+  .dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--border); }
+  .body { padding: 16px 26px; }
+
+  .toolbar { display: flex; align-items: center; gap: 14px; height: 32px; margin-bottom: 14px; font-size: 15px; color: var(--muted); }
+  .seg { display: flex; }
+  .seg span { border: 1px solid var(--border); padding: 4px 12px; margin-left: -1px; color: var(--fg); }
+  .seg span:first-child { margin-left: 0; border-radius: 6px 0 0 6px; }
+  .seg span:last-child { border-radius: 0 6px 6px 0; }
+  .seg .sel, :root:not(.dark) .seg .in-light, :root.dark .seg .in-dark { background: var(--code); font-weight: 700; }
+  .blind { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .blind i { width: 16px; height: 16px; border: 1.5px solid var(--faint); border-radius: 4px; }
+
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
+  .chead { display: flex; align-items: center; gap: 9px; height: 26px; margin-bottom: 6px; font-size: 14.5px; color: var(--muted); white-space: nowrap; }
+  .chead b { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 5px; background: var(--code); color: var(--fg); font-size: 15px; }
+  .win { padding: 1px 8px; border-radius: 5px; background: var(--ok-soft); color: var(--ok); font-size: 13px; font-weight: 700; }
+  .tile { height: 268px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 6px; background: var(--tile); }
+  .winner .tile { border-color: var(--ok); box-shadow: 0 0 0 2px var(--ok); }
+  /* Blobby at 1.5x: one sprite pixel is 12 px, and the props sit on the same grid. */
+  .logo { position: relative; width: 240px; height: 240px; border-radius: 54px; overflow: hidden; }
+  .logo svg { position: absolute; inset: 0; width: 240px; height: 240px; shape-rendering: crispEdges; }
+  .logo img { position: absolute; left: 12px; top: 84px; width: 144px; height: 144px; }
+  .wrap { position: relative; }
+  .dropped .logo { opacity: .55; }
+  .pin { position: absolute; display: grid; place-items: center; width: 24px; height: 24px; margin: -12px 0 0 -12px; border: 2px solid #fff; border-radius: 50%;
+    background: #cf222e; color: #fff; font-size: 14px; font-weight: 700; box-shadow: 0 1px 3px rgba(0, 0, 0, .4); }
+  .votes { display: grid; grid-template-columns: repeat(3, 1fr); margin: 6px 0; }
+  .votes span { height: 32px; display: grid; place-items: center; border: 1px solid var(--border); margin-left: -1px; font-size: 15px; }
+  .votes span:first-child { margin-left: 0; }
+  .votes .on { font-weight: 700; position: relative; }
+  .votes .pick { color: var(--ok); border-color: var(--ok); background: var(--ok-soft); }
+  .votes .keep { color: var(--blue); border-color: var(--blue); background: var(--blue-soft); }
+  .votes .drop { color: var(--bad); border-color: var(--bad); background: var(--bad-soft); }
+  .note { height: 54px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 15px; line-height: 1.35; }
+  .note.empty { color: var(--faint); }
+
+  .decide { display: flex; align-items: center; gap: 14px; margin-top: 14px; height: 36px; font-size: 15px; color: var(--muted); white-space: nowrap; }
+  .overall { flex: 1; height: 36px; display: flex; align-items: center; padding: 0 12px; border: 1px solid var(--border); border-radius: 6px; color: var(--fg); font-size: 16px; }
+  .btn { height: 36px; display: flex; align-items: center; padding: 0 14px; border: 1px solid var(--border); border-radius: 6px; color: var(--fg); font-size: 15px; }
+  .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 700; }
+  :root.dark .btn.primary { color: #06121c; }
+
+  .caption { position: absolute; top: 862px; left: 0; right: 0; text-align: center; font-size: 19px; color: var(--muted); }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 7px; background: var(--accent); color: #fff; font-weight: 600; font-size: 17px; }
+  :root.dark .pill { color: #2a1407; }
+
+  .cols { position: absolute; top: 916px; left: 0; right: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; }
+  .col { padding: 0 34px; border-right: 1px solid var(--border); display: flex; gap: 16px; align-items: flex-start; }
+  .col:first-child { padding-left: 0; } .col:last-child { padding-right: 0; border-right: none; }
+  .col img { height: 72px; flex: none; }
+  /* Blobby's sunglasses and outline are near black: a faint rim keeps them visible on the dark page. */
+  :root.dark .col img { filter: drop-shadow(0 0 1px rgba(255, 255, 255, .55)) drop-shadow(0 0 1px rgba(255, 255, 255, .35)); }
+  .col h4 { margin: 4px 0 6px; font-size: 22px; font-weight: 700; }
+  .col p { margin: 0; font-size: 18px; line-height: 1.45; color: var(--muted); }
+</style></head>
+<body>
+<div class="page">
+  <header><img src="../logo.png" alt=""><span>bakeoff</span></header>
+  <h1>Pick the best option, <em>side by side</em>.</h1>
+  <p class="sub">A canvas where the agent lays out its variants, and you vote, comment, and send them back for another round.</p>
+
+  <div class="window">
+    <div class="titlebar"><div class="dots"><i></i><i></i><i></i></div>✦ Copilot · Bakeoff · Logo for the README</div>
+    <div class="body">
+      <div class="toolbar">
+        <div class="seg"><span class="sel">Grid</span><span>Head to head</span></div>
+        Backdrop <div class="seg"><span class="in-light">Light</span><span class="in-dark">Dark</span><span>Checker</span></div>
+        <div class="blind"><i></i>Blind</div>
+      </div>
+      <div class="cards">
+        <div class="card winner">
+          <div class="chead"><b>A</b><span class="win">Winner</span><span>podium · claude-opus-5.5 · 3 AIC</span></div>
+          <div class="tile"><div class="wrap"><div class="logo" style="background:radial-gradient(120% 120% at 25% 15%, #6a5ff0 0%, #17124d 100%)"><svg viewBox="0 0 240 240"><rect x="132" y="96" width="24" height="48" fill="#c3cad4"/><rect x="156" y="60" width="36" height="84" fill="#ffffff"/><rect x="192" y="108" width="36" height="36" fill="#8b95a3"/><rect x="168" y="36" width="12" height="24" fill="#f2b33d"/></svg><img class="pixel" src="buddy-idle-insiders-96.png" alt=""></div></div></div>
+          <div class="votes"><span class="on pick">Pick</span><span class="">Keep</span><span class="">Drop</span></div>
+          <div class="note">The podium says "compare" at a glance.</div>
+        </div>
+        <div class="card">
+          <div class="chead"><b>B</b><span>trophy · gpt-6-sol · 1 AIC</span></div>
+          <div class="tile"><div class="wrap"><div class="logo" style="background:radial-gradient(120% 120% at 25% 15%, #2fc4a8 0%, #06302a 100%)"><svg viewBox="0 0 240 240"><rect x="144" y="36" width="72" height="48" fill="#f2b33d"/><rect x="156" y="84" width="48" height="12" fill="#f2b33d"/><rect x="168" y="96" width="24" height="24" fill="#f2b33d"/><rect x="156" y="120" width="48" height="12" fill="#c98a14"/><rect x="132" y="48" width="12" height="24" fill="#c98a14"/><rect x="216" y="48" width="12" height="24" fill="#c98a14"/></svg><img class="pixel" src="buddy-idle-insiders-96.png" alt=""></div></div></div>
+          <div class="votes"><span class="">Pick</span><span class="on keep">Keep</span><span class="">Drop</span></div>
+          <div class="note">Love the gold. A trophy says "won", not "choose".</div>
+        </div>
+        <div class="card dropped">
+          <div class="chead"><b>C</b><span>two cards · claude-opus-5.5 · 3 AIC</span></div>
+          <div class="tile"><div class="wrap"><div class="logo" style="background:radial-gradient(120% 120% at 25% 15%, #ff8a5c 0%, #7a2408 100%)"><svg viewBox="0 0 240 240"><rect x="132" y="36" width="48" height="72" fill="#ffffff"/><rect x="144" y="48" width="24" height="12" fill="#2949a8"/><rect x="144" y="72" width="24" height="12" fill="#c3cad4"/><rect x="144" y="84" width="12" height="12" fill="#c3cad4"/><rect x="180" y="60" width="48" height="72" fill="#ffffff"/><rect x="192" y="72" width="24" height="12" fill="#f2613d"/><rect x="192" y="96" width="24" height="12" fill="#c3cad4"/><rect x="192" y="108" width="12" height="12" fill="#c3cad4"/></svg><img class="pixel" src="buddy-idle-insiders-96.png" alt=""></div><span class="pin" style="left:72%;top:30%">1</span></div></div>
+          <div class="votes"><span class="">Pick</span><span class="">Keep</span><span class="on drop">Drop</span></div>
+          <div class="note">[1] The cards turn to mush at 32 px.</div>
+        </div>
+        <div class="card">
+          <div class="chead"><b>D</b><span>check mark · gpt-6-sol · 1 AIC</span></div>
+          <div class="tile"><div class="wrap"><div class="logo" style="background:radial-gradient(120% 120% at 25% 15%, #e0458f 0%, #4a1238 100%)"><svg viewBox="0 0 240 240"><rect x="144" y="84" width="24" height="24" fill="#ffffff"/><rect x="156" y="96" width="24" height="24" fill="#ffffff"/><rect x="168" y="108" width="24" height="24" fill="#ffffff"/><rect x="180" y="96" width="24" height="24" fill="#ffffff"/><rect x="192" y="84" width="24" height="24" fill="#ffffff"/><rect x="204" y="72" width="24" height="24" fill="#ffffff"/><rect x="216" y="60" width="12" height="24" fill="#ffffff"/></svg><img class="pixel" src="buddy-idle-insiders-96.png" alt=""></div></div></div>
+          <div class="votes"><span class="">Pick</span><span class="">Keep</span><span class="">Drop</span></div>
+          <div class="note empty">What works, what doesn't</div>
+        </div>
+      </div>
+      <div class="decide">Winner: A · 1 kept · 1 dropped · 3 notes · 8 AIC<span class="overall">A's podium in B's gold.</span><span class="btn">Ask for round 2</span><span class="btn primary">Use A</span></div>
+    </div>
+  </div>
+  <div class="caption">Images, PR descriptions, HTML mocks, videos, or text: then <span class="pill">Ask for round 2</span> or <span class="pill">Use A</span></div>
+
+  <div class="cols">
+    <div class="col"><img class="pixel" src="buddy-cool-insiders-96.png" alt=""><div><h4>Blind by default</h4><p>The models and AI credits behind each variant stay hidden until you look.</p></div></div>
+    <div class="col"><img class="pixel" src="buddy-idle-insiders-96.png" alt=""><div><h4>Point at what you mean</h4><p>Pin a note to a spot on an image, or to the text you selected.</p></div></div>
+    <div class="col"><img class="pixel" src="buddy-yapping-insiders-96.png" alt=""><div><h4>Round after round</h4><p>The ones you keep come back next to the agent's new variants.</p></div></div>
+  </div>
+</div>
+<script>if (location.hash === '#dark') document.documentElement.classList.add('dark')</script>
+</body></html>

@@ -198,6 +198,10 @@ textarea { min-height: 3.5em; resize: vertical; }
 .ui-markdown pre { margin: 0; padding: 6px 8px; overflow: auto; background: var(--tint); }
 .ui-markdown pre > code { padding: 0; background: none; white-space: pre; }
 .ui-markdown blockquote { margin: 0; padding: 1px 10px; border-left: 2px solid var(--line); color: var(--muted); }
+.ui-markdown table { border-collapse: collapse; font-size: 12px; }
+.ui-markdown th, .ui-markdown td { padding: 2px 12px 2px 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--hairline); }
+.ui-markdown th { font-weight: var(--semibold); }
+.ui-markdown .image { display: inline-block; padding: 6px 10px; border: 1px dashed var(--line); background: var(--tint); color: var(--muted); font-size: 12px; }
 .ui-markdown hr { height: 0; margin: 0; border: 0; border-top: 1px solid var(--line); }
 .ui-markdown > :not(:first-child) { margin-top: 8px; }
 .ui-markdown > :is(h4, h5, h6):not(:first-child) { margin-top: 12px; }

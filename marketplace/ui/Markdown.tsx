@@ -9,8 +9,8 @@ export interface MarkdownProps {
 
 /**
  * Markdown the agent writes, in the marketplace's theme: headings, paragraphs,
- * lists, task lists, quotes, code, rules, bold, italic, strikethrough, inline code,
- * and http(s) or mailto links. It builds React elements directly, so nothing in
+ * lists, task lists, tables, quotes, code, rules, bold, italic, strikethrough,
+ * inline code, http(s) or mailto links, and images as labeled placeholders. It builds React elements directly, so nothing in
  * the text can inject HTML.
  */
 export function Markdown({ children, label }: MarkdownProps) {
@@ -37,6 +37,17 @@ const RULE = /^\s*([-*_])(\s*\1){2,}\s*$/
 const QUOTE = /^\s*>\s?(.*)$/
 const ITEM = /^\s*([-*+]|\d{1,9}[.)])\s+(.*)$/
 const TASK = /^\[([ xX])\]\s+(.*)$/
+const TABLE_RULE = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/
+
+/** A table starts with a row of cells followed by a row of dashes. */
+const isTable = (lines: readonly string[], i: number) => lines[i]!.includes('|') && i + 1 < lines.length && lines[i + 1]!.includes('-') && TABLE_RULE.test(lines[i + 1]!)
+const cells = (line: string) =>
+  line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split(/(?<!\\)\|/)
+    .map((cell) => cell.trim().replace(/\\\|/g, '|'))
 
 function blocks(source: string): ReactNode[] {
   const lines = source.replace(/\r\n?/g, '\n').split('\n')
@@ -65,6 +76,32 @@ function blocks(source: string): ReactNode[] {
       const Tag = `h${Math.min(hashes!.length + 1, 6)}` as 'h2'
       out.push(<Tag key={key}>{inline(text!)}</Tag>)
       i += 1
+    } else if (isTable(lines, i)) {
+      const header = cells(line)
+      const rows: string[][] = []
+      for (i += 2; i < lines.length && lines[i]!.trim() && lines[i]!.includes('|'); i += 1) rows.push(cells(lines[i]!))
+      out.push(
+        <table key={key}>
+          <thead>
+            <tr>
+              {header.map((cell, column) => (
+                <th key={column} scope="col">
+                  {inline(cell)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={index}>
+                {header.map((_, column) => (
+                  <td key={column}>{inline(row[column] ?? '')}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>,
+      )
     } else if (RULE.test(line)) {
       out.push(<hr key={key} />)
       i += 1
@@ -100,7 +137,7 @@ function blocks(source: string): ReactNode[] {
       )
     } else {
       const text: string[] = []
-      for (; i < lines.length && lines[i]!.trim() && !startsBlock(lines[i]!); i += 1) text.push(lines[i]!.trim())
+      for (; i < lines.length && lines[i]!.trim() && !startsBlock(lines[i]!) && !(text.length && isTable(lines, i)); i += 1) text.push(lines[i]!.trim())
       out.push(<p key={key}>{inline(text.join(' '))}</p>)
     }
   }
@@ -108,7 +145,7 @@ function blocks(source: string): ReactNode[] {
 }
 
 const INLINE =
-  /(`+)([\s\S]*?[^`])\1(?!`)|\*\*([\s\S]+?)\*\*|(?<![\w])__([\s\S]+?)__(?![\w])|~~([\s\S]+?)~~|\*(?!\s)([\s\S]+?)\*|(?<![\w])_(?!\s)([\s\S]+?)_(?![\w])|\[([^\]]+)\]\(\s*([^)\s]+)\s*\)/g
+  /!\[([^\]]*)\]\(\s*([^)\s]+)[^)]*\)|(`+)([\s\S]*?[^`])\3(?!`)|\*\*([\s\S]+?)\*\*|(?<![\w])__([\s\S]+?)__(?![\w])|~~([\s\S]+?)~~|\*(?!\s)([\s\S]+?)\*|(?<![\w])_(?!\s)([\s\S]+?)_(?![\w])|\[([^\]]+)\]\(\s*([^)\s]+)\s*\)/g
 
 function inline(text: string): ReactNode[] {
   const out: ReactNode[] = []
@@ -116,8 +153,15 @@ function inline(text: string): ReactNode[] {
   for (const match of text.matchAll(INLINE)) {
     const index = match.index
     if (index > last) out.push(text.slice(last, index))
-    const [whole, ticks, code, bold, bold2, strike, italic, italic2, label, url] = match
-    if (ticks) out.push(<code key={index}>{code!.trim()}</code>)
+    const [whole, alt, image, ticks, code, bold, bold2, strike, italic, italic2, label, url] = match
+    // Pages cannot load images from elsewhere, so an image is a labeled placeholder.
+    if (image)
+      out.push(
+        <span key={index} className="image" title={image}>
+          Image: {alt || image.split('/').at(-1)}
+        </span>,
+      )
+    else if (ticks) out.push(<code key={index}>{code!.trim()}</code>)
     else if (bold ?? bold2) out.push(<strong key={index}>{inline((bold ?? bold2)!)}</strong>)
     else if (strike) out.push(<del key={index}>{inline(strike)}</del>)
     else if (italic ?? italic2) out.push(<em key={index}>{inline((italic ?? italic2)!)}</em>)

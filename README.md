@@ -2,7 +2,7 @@ Open source tools, `@rwoll` npm packages, and a Copilot plugin by [@rwoll](https
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/home/hero-dark.png">
-  <img alt="Your coding agent can test it, show it, and ship it. A crew of six Blobbys, the VS Code chat pet, each doing one job: Blobby Sandbox tests on a throwaway desktop, agents-qa self-hosts every build in a hard hat, annotate marks up what it found at an easel, pr-descriptions writes it up, session-summary keeps you posted, and canvas-kit builds the panels you share. Below, the two commands that install them all as the kitchensink Copilot plugin, and the @rwoll npm packages." src="docs/home/hero-light.png">
+  <img alt="Your coding agent can test it, show it, and ship it. A crew of nine Blobbys, the VS Code chat pet, each doing one job: Blobby Sandbox tests on a throwaway desktop, agent-test-server fakes the model next to a server, agents-qa self-hosts every build in a hard hat, annotate marks up what it found at an easel, pr-descriptions writes it up, bakeoff lays out the options next to a podium, session-summary keeps you posted, canvas-kit builds the panels you share, and Blobby Type gets your typing up to speed at a keyboard. Below, the two commands that install them all as the kitchensink Copilot plugin, and the @rwoll npm packages." src="docs/home/hero-light.png">
 </picture>
 
 Install the Copilot plugin, with every skill and canvas below:
@@ -21,6 +21,7 @@ copilot plugin install kitchensink@rwoll
     <td align="center" width="166"><a href="#annotate"><img src="docs/annotate/logo.png" alt="" width="88"><br><b>annotate</b></a><br>marked-up media</td>
     <td align="center" width="166"><a href="#agents-qa"><img src="docs/agents-qa/logo.png" alt="" width="88"><br><b>agents-qa</b></a><br>daily QA</td>
     <td align="center" width="166"><a href="#session-summary"><img src="docs/session-summary/logo.png" alt="" width="88"><br><b>session-summary</b></a><br>status at a glance</td>
+    <td align="center" width="166"><a href="#bakeoff"><img src="docs/bakeoff/logo.png" alt="" width="88"><br><b>bakeoff</b></a><br>pick the best</td>
     <td align="center" width="166"><a href="#canvas-kit"><img src="docs/canvas-kit/logo.png" alt="" width="88"><br><b>canvas-kit</b></a><br>build canvases</td>
     <td align="center" width="166"><a href="#blobby-sandbox"><img src="docs/blobby-sandbox/logo.png" alt="" width="88"><br><b>Blobby Sandbox</b></a><br>test desktops</td>
     <td align="center" width="166"><a href="#agent-test-server"><img src="docs/agent-test-server/logo.png" alt="" width="88"><br><b>agent-test-server</b></a><br>fake LLM and MCP</td>
@@ -101,6 +102,20 @@ the agent keeps a short executive summary up to date: what's done, what's runnin
 It refreshes on a schedule and stays quiet when nothing happened.
 
 It comes in the [Copilot plugin](#copilot-plugin). Ask your agent to open the `session-executive-summary` canvas.
+
+## bakeoff
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/bakeoff/hero-dark.png">
+  <img alt="bakeoff: pick the best option, side by side. The Bakeoff canvas in Copilot with four logo variants, A to D, each showing its approach, model, and AI credits: A is the winner, B is kept, and C is dropped with a pinned note. Below them, the overall feedback and the buttons Ask for round 2 and Use A. Below: blind by default, point at what you mean, and round after round." src="docs/bakeoff/hero-light.png">
+</picture>
+
+**Pick the best option, side by side.** Ask for a few logos, PR descriptions, or HTML mocks, and the
+agent lays them out in a canvas instead of a scrolling chat. You pick, keep, or drop each one, blind
+to which model made it, pin notes to the spot you mean, and send it back for another round or to use
+the winner.
+
+It comes in the [Copilot plugin](#copilot-plugin). Ask your agent for a few options of something, in a bakeoff.
 
 ## canvas-kit
 
@@ -206,6 +221,7 @@ get a panel to work in alongside it:
 | [`annotate`](marketplace/canvases/annotate) (skill and canvas) | A raw screenshot makes the reader hunt for the problem. The agent marks what matters, zooms, captions, and redacts accounts, and you adjust it in the canvas before it goes in a PR or issue. |
 | [`agents-qa`](marketplace/canvases/agents-qa) (skill and canvas) | Self-hosting a fast-moving product daily is tedious. A scheduled run tests the VS Code Agents window PRs merged since the last build in a sandbox, and you triage what it found in the canvas: fix, file, investigate, or suppress. |
 | [`session-summary`](marketplace/canvases/session-summary) (canvas) | Long agent sessions are hard to check on. The agent keeps a short executive summary up to date, so you can see where things stand at a glance. |
+| [`bakeoff`](marketplace/canvases/bakeoff) (skill and canvas) | Picking between an agent's options in chat means scrolling and typing "the second one, but...". The agent makes its variants (images, PR descriptions, HTML mocks) from one brief, on the models you name, and puts them side by side; you pick, keep, or drop them, blind to which model made each, pin notes to the spot you mean, and send it back for another round or to use the winner. |
 | [`canvas-kit`](marketplace/skills/canvas-kit/SKILL.md), [`-testing`](marketplace/skills/canvas-kit-testing/SKILL.md), [`-publishing`](marketplace/skills/canvas-kit-publishing/SKILL.md) (skills) | Teach the agent to build, test, and publish your own canvases with `@rwoll/canvas-kit`. |
 | [`blobby-sandbox`](marketplace/canvases/blobby-sandbox) (skill and canvas) | Lets the agent test a UI change by actually clicking through it, on a throwaway desktop instead of your computer, and shows you what it's doing. Needs the [CLI](packages/blobby-sandbox#readme). |
 | [`agent-test-server`](marketplace/skills/agent-test-server/SKILL.md) (skill) | Real models are slow, cost money, and answer differently every run. The agent scripts a fake one instead, points VS Code or another client at it, breaks it on cue, and checks what the client sent. Needs the [CLI](packages/agent-test-server#readme). |
