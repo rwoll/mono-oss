@@ -279,11 +279,17 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
     switch (a.type) {
       case 'rect':
       case 'ellipse': {
-        const [x, y, w, h] = B(a.box);
+        const sw = 2.5 * u;
+        const boxed = B(a.box);
+        // A rectangle's outline goes around its box, not on its edge: the line, its halo, and a
+        // small gap all stay outside, so nothing is drawn on what is boxed. A side at the edge of
+        // the frame has no room for that, and its line stays where it would otherwise be cut off.
+        const room = (space: number) => (a.type === 'rect' ? clamp(space - (sw / 2 + u), 0, 4.25 * u) : 0);
+        const [left, top, right, bottom] = [room(boxed[0]), room(boxed[1]), room(W - boxed[0] - boxed[2]), room(H - boxed[1] - boxed[3])];
+        const [x, y, w, h]: Box = [boxed[0] - left, boxed[1] - top, boxed[2] + left + right, boxed[3] + top + bottom];
         const cx = x + w / 2;
         const cy = y + h / 2;
         const k = 1 + 0.08 * (1 - easeOut(progress(age, 0.3)));
-        const sw = 2.5 * u;
         const shape = (attrs: string) =>
           a.type === 'rect'
             ? `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${n(3 * u)}" ${attrs}/>`
@@ -292,7 +298,7 @@ export function frameAt(resolved: ResolvedDocument, t: number, options: FrameOpt
         // The label is inside the pop, so a tab stays on its box while the box settles.
         mid.push(
           `<g opacity="${n(o)}"><g transform="translate(${n(cx)} ${n(cy)}) scale(${n(k)}) translate(${n(-cx)} ${n(-cy)})">` +
-            shape(`fill="${stroke}" fill-opacity="0.06" ${HALO} stroke-width="${n(sw + 2 * u)}"`) +
+            shape(`fill="none" ${HALO} stroke-width="${n(sw + 2 * u)}"`) +
             shape(`fill="none" stroke="${stroke}" stroke-width="${n(sw)}"`) +
             (a.type === 'ellipse' ? pill(a.label, [x, y - 6 * u, w, h + 12 * u], tone, { step }) : pill(a.label, [x, y, w, h], tone, { step, attach: sw })) +
             `</g></g>`,

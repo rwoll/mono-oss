@@ -33,7 +33,7 @@ it throughout), and `tone`.
 
 | type | Fields | Notes |
 | --- | --- | --- |
-| `rect`, `ellipse` | `box`, `label?`, `note?`, `step?` (`true` or a number), `target?` | `target` records how the box was found, such as a locator |
+| `rect`, `ellipse` | `box`, `label?`, `note?`, `step?` (`true` or a number), `target?` | The outline goes around the box with a small gap and nothing is drawn inside it, so give the box of the thing itself. `target` records how the box was found, such as a locator |
 | `arrow` | `from`, `to` (points or ids), `label?`, `note?`, `bend?` (-1 to 1) | Pointing at an id stops at that annotation's edge |
 | `callout` | `at` (point or id), `text` | A note label at a point |
 | `step` | `at` (point or id), `n?` | A numbered badge; at an id, on its top-left corner |

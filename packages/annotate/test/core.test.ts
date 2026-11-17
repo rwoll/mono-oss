@@ -187,12 +187,27 @@ describe('frameAt', () => {
     expect(y('Upper')).toBeLessThan(80);
   });
 
+  it('draws a box as an outline around it, with nothing on what is boxed', () => {
+    const over = (type: 'rect' | 'ellipse', box: [number, number, number, number]) =>
+      frameAt(resolveDocument(doc({ annotations: [{ type, box }] })), 0, { width: 1280, animate: false }).over;
+    // At 1280 px wide the line is 3.2 px and its halo 1.28 px more on each side. With a 2.56 px gap,
+    // the line's center is 5.44 px outside the box: nothing is drawn within 2.56 px of it.
+    const rect = over('rect', [100, 200, 300, 40]);
+    expect(rect.match(/<rect x="94.56" y="194.56" width="310.88" height="50.88" [^>]*fill="none"/g)?.length).toBe(2);
+    expect(rect).not.toContain('fill-opacity');
+    expect(over('ellipse', [100, 200, 300, 40])).not.toContain('fill-opacity');
+    // A side at the frame's edge has no room, so its line stays on the box's edge.
+    expect(over('rect', [0, 200, 300, 40])).toContain('<rect x="0" y="194.56" width="305.44" height="50.88"');
+  });
+
   it('attaches box labels as tabs on the box edge, and frees them when they must move into the frame', () => {
     const tabs = (box: [number, number, number, number]) =>
       frameAt(resolveDocument(doc({ annotations: [{ type: 'rect', box, label: 'Tab' }] })), 0, { width: 1280, animate: false }).over;
-    // At 1280 px wide the stroke is 3.2 px, centered on the edge, so the tab meets its outside at y - 1.6 (y + h + 1.6 below).
-    expect(tabs([100, 200, 300, 40])).toContain('<path d="M98.4 198.4V');
-    expect(tabs([100, 2, 300, 40])).toContain('<path d="M98.4 43.6H');
+    // At 1280 px wide the outline's center is 5.44 px outside the box and its stroke is 3.2 px, so
+    // the tab meets the outline's outside 7.04 px from the box. At the frame's top the outline has
+    // no room and stays on the box's edge.
+    expect(tabs([100, 200, 300, 40])).toContain('<path d="M92.96 192.96V');
+    expect(tabs([100, 2, 300, 40])).toContain('<path d="M92.96 49.04H');
     const full = tabs([100, 0, 300, 800]);
     expect(full).not.toContain('<path d=');
     expect(full).toContain('filter="url(#annotate-label-shadow)"');

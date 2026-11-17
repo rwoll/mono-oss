@@ -6,6 +6,15 @@ Notable changes to `@rwoll/annotate`. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- A `rect` or `ellipse` no longer tints its inside with its tone. On a dark theme
+  the tint was about as strong as a hover highlight, so a box hid the state it
+  pointed at.
+- A `rect`'s outline is drawn around its box, with a small gap, instead of on its
+  edge, so the line and its halo no longer cover the border or focus ring of what
+  is boxed. A side at the edge of the frame stays on the box's edge.
+
 ## [0.2.0] - 2026-11-05
 
 ### Added
