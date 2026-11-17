@@ -6,6 +6,8 @@ Notable changes to `@rwoll/annotate`. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-17
+
 ### Changed
 
 - A `rect` or `ellipse` no longer tints its inside with its tone. On a dark theme
@@ -49,5 +51,6 @@ Notable changes to `@rwoll/annotate`. The format follows
   locators (`boxOf` for screenshots, `recorder().box` for recordings) and record
   input alongside a video.
 
+[0.3.0]: https://github.com/rwoll/mono-oss/releases/tag/annotate@0.3.0
 [0.2.0]: https://github.com/rwoll/mono-oss/releases/tag/annotate@0.2.0
 [0.1.0]: https://github.com/rwoll/mono-oss/releases/tag/annotate@0.1.0
