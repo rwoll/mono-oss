@@ -1094,10 +1094,10 @@ var dateSource = `(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][
 /** Anchors a pattern source. The interpolation lives here rather than at the call site because
 * esbuild will not drop a `@__PURE__` call whose own argument interpolates a variable, but it
 * will drop `anchor(dateSource)`. Keeping it inline pinned `date` into every bundle. */
-function anchor(source) {
+function anchor$1(source) {
 	return new RegExp(`^${source}$`);
 }
-var date = /*@__PURE__*/ anchor(dateSource);
+var date = /*@__PURE__*/ anchor$1(dateSource);
 function timeSource(args) {
 	const hhmm = `(?:[01]\\d|2[0-3]):[0-5]\\d`;
 	return typeof args.precision === "number" ? args.precision === -1 ? `${hhmm}` : args.precision === 0 ? `${hhmm}:[0-5]\\d` : `${hhmm}:[0-5]\\d\\.\\d{${args.precision}}` : args.seconds ? `${hhmm}:[0-5]\\d(?:\\.\\d+)?` : `${hhmm}(?::[0-5]\\d(?:\\.\\d+)?)?`;
@@ -10258,7 +10258,7 @@ function feedback(state, round) {
 			`${variant.label}: ${entry.vote ? VOTE_LABEL[entry.vote] : "No vote"}${entry.carried ? ` (kept from round ${variant.round})` : ""}`,
 			`  File: ${variant.file}${made ? `. Made with: ${made}` : ""}`,
 			...entry.note.trim() ? [`  Note: ${entry.note.trim()}`] : [],
-			...entry.marks.map((mark) => "quote" in mark ? `  [${mark.n}] is about the text "${mark.quote}"` : `  [${mark.n}] is a pin ${percent(mark.x)} from the left and ${percent(mark.y)} from the top of the image`)
+			...entry.marks.map((mark) => "quote" in mark ? `  [${mark.n}] is about the text "${mark.quote}"` : `  [${mark.n}] is a pin ${percent(mark.x)} from the left and ${percent(mark.y)} from the top of the ${variant.kind === "html" ? "page" : "image"}${mark.on ? `, on ${mark.on}` : ""}`)
 		];
 	}), ...round.overall.trim() ? ["", `Overall: ${round.overall.trim()}`] : []].join("\n");
 }
@@ -10296,10 +10296,18 @@ function askPrompt({ kind, instanceId, state, round, folder, feedbackFile }) {
 	].join("\n");
 }
 // canvases/bakeoff/schema.ts
+/** A spot in an element of a mock: the way to the element from the mock's body (which child, at each step), and fractions of its width and height. */
+var anchor = object({
+	path: array(number().int().min(0)).max(64),
+	x: number().min(0).max(1),
+	y: number().min(0).max(1)
+});
 var mark = union([object({
 	n: number().int(),
 	x: number().min(0).max(1),
-	y: number().min(0).max(1)
+	y: number().min(0).max(1),
+	on: string().optional(),
+	anchor: anchor.optional()
 }), object({
 	n: number().int(),
 	quote: string()
@@ -10669,15 +10677,17 @@ var canvas_default$2 = defineCanvas({
 			}))
 		}),
 		add_mark: action({
-			description: "Mark a spot the note can refer to as [1], [2]: a pin on an image (x and y, as fractions of its width and height), or text selected in the variant (quote).",
+			description: "Mark a spot the note can refer to as [1], [2]: a pin on an image or an HTML mock (x and y, as fractions of its width and height, and on a mock, the element under it as on and anchor), or text selected in the variant (quote).",
 			expose: "ui",
 			input: object({
 				variant: variantId,
 				x: number().min(0).max(1).optional(),
 				y: number().min(0).max(1).optional(),
+				on: line$1(120).optional(),
+				anchor: anchor.optional(),
 				quote: line$1(300).min(1).optional()
-			}).refine((mark) => mark.quote === void 0 ? mark.x !== void 0 && mark.y !== void 0 : mark.x === void 0 && mark.y === void 0, "Give x and y, or quote."),
-			run: (ctx, { variant, x, y, quote }) => {
+			}).refine((mark) => mark.quote === void 0 ? mark.x !== void 0 && mark.y !== void 0 : mark.x === void 0 && mark.y === void 0 && mark.on === void 0 && mark.anchor === void 0, "Give x and y, or quote."),
+			run: (ctx, { variant, x, y, on, anchor: spot, quote }) => {
 				let n = 0;
 				changeEntry(ctx, variant, (entry) => {
 					if (entry.marks.length >= 20) throw new CanvasKitError("too_many", `A variant can have 20 marks. Remove one first.`, 409);
@@ -10688,7 +10698,9 @@ var canvas_default$2 = defineCanvas({
 						marks: [...entry.marks, quote === void 0 ? {
 							n,
 							x,
-							y
+							y,
+							...on ? { on: on.replace(/\s+/g, " ") } : {},
+							...spot ? { anchor: spot } : {}
 						} : {
 							n,
 							quote

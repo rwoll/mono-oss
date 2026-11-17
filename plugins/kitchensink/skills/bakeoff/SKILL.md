@@ -96,7 +96,10 @@ model made which letter, and do not name a favorite, unless they ask.
 
 ## 5. Act on the answer
 
-The user answers from the canvas, and the message has their votes and notes.
+The user answers from the canvas, and the message has their votes and notes. A
+note's `[1]`, `[2]` point at what the user marked: a quote of the variant's text, or
+a pin on an image or an HTML mock, with where it is and, on a mock, the element it
+is on, such as `<button> Record again`.
 
 - **`[bakeoff:next-round]`**: make the next round from the feedback.
   - Send each **Winner** and **Keep** variant back to the maker that made it, on
