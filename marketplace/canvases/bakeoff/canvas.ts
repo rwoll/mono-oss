@@ -1,8 +1,8 @@
 import { join } from 'node:path'
 import { CanvasKitError, defineCanvas, z, type ActionContext } from '@rwoll/canvas-kit'
 import { askPrompt, feedback } from './prompts.ts'
-import { stateSchema, type BakeoffState, type Entry, type Round, type Variant } from './schema.ts'
-import { KINDS, labelOf, loadsText, MAX_ADDED, MAX_MARKS, MAX_NOTE, MAX_QUOTE, MAX_VARIANTS, VOTES } from './shared.ts'
+import { anchor, stateSchema, type BakeoffState, type Entry, type Round, type Variant } from './schema.ts'
+import { KINDS, labelOf, loadsText, MAX_ADDED, MAX_MARKS, MAX_NOTE, MAX_ON, MAX_QUOTE, MAX_VARIANTS, VOTES } from './shared.ts'
 import { bakeoffDir, readStored, removeStored, storeVariant, writeFeedback } from './store.ts'
 
 export type { BakeoffState } from './schema.ts'
@@ -163,18 +163,22 @@ export default defineCanvas({
     }),
 
     add_mark: action({
-      description: 'Mark a spot the note can refer to as [1], [2]: a pin on an image (x and y, as fractions of its width and height), or text selected in the variant (quote).',
+      description:
+        'Mark a spot the note can refer to as [1], [2]: a pin on an image or an HTML mock (x and y, as fractions of its width and height, and on a mock, the element under it as on and anchor), or text selected in the variant (quote).',
       expose: 'ui',
       input: z
-        .object({ variant: variantId, x: z.number().min(0).max(1).optional(), y: z.number().min(0).max(1).optional(), quote: line(MAX_QUOTE).min(1).optional() })
-        .refine((mark) => (mark.quote === undefined ? mark.x !== undefined && mark.y !== undefined : mark.x === undefined && mark.y === undefined), 'Give x and y, or quote.'),
-      run: (ctx, { variant, x, y, quote }) => {
+        .object({ variant: variantId, x: z.number().min(0).max(1).optional(), y: z.number().min(0).max(1).optional(), on: line(MAX_ON).optional(), anchor: anchor.optional(), quote: line(MAX_QUOTE).min(1).optional() })
+        .refine(
+          (mark) => (mark.quote === undefined ? mark.x !== undefined && mark.y !== undefined : mark.x === undefined && mark.y === undefined && mark.on === undefined && mark.anchor === undefined),
+          'Give x and y, or quote.',
+        ),
+      run: (ctx, { variant, x, y, on, anchor: spot, quote }) => {
         let n = 0
         changeEntry(ctx, variant, (entry) => {
           if (entry.marks.length >= MAX_MARKS) throw new CanvasKitError('too_many', `A variant can have ${MAX_MARKS} marks. Remove one first.`, 409)
           n = Math.max(0, ...entry.marks.map((mark) => mark.n)) + 1
           const note = `${entry.note.trimEnd()}${entry.note.trim() ? ' ' : ''}[${n}] `
-          return { ...entry, marks: [...entry.marks, quote === undefined ? { n, x: x as number, y: y as number } : { n, quote }], note: note.length <= MAX_NOTE ? note : entry.note }
+          return { ...entry, marks: [...entry.marks, quote === undefined ? { n, x: x as number, y: y as number, ...(on ? { on: on.replace(/\s+/g, ' ') } : {}), ...(spot ? { anchor: spot } : {}) } : { n, quote }], note: note.length <= MAX_NOTE ? note : entry.note }
         })
         return { n }
       },

@@ -73,7 +73,9 @@ button.pin:hover { background: #a40e26; }
 .pin.inline { position: static; flex: none; margin: 0; box-shadow: none; border: 0; align-self: center; }
 
 /* HTML mocks */
-.preview.frame { height: clamp(240px, 50vh, 640px); resize: vertical; }
+/* The mock gets the height its page needs (Mock.tsx sizes .frame-page), and its box scrolls. */
+.preview.frame { height: clamp(240px, 50vh, 640px); overflow: auto; resize: vertical; }
+.frame-page { position: relative; min-width: 100%; height: 100%; }
 .preview.frame iframe { display: block; width: 100%; height: 100%; border: 0; }
 
 /*
@@ -97,8 +99,12 @@ button.pin:hover { background: #a40e26; }
 .expanded:focus { outline: none; }
 .expanded-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 .expanded-bar .keys { margin-left: auto; font-size: 12px; }
-.expanded > .preview { flex: 1; }
+.expanded > .preview, .expanded > .variant-body { flex: 1; }
+.expanded > .variant-body { display: flex; flex-direction: column; min-height: 0; }
+.expanded > .variant-body > .preview { flex: 1; }
 .expanded > .preview-message { margin: 0; }
+.expanded > .votes { width: min(100%, 360px); }
+.expanded > textarea { flex: none; }
 /* Prose stays a readable width, centered, however wide the panel is. */
 .expanded .preview.doc > .ui-markdown { max-width: 980px; margin: 0 auto; }
 

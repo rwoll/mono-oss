@@ -123,6 +123,12 @@ describe('Bakeoff canvas', () => {
     expect(entries()[0]!.marks.map((mark) => mark.n)).toEqual([2, 3])
     await expect(harness.invoke('a', 'add_mark', { variant: 'v1', x: 0.5 }, 'ui')).rejects.toMatchObject({ code: 'invalid_input' })
     await expect(harness.invoke('a', 'add_mark', { variant: 'v1', x: 0.5, y: 0.5, quote: 'both' }, 'ui')).rejects.toMatchObject({ code: 'invalid_input' })
+
+    // A pin on an HTML mock also says what it is on, on one line, and where in that element.
+    const anchor = { path: [0, 2], x: 0.5, y: 0.5 }
+    expect(await harness.invoke('a', 'add_mark', { variant: 'v3', x: 0.1, y: 0.2, on: ' <button> Ask the\n agent ', anchor }, 'ui')).toEqual({ n: 1 })
+    expect(entries()[2]!.marks).toEqual([{ n: 1, x: 0.1, y: 0.2, on: '<button> Ask the agent', anchor }])
+    await expect(harness.invoke('a', 'add_mark', { variant: 'v3', quote: 'Ask', on: '<button>' }, 'ui')).rejects.toMatchObject({ code: 'invalid_input' })
   })
 
   it('asks for another round with the feedback, then carries the kept variants into it', async () => {
@@ -136,6 +142,7 @@ describe('Bakeoff canvas', () => {
     await harness.invoke('a', 'vote', { variant: 'v2', vote: 'drop' }, 'ui')
     await harness.invoke('a', 'set_note', { variant: 'v2', note: 'Too long.' }, 'ui')
     await harness.invoke('a', 'vote', { variant: 'v3', vote: 'keep' }, 'ui')
+    await harness.invoke('a', 'add_mark', { variant: 'v3', x: 0.1, y: 0.2, on: '<button> Ask the agent' }, 'ui')
     await harness.invoke('a', 'set_overall', { note: "A's layout with C's colors." }, 'ui')
 
     const sent = await harness.invoke('a', 'send', { kind: 'next' }, 'ui')
@@ -149,6 +156,8 @@ describe('Bakeoff canvas', () => {
       '  Note: Too long.',
       'C: Keep',
       `  File: ${join('round-1', 'c.html')}`,
+      '  Note: [1]',
+      '  [1] is a pin 10% from the left and 20% from the top of the page, on <button> Ask the agent',
       '',
       "Overall: A's layout with C's colors.",
     ].join('\n')

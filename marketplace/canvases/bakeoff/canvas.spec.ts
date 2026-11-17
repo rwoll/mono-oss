@@ -2,15 +2,16 @@ import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { canvasTest, expect } from '@rwoll/canvas-kit/playwright'
+import type { Locator } from '@playwright/test'
 import { screenshotPng } from '../annotate/fixtures.ts'
 import canvas from './canvas.ts'
 
 const test = canvasTest(canvas)
 
 const MARKDOWN = '## Add the canvas\n\n| Phase | From |\n| --- | --- |\n| Draft | Opened |\n\nThe **validation log** is long.'
-// A mock that tries to run a script, and that follows the color scheme it is shown in.
+// A mock that tries to run a script, that follows the color scheme it is shown in, and that is taller than its box.
 const HTML =
-  '<style>:root{color-scheme:light dark}body{background:light-dark(rgb(255, 255, 255), rgb(0, 0, 0))}</style><button>Ask the agent</button><script>document.body.append("script ran")</script>'
+  '<style>:root{color-scheme:light dark}body{background:light-dark(rgb(255, 255, 255), rgb(0, 0, 0))}</style><p>Asks the agent what slows a pull request down, phase by phase, and shows what it found next to the chart, so the two can be read together.</p><button onclick="document.body.append(\'script ran\')">Ask the agent</button><p>Phases</p><a href="/elsewhere">More</a><div style="height:1200px"></div><script>document.body.append("script ran")</script>'
 
 /** A 640×400 PNG on disk, as an agent would have made it. */
 function image(): string {
@@ -88,9 +89,10 @@ test('renders Markdown, quotes selected text, and shows HTML mocks without runni
   await a.getByRole('button', { name: 'Remove quote 1' }).click()
   await expect(a.getByRole('list', { name: 'Quotes from A' })).toBeHidden()
 
-  // The mock draws, in the backdrop's color scheme, but its script never runs.
+  // The mock draws, in the backdrop's color scheme, but its script never runs: the page can see into its frame, and that is all.
+  const b = page.getByRole('article', { name: 'Variant B' })
   const frame = page.frameLocator('iframe[title="Variant B"]')
-  await expect(page.locator('iframe[title="Variant B"]')).toHaveAttribute('sandbox', '')
+  await expect(page.locator('iframe[title="Variant B"]')).toHaveAttribute('sandbox', 'allow-same-origin')
   await expect(frame.getByRole('button', { name: 'Ask the agent' })).toBeVisible()
   await expect(frame.getByText('script ran')).toHaveCount(0)
   // Forced colors replace a page's own backgrounds, in the mock as everywhere else.
@@ -100,19 +102,56 @@ test('renders Markdown, quotes selected text, and shows HTML mocks without runni
     await expect(frame.locator('body')).toHaveCSS('background-color', 'rgb(0, 0, 0)')
   }
 
-  // Expanded, the mock fills the panel, and a click in it does not take the keys away.
+  // The mock is as tall as its page, so its box scrolls and a pin stays on its spot.
+  await expect.poll(async () => (await page.locator('iframe[title="Variant B"]').boundingBox())?.height).toBeGreaterThan(1200)
+
+  // A click pins a note to what is there, without running the mock's handler or following its link.
+  await frame.getByRole('button', { name: 'Ask the agent' }).click()
+  await expect(b.getByRole('button', { name: 'Remove pin 1' })).toBeVisible()
+  await expect(b.getByLabel('Note on B')).toBeFocused()
+  await expect(b.getByLabel('Note on B')).toHaveValue('[1] ')
+  await expect.poll(() => state()?.rounds[0]?.entries[1]?.marks).toMatchObject([{ n: 1, on: '<button> Ask the agent', anchor: { path: [1] } }])
+  await frame.getByRole('link', { name: 'More' }).click()
+  await expect(b.getByRole('button', { name: 'Remove pin 2' })).toBeVisible()
+  await expect(frame.getByText('script ran')).toHaveCount(0)
+
+  // A double click selects a word to quote, and pins nothing.
+  await frame.getByText('Phases').dblclick({ position: { x: 12, y: 8 } })
+  await b.getByRole('button', { name: 'Comment on the selected text' }).click()
+  await expect(b.getByRole('list', { name: 'Quotes from B' })).toContainText('Phases')
+  await expect(b.getByRole('button', { name: 'Comment on the selected text' })).toBeHidden()
+  await expect(b.getByRole('button', { name: /^Remove pin/ })).toHaveCount(2)
+
+  // Expanded, the mock fills the panel, with its note: a click pins there too. Its text wraps
+  // differently at that width, and the first pin is still on the button.
   await page.getByRole('button', { name: 'Expand B' }).click()
   const expanded = page.getByRole('dialog', { name: 'Variant B, expanded' })
-  await expanded.locator('iframe').click({ position: { x: 200, y: 200 } })
-  await expect(expanded).toBeFocused()
-  await page.keyboard.press('ArrowLeft')
-  await expect(page.getByRole('dialog', { name: 'Variant A, expanded' }).getByRole('columnheader', { name: 'Phase' })).toBeVisible()
+  const center = async (locator: Locator) => {
+    const box = await locator.boundingBox()
+    if (!box) throw new Error('not on screen')
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+  }
+  const asked = await center(expanded.frameLocator('iframe').getByRole('button', { name: 'Ask the agent' }))
+  await expect.poll(async () => Math.hypot((await center(expanded.getByRole('button', { name: 'Remove pin 1' }))).x - asked.x, (await center(expanded.getByRole('button', { name: 'Remove pin 1' }))).y - asked.y)).toBeLessThan(3)
+  await expanded.locator('iframe').click({ position: { x: 200, y: 300 } })
+  await expect(expanded.getByRole('button', { name: 'Remove pin 4' })).toBeVisible()
+  await expect(expanded.getByLabel('Note on B')).toBeFocused()
+  await page.keyboard.type('more room here')
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog')).toBeHidden()
+  await expect(b.getByLabel('Note on B')).toHaveValue('[1] [2] [3] [4] more room here')
+
+  // Head to head has no notes, so a click in a mock pins nothing, and the keys still pick from inside it.
+  await page.getByRole('button', { name: 'Head to head' }).click()
+  await page.locator('iframe[title="Variant B"]').click({ position: { x: 200, y: 300 } })
+  await page.keyboard.press('ArrowRight')
+  await expect(page.getByRole('status')).toContainText('B won head to head')
+  await page.getByRole('button', { name: 'Back to the grid' }).click()
+  await expect(b.getByRole('button', { name: /^Remove pin/ })).toHaveCount(3)
 
   await page.getByRole('button', { name: 'Source' }).click()
   await expect(a.locator('pre')).toContainText('| Phase | From |')
-  await expect(page.getByRole('article', { name: 'Variant B' }).locator('pre')).toContainText('<button>Ask the agent</button>')
+  await expect(page.getByRole('article', { name: 'Variant B' }).locator('pre')).toContainText('>Ask the agent</button>')
 })
 
 test('picks head to head, asks for another round, and uses the winner', async ({ openCanvas, agent }) => {

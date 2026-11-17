@@ -11,6 +11,8 @@ export const VOTE_LABEL: Record<Vote, string> = { pick: 'Winner', keep: 'Keep', 
 
 export const MAX_NOTE = 2000
 export const MAX_QUOTE = 300
+/** What a pin on a mock is on: an element's tag and the start of its text. */
+export const MAX_ON = 120
 export const MAX_MARKS = 20
 /** Variants one `add_variants` call may add. */
 export const MAX_ADDED = 12

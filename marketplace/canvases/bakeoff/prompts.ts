@@ -16,7 +16,9 @@ export function feedback(state: BakeoffState, round: Round): string {
       `  File: ${variant.file}${made ? `. Made with: ${made}` : ''}`,
       ...(entry.note.trim() ? [`  Note: ${entry.note.trim()}`] : []),
       ...entry.marks.map((mark) =>
-        'quote' in mark ? `  [${mark.n}] is about the text "${mark.quote}"` : `  [${mark.n}] is a pin ${percent(mark.x)} from the left and ${percent(mark.y)} from the top of the image`,
+        'quote' in mark
+          ? `  [${mark.n}] is about the text "${mark.quote}"`
+          : `  [${mark.n}] is a pin ${percent(mark.x)} from the left and ${percent(mark.y)} from the top of the ${variant.kind === 'html' ? 'page' : 'image'}${mark.on ? `, on ${mark.on}` : ''}`,
       ),
     ]
   })

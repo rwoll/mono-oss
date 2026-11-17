@@ -4,9 +4,16 @@ import { KINDS, VOTES } from './shared.ts'
 // The canvas's state: the variants, and what the user decided in each round. The variants' content
 // stays in files, so the state the agent reads with get_state is small.
 
+/** A spot in an element of a mock: the way to the element from the mock's body (which child, at each step), and fractions of its width and height. */
+export const anchor = z.object({ path: z.array(z.number().int().min(0)).max(64), x: z.number().min(0).max(1), y: z.number().min(0).max(1) })
+
 const mark = z.union([
-  /** A pin on an image, as fractions of its width and height. */
-  z.object({ n: z.number().int(), x: z.number().min(0).max(1), y: z.number().min(0).max(1) }),
+  /**
+   * A pin on an image or an HTML mock, as fractions of its width and height. On a mock, `on` is the
+   * element under it, such as "<button> Ask the agent", and `anchor` is where in that element, so
+   * the pin stays on it when the mock is laid out at another size.
+   */
+  z.object({ n: z.number().int(), x: z.number().min(0).max(1), y: z.number().min(0).max(1), on: z.string().optional(), anchor: anchor.optional() }),
   /** Text the user selected in a variant. */
   z.object({ n: z.number().int(), quote: z.string() }),
 ])
@@ -60,6 +67,7 @@ export const stateSchema = z.object({
   rounds: z.array(round).min(1),
 })
 
+export type Anchor = z.output<typeof anchor>
 export type Mark = z.output<typeof mark>
 export type Variant = z.output<typeof variant>
 export type Entry = z.output<typeof entry>

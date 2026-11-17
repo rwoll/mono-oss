@@ -41,15 +41,18 @@ variant, none seeing the others. To compare models, name them:
 - **Pick, Keep, Drop.** One variant is the winner; picking another turns the old
   winner into a keep. Kept variants come along to the next round; dropped ones do not.
 - **Notes.** Say what works and what doesn't for each variant, and for the round as
-  a whole. Click a spot on an image to pin a numbered note to it, or select text in
-  a Markdown or text variant and choose **Comment on the selected text**. The note
-  gets `[1]`, `[2]` to refer to them.
+  a whole. Click a spot on an image or an HTML mock to pin a numbered note to it,
+  or select text in a Markdown, text, or HTML variant and choose **Comment on the
+  selected text**. The note gets `[1]`, `[2]` to refer to them, and the agent is
+  told what a pin on a mock is on, such as `<button> Record again`.
 - **Head to head.** Two variants at a time, with no votes or notes in sight: the one
   you'd rather get stays and meets the next, so four variants take three matches
   (`←`, `=`, `→`). Dropped variants sit out, and the last one standing becomes the
   winner. The two share the whole panel, and each scrolls in its own half.
 - **Expand.** Shows one variant alone, as large as the panel allows, from the grid
   or head to head. `←` and `→` switch to the next variant, and `Esc` closes it.
+  From the grid it has the variant's vote and note below it, to pin and quote at
+  full size.
 - **Blind.** On by default: it hides the models, AI credits, and approach behind
   each variant, so they don't sway you. Turn it off to see them, such as
   `chart in a card · claude-opus-5.5 · 3 AIC`. The round's total credits always show.
@@ -62,7 +65,11 @@ Head to head shows two variants and nothing else, as tall as the panel:
 
 **Expand** gives one variant the whole panel:
 
-<img alt="Variant A, an HTML mock of a demo comment, expanded to fill the panel, with the letters A and B to switch between the two, and a Close button" src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/bakeoff/expanded.png" width="700">
+<img alt="Variant A, an HTML mock of a demo comment, expanded to fill the panel, with two numbered pins on it and its vote and note below, the letters A, B, and C to switch between variants, and a Close button" src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/bakeoff/expanded.png" width="700">
+
+A click on an HTML mock pins a note to that spot, and selected text can be quoted:
+
+<img alt="Three HTML mocks as variants. A is kept, with pins 1 and 2 on its recording and its first step, and a note that refers to both. B is the winner, with a quote from its heading and a note about it." src="https://raw.githubusercontent.com/rwoll/mono-oss/main/docs/bakeoff/mock.png" width="700">
 
 Markdown variants are rendered, and a note can quote the text it is about:
 
@@ -106,8 +113,9 @@ A bakeoff holds up to 78 variants over all its rounds.
   still works after the agent's scratch files are gone. `feedback.md` next to them
   is what you sent for that round.
 - An HTML mock runs in a sandboxed frame: no scripts, forms, or navigation, and it
-  cannot load anything from the network, so it can only draw. Interactive mocks
-  show their first state.
+  cannot load anything from the network, so it can only draw. The canvas can see
+  into the frame, to pin your clicks, quote your selection, and give the mock the
+  height it needs. Interactive mocks show their first state.
 - Markdown is rendered without HTML, and images in it show as labeled
   placeholders. An SVG is shown as an image, where it cannot run scripts.
 

@@ -3,7 +3,7 @@ import { Header } from '../../ui'
 import { Duel } from './Duel.tsx'
 import { Expanded } from './Expanded.tsx'
 import { client, saved, track, useCanvas } from './hooks.ts'
-import type { Mark, Round, Variant } from './schema.ts'
+import type { Round, Variant } from './schema.ts'
 import { formatCredits, madeWith } from './shared.ts'
 import { NoteField, VariantCard, type Backdrop, type CardActions } from './Variant.tsx'
 import '../../ui/theme.css'
@@ -52,8 +52,8 @@ function App() {
   const contenders = shown.filter(({ entry }) => entry.vote !== 'drop').map(({ variant }) => variant)
   const duel = layout === 'duel' && !readOnly && shown.length > 0
   const alone = expanded ? variants.get(expanded.id) : undefined
-  // Head to head shows no notes, so it shows no pins either.
-  const alonePins = duel ? undefined : round.entries.find((entry) => entry.variant === alone?.id)?.marks.filter((mark): mark is Extract<Mark, { x: number }> => 'x' in mark)
+  // Head to head shows no votes or notes, expanded or not.
+  const aloneEntry = duel ? undefined : round.entries.find((entry) => entry.variant === alone?.id)
 
   /** Run an action, and say so when it fails. */
   const attempt = async <T,>(action: () => Promise<T>): Promise<T | undefined> => {
@@ -83,8 +83,8 @@ function App() {
 
   const view = { backdrop, source }
   const hints = [
-    ...(kinds.has('image') ? ['Click a spot on an image to pin a note to it.'] : []),
-    ...(kinds.has('markdown') || kinds.has('text') ? ['Select text in a variant to comment on it.'] : []),
+    ...(kinds.has('image') || kinds.has('html') ? [`Click a spot on ${[...(kinds.has('image') ? ['an image'] : []), ...(kinds.has('html') ? ['a mock'] : [])].join(' or ')} to pin a note to it.`] : []),
+    ...(kinds.has('markdown') || kinds.has('text') || kinds.has('html') ? ['Select text in a variant to comment on it.'] : []),
   ]
 
   return (
@@ -240,7 +240,7 @@ function App() {
           bakeoff={state.id}
           variants={expanded.among.flatMap((id) => variants.get(id) ?? [])}
           current={alone}
-          pins={alonePins}
+          review={aloneEntry && { entry: aloneEntry, readOnly, actions }}
           {...view}
           onShow={(id) => setExpanded({ ...expanded, id })}
           onClose={() => setExpanded(null)}

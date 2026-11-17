@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useKeysBack } from './hooks.ts'
 import type { Variant } from './schema.ts'
 import { ExpandButton, Preview, type ViewOptions } from './Variant.tsx'
 
@@ -45,7 +44,6 @@ export function Duel({ bakeoff, variants, onWinner, onDone, onExpand, paused, ..
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   })
-  useKeysBack(() => (document.activeElement as HTMLElement | null)?.blur())
 
   if (!champion || !challenger) return <p className="notice">Head to head needs at least two variants that are not dropped.</p>
   const onScreen = match.done ? [champion.id] : [champion.id, challenger.id]
