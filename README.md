@@ -24,12 +24,17 @@ copilot plugin install kitchensink@rwoll
   <tr>
     <td align="center" width="277"><a href="#session-summary"><img src="docs/session-summary/logo.png" alt="" width="88"><br><b>session-summary</b></a><br>status at a glance</td>
     <td align="center" width="277"><a href="#bakeoff"><img src="docs/bakeoff/logo.png" alt="" width="88"><br><b>bakeoff</b></a><br>pick the best</td>
-    <td align="center" width="277"><a href="#canvas-kit"><img src="docs/canvas-kit/logo.png" alt="" width="88"><br><b>canvas-kit</b></a><br>build canvases</td>
+    <td align="center" width="277"><a href="#copilot-spend"><img src="docs/copilot-spend/logo.png" alt="" width="88"><br><b>copilot-spend</b></a><br>where credits go</td>
   </tr>
   <tr>
+    <td align="center" width="277"><a href="#canvas-kit"><img src="docs/canvas-kit/logo.png" alt="" width="88"><br><b>canvas-kit</b></a><br>build canvases</td>
     <td align="center" width="277"><a href="#blobby-sandbox"><img src="docs/blobby-sandbox/logo.png" alt="" width="88"><br><b>Blobby Sandbox</b></a><br>test desktops</td>
     <td align="center" width="277"><a href="#agent-test-server"><img src="docs/agent-test-server/logo.png" alt="" width="88"><br><b>agent-test-server</b></a><br>fake LLM and MCP</td>
+  </tr>
+  <tr>
+    <td width="277"></td>
     <td align="center" width="277"><a href="#blobby-type"><img src="docs/blobby-type/logo.png" alt="" width="88"><br><b>Blobby Type</b></a><br>faster typing</td>
+    <td width="277"></td>
   </tr>
 </table>
 
@@ -120,6 +125,21 @@ to which model made it, pin notes to the spot you mean, and send it back for ano
 the winner.
 
 It comes in the [Copilot plugin](#copilot-plugin). Ask your agent for a few options of something, in a bakeoff.
+
+## copilot-spend
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/copilot-spend/canvas-dark.png">
+  <img alt="The Copilot spend canvas with amounts hidden. A paragraph says feature work takes the largest share of your AIC, 40%. Below it, each of 73 sessions is a dot on its task type's row, on a log scale, with the 8 most expensive numbered. Below that, what the model read in all sessions, with the part from skills and MCP servers that were loaded and not used hatched, and a table that ranks them: the issue-tracker MCP server is available in 73 sessions and called in 0." src="docs/copilot-spend/canvas-light.png">
+</picture>
+
+**See which tasks your AI credits go to.** A canvas that reads the session logs Copilot keeps on your
+machine and sorts your sessions by kind of work: features, bug fixes, PR follow-up, research. It calls
+out the sessions that cost far more than others like them and says why, and shows which skills and MCP
+servers take up context without being used. Amounts are hidden until you ask: it shows shares, ranks,
+and multiples, so you can share your screen.
+
+It comes in the [Copilot plugin](#copilot-plugin). Ask your agent to open the Copilot spend canvas.
 
 ## canvas-kit
 

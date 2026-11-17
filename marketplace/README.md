@@ -25,6 +25,7 @@ copilot plugin install kitchensink@rwoll
 | [`agents-qa`](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases/agents-qa) | Scheduled QA runs of the VS Code Agents window in a Blobby sandbox (a skill), and a canvas to triage what they find. |
 | [`session-summary`](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases/session-summary) | A canvas with an executive summary of the chat that the agent keeps up to date. |
 | [`bakeoff`](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases/bakeoff) | A canvas to compare variants the agent made (images, Markdown, HTML mocks), blind or head to head, vote and comment, and send the result back for another round, and a [skill](https://github.com/rwoll/mono-oss/blob/main/marketplace/skills/bakeoff/SKILL.md) to make the variants from one brief on the models you name. |
+| [`copilot-spend`](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases/copilot-spend) | A canvas that shows which kinds of tasks your Copilot AI credits go to, the sessions behind the numbers, and the skills and MCP servers that take context without being used, with amounts hidden by default. |
 
 Skills live in [skills/](https://github.com/rwoll/mono-oss/tree/main/marketplace/skills)
 and canvases in [canvases/](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases),

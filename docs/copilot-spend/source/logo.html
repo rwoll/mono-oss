@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- The copilot-spend logo: Blobby next to a gold coin, an AI credit. Blobby: microsoft/vscode, MIT (see ../LICENSE-blobby-sprites.txt). render.ts renders it. -->
+<html><head><meta charset="utf-8"><style>
+  html, body { margin: 0; width: 512px; height: 512px; background: transparent; }
+  .icon { position: absolute; inset: 16px; border-radius: 108px; overflow: hidden;
+    background: radial-gradient(120% 120% at 25% 15%, #8a97a8 0%, #4a5565 45%, #171c24 100%); }
+  /* Everything sits on Blobby's pixel grid: one sprite pixel is 8 px at 1x, 24 px here. */
+  svg { position: absolute; inset: 0; width: 480px; height: 480px; shape-rendering: crispEdges; }
+  img { position: absolute; image-rendering: pixelated; width: 288px; height: 288px; left: 24px; top: 168px; }
+</style></head><body>
+<div class="icon">
+  <svg viewBox="0 0 480 480">
+    <!-- The coin, seven cells across with its corners cut. -->
+    <rect x="312" y="48" width="72" height="168" fill="#ffd23f"/>
+    <rect x="288" y="72" width="120" height="120" fill="#ffd23f"/>
+    <rect x="264" y="96" width="168" height="72" fill="#ffd23f"/>
+    <!-- Its shine, top left, and its shaded edge, bottom right. -->
+    <rect x="312" y="48" width="48" height="24" fill="#fff3b0"/>
+    <rect x="288" y="72" width="24" height="24" fill="#fff3b0"/>
+    <rect x="264" y="96" width="24" height="24" fill="#fff3b0"/>
+    <rect x="336" y="192" width="48" height="24" fill="#c98a12"/>
+    <rect x="384" y="168" width="24" height="24" fill="#c98a12"/>
+    <rect x="408" y="144" width="24" height="24" fill="#c98a12"/>
+    <!-- The mark stamped on it. -->
+    <rect x="336" y="96" width="24" height="72" fill="#a8700a"/>
+  </svg>
+  <img src="buddy-idle-insiders-96.png" alt="">
+</div>
+</body></html>
