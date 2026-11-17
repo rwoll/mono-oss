@@ -1,4 +1,4 @@
-import { a as CanvasKitError, i as loadRelease, o as errorMessage, r as CanvasHost, t as canvases } from "./chunks/kitchensink-ZibAWuvG.mjs";
+import { a as CanvasKitError, i as loadRelease, o as errorMessage, r as CanvasHost, t as canvases } from "./chunks/kitchensink-CBUeoj3k.mjs";
 import { CanvasError, createCanvas, joinSession } from "@github/copilot-sdk/extension";
 import { fileURLToPath } from "node:url";
 // ../packages/canvas-kit/dist/extension.js
