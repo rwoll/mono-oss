@@ -11460,7 +11460,7 @@ var IDLE_GAP_MS = 3e5;
 var MAX_TITLE = 120;
 var MAX_PROMPT = 400;
 var MAX_NAMES = 300;
-var MAIN = "main";
+var MAIN$1 = "main";
 /** Calls `onEvent` for every event of a wanted type in a session's log, in order. */
 async function readEvents(file, onEvent, wantedTypes = WANTED$1) {
 	const handle = await open(file, "r");
@@ -11714,7 +11714,7 @@ async function summarizeSession(dir, id) {
 			if (last && at > last && at - last <= IDLE_GAP_MS) summary.activeMs += at - last;
 			if (at > last) last = at;
 		}
-		const key = event.agentId ?? MAIN;
+		const key = event.agentId ?? MAIN$1;
 		switch (event.type) {
 			case "session.start": {
 				const context = record$1(data.context);
@@ -11725,7 +11725,7 @@ async function summarizeSession(dir, id) {
 			}
 			case "user.message": {
 				const content = text$1(data.transformedContent) || text$1(data.content);
-				if (key === MAIN && !summary.prompt) summary.prompt = oneLine(text$1(data.content) || content, MAX_PROMPT);
+				if (key === MAIN$1 && !summary.prompt) summary.prompt = oneLine(text$1(data.content) || content, MAX_PROMPT);
 				add(agentFor(key), CONVERSATION, tokens$1(content.length));
 				break;
 			}
@@ -11818,7 +11818,7 @@ async function summarizeSession(dir, id) {
 			case "session.usage_checkpoint":
 				for (const conversation of Array.isArray(data.promptCacheBreakState) ? data.promptCacheBreakState : []) {
 					const entry = record$1(conversation);
-					if (entry.conversation !== MAIN) continue;
+					if (entry.conversation !== MAIN$1) continue;
 					const model = record$1(record$1(entry.models)[text$1(entry.lastActiveModel)]);
 					const tools = Array.isArray(model.tools) ? model.tools.map(record$1) : [];
 					const mcp = tools.filter((tool) => tool.mcp === true);
@@ -11839,7 +11839,7 @@ async function summarizeSession(dir, id) {
 			case "session.usage_record": {
 				const usage = record$1(data.usage);
 				const source = text$1(record$1(usage.accounting).sourceSessionId);
-				if (key === MAIN && source && source !== id) {
+				if (key === MAIN$1 && source && source !== id) {
 					inherited(at);
 					add(agentFor(key), CONVERSATION, count$1(usage.outputTokens));
 					break;
@@ -11856,7 +11856,7 @@ async function summarizeSession(dir, id) {
 				summary.calls += 1;
 				summary.nanoAiu += spent;
 				if (typeof nano !== "number") summary.callsWithoutAic += 1;
-				if (key !== MAIN) summary.subagentNanoAiu += spent;
+				if (key !== MAIN$1) summary.subagentNanoAiu += spent;
 				if (Number.isFinite(at)) summary.endedAt = Math.max(summary.endedAt, at);
 				const input = count$1(usage.inputTokens);
 				summary.inputTokens += input;
@@ -11868,7 +11868,7 @@ async function summarizeSession(dir, id) {
 				const rest = input - definitions;
 				let estimated = 0;
 				for (const amount of agent.live.values()) estimated += amount;
-				const system = key === MAIN && systemTokens !== void 0 ? Math.min(systemTokens, rest) : Math.max(0, rest - estimated);
+				const system = key === MAIN$1 && systemTokens !== void 0 ? Math.min(systemTokens, rest) : Math.max(0, rest - estimated);
 				summary.read.base += system;
 				const context = rest - system;
 				if (estimated <= 0) summary.read.conversation += context;
@@ -13118,9 +13118,14 @@ var WANTED = /* @__PURE__ */ new Set([
 	"system.message",
 	"skill.invoked",
 	"skill.invoked_ref",
+	"skill.context_delivered",
+	"skill.context_delivered_ref",
 	"session.usage_record",
 	"session.compaction_complete"
 ]);
+/** How a delivery of a skill's instructions names the skill. */
+var DELIVERED = /^skill-(.+)$/;
+var MAIN = "main";
 var MAX_SKILLS = 500;
 var MAX_NAME = 200;
 var MAX_DESCRIPTION = 1200;
@@ -13175,6 +13180,8 @@ async function readSessionSkills(dir) {
 	};
 	/** How long each skill's instructions are, by the ID a later invocation refers to them by. */
 	const lengths = /* @__PURE__ */ new Map();
+	/** Invocations whose delivery has not been seen yet, by agent and skill. */
+	const awaited = /* @__PURE__ */ new Map();
 	let listed = false;
 	let lastPrompt = "";
 	/** In the main agent's context now: the list of skills, the instructions of the skills it invoked, and all of it together. */
@@ -13206,6 +13213,24 @@ async function readSessionSkills(dir) {
 				const content = text(data.content);
 				if (content) lengths.set(`sha256:${createHash("sha256").update(content).digest("hex")}`, content.length);
 				if (!event.agentId) invokedTokens += tokens(content.length || lengths.get(text(data.contentId)) || count(data.contentLength));
+				const key = `${event.agentId ?? MAIN}:${name}`;
+				awaited.set(key, (awaited.get(key) ?? 0) + 1);
+				break;
+			}
+			case "skill.context_delivered":
+			case "skill.context_delivered_ref": {
+				const name = DELIVERED.exec(text(data.source))?.[1];
+				if (!name) break;
+				const key = `${event.agentId ?? MAIN}:${name}`;
+				const waiting = awaited.get(key) ?? 0;
+				if (waiting > 0) {
+					awaited.set(key, waiting - 1);
+					break;
+				}
+				const skill = skillFor(name);
+				if (!skill) break;
+				skill.stage = "invoked";
+				if (!event.agentId) invokedTokens += tokens(text(data.content).length || text(data.prefix).length + text(data.suffix).length + (lengths.get(text(data.contentId)) ?? 0));
 				break;
 			}
 			case "session.usage_record": {
@@ -13261,9 +13286,9 @@ var state = object({
 		description: string(),
 		stage: _enum(STAGES)
 	})).max(500),
-	/** An invoked skill was also available, so it counts in both. */
+	/** An invoked skill was also available, so it counts in both. `available` is null when the log does not say which skills were. */
 	counts: object({
-		available: amount,
+		available: amount.nullable(),
 		invoked: amount
 	}),
 	/** Tokens in the agent's context (measured), and about how many of them are the list of available skills and the instructions of invoked skills. Null before its first model call. */
@@ -13310,7 +13335,7 @@ function createSkillFunnelCanvas(options = {}) {
 				readAt: new Date(ctx.now()).toISOString(),
 				skills,
 				counts: {
-					available: skills.length,
+					available: listed ? skills.length : null,
 					invoked: skills.filter((skill) => skill.stage === "invoked").length
 				},
 				context
@@ -13337,10 +13362,11 @@ function createSkillFunnelCanvas(options = {}) {
 			if (current.status === "idle") return "Not read yet: call refresh";
 			if (current.status === "error") return current.error ?? "The session could not be read";
 			const { available, invoked } = current.counts;
+			if (available === null) return `${invoked} skill${invoked === 1 ? "" : "s"} invoked; the session's log does not say which were available`;
 			return `${available} skill${available === 1 ? "" : "s"} available, ${invoked} invoked`;
 		},
 		actions: ({ action }) => ({ refresh: action({
-			description: "Read the session's log again. Returns how many skills were available and invoked, the names of the invoked ones, and what they take of the agent's context in tokens; get_state has every skill. The page calls it when it opens and as the agent works.",
+			description: "Read the session's log again. Returns how many skills were available (null when the log does not say) and invoked, the names of the invoked ones, and what they take of the agent's context in tokens; get_state has every skill. The page calls it when it opens and as the agent works.",
 			run: async (ctx) => {
 				const { status, error, counts, context, skills } = await read(ctx);
 				return {
