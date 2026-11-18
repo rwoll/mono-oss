@@ -1,4 +1,4 @@
-import { a as CanvasKitError, i as loadRelease, o as errorMessage, r as CanvasHost, t as canvases } from "./chunks/kitchensink-CBUeoj3k.mjs";
+import { a as CanvasKitError, i as loadRelease, o as errorMessage, r as CanvasHost, t as canvases } from "./chunks/kitchensink-Vnn1Ckqv.mjs";
 import { CanvasError, createCanvas, joinSession } from "@github/copilot-sdk/extension";
 import { fileURLToPath } from "node:url";
 // ../packages/canvas-kit/dist/extension.js
@@ -95,7 +95,7 @@ await runCanvasExtension(canvases, {
 	releaseFile: new URL("../../release.json", import.meta.url),
 	plugin: {
 		"name": "kitchensink",
-		"version": "0.5.1"
+		"version": "0.6.0"
 	}
 });
 export {};

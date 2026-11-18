@@ -5775,7 +5775,7 @@ var ZodRecord = /*@__PURE__*/ $constructor("ZodRecord", (inst, def) => {
 	inst.keyType = def.keyType;
 	inst.valueType = def.valueType;
 });
-function record$2(keyType, valueType, params) {
+function record$3(keyType, valueType, params) {
 	if (!valueType || !valueType._zod) return new ZodRecord({
 		type: "record",
 		keyType: string(),
@@ -6260,7 +6260,7 @@ var BUSY_EVENTS = /* @__PURE__ */ new Set([
 ]);
 var ENDED_EVENTS = /* @__PURE__ */ new Set(["assistant.turn_end", "abort"]);
 var MAX_REMEMBERED = 64;
-var record$1 = (value) => value !== null && typeof value === "object" && !Array.isArray(value) ? value : {};
+var record$2 = (value) => value !== null && typeof value === "object" && !Array.isArray(value) ? value : {};
 function remember(map, key, value) {
 	map.set(key, value);
 	if (map.size > MAX_REMEMBERED) map.delete(map.keys().next().value);
@@ -6305,7 +6305,7 @@ var AgentActivityTracker = class {
 	}
 	ingest(event) {
 		if (!event || typeof event.type !== "string") return;
-		const data = record$1(event.data);
+		const data = record$2(event.data);
 		const parsed = typeof event.timestamp === "string" ? Date.parse(event.timestamp) : NaN;
 		const at = Number.isFinite(parsed) ? parsed : this.#now();
 		const wasBusy = this.#busy;
@@ -7943,7 +7943,7 @@ var KEY = /^[a-z0-9][a-z0-9-]{1,79}$/;
 /** A GitHub user name, without the @. */
 var LOGIN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 var RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
-var text$1 = (max) => string().trim().max(max);
+var text$2 = (max) => string().trim().max(max);
 /** A decision. `dismiss`, the earlier name for `suppress`, is still read. */
 var outcomeValue = preprocess((value) => value === "dismiss" ? "suppress" : value, _enum(OUTCOMES));
 var time = string().refine((value) => !Number.isNaN(Date.parse(value)), "must be an ISO time");
@@ -7956,42 +7956,42 @@ var httpsUrl = string().max(500).refine((value) => {
 }, "must be an https URL");
 var mediaSchema$1 = object({
 	/** Absolute, or relative to the run folder. */
-	path: text$1(1e3).min(1),
-	label: text$1(200).optional()
+	path: text$2(1e3).min(1),
+	label: text$2(200).optional()
 });
 var matchSchema = object({
 	url: httpsUrl,
 	relation: _enum(["duplicate", "related"]).default("related"),
 	state: _enum(["open", "closed"]).optional(),
-	note: text$1(400).optional()
+	note: text$2(400).optional()
 });
 var findingSchema = object({
 	/** The run's own label, such as W4. */
-	id: text$1(20).min(1),
+	id: text$2(20).min(1),
 	/** Stable across runs: a run that sees the same problem again reuses it. */
 	key: string().regex(KEY, "must be a kebab-case slug, such as mcp-install-account-changed"),
-	title: text$1(200).min(1),
+	title: text$2(200).min(1),
 	severity: _enum(SEVERITIES),
-	area: text$1(60).default("Other"),
+	area: text$2(60).default("Other"),
 	status: _enum(OBSERVATIONS).default("new"),
-	summary: text$1(4e3).default(""),
+	summary: text$2(4e3).default(""),
 	repro: object({
-		setup: text$1(4e3).default(""),
-		steps: array(text$1(1e3)).max(40).default([]),
-		expected: text$1(2e3).default(""),
-		actual: text$1(4e3).default("")
+		setup: text$2(4e3).default(""),
+		steps: array(text$2(1e3)).max(40).default([]),
+		expected: text$2(2e3).default(""),
+		actual: text$2(4e3).default("")
 	}).prefault({}),
 	prs: array(httpsUrl).max(20).default([]),
 	media: array(mediaSchema$1).max(40).default([]),
 	matches: array(matchSchema).max(10).default([]),
 	owner: object({
 		login: string().regex(LOGIN, "must be a GitHub user name without @"),
-		reason: text$1(300).optional()
+		reason: text$2(300).optional()
 	}).optional(),
 	/** What the run's agent proposes you decide. */
 	recommendation: object({
 		outcome: outcomeValue,
-		reason: text$1(600).default("")
+		reason: text$2(600).default("")
 	}).optional()
 });
 var runSchema = object({
@@ -8006,16 +8006,16 @@ var runSchema = object({
 	startedAt: time,
 	finishedAt: time.optional(),
 	build: object({
-		version: text$1(80).default(""),
-		commit: text$1(64).default("")
+		version: text$2(80).default(""),
+		commit: text$2(64).default("")
 	}).prefault({}),
-	environment: text$1(400).default(""),
+	environment: text$2(400).default(""),
 	scope: object({
 		since: time.optional(),
 		/** The build the PRs are counted from: those in this build and not in the base. Usually the last run's build. */
 		base: object({
-			commit: text$1(64).min(1),
-			version: text$1(80).optional(),
+			commit: text$2(64).min(1),
+			version: text$2(80).optional(),
 			run: string().regex(RUN_ID).optional()
 		}).optional(),
 		/** Merged PRs the run self-hosted. */
@@ -8023,53 +8023,53 @@ var runSchema = object({
 		/** The other PRs in this build and not the base, each with why the run didn't test it. */
 		skipped: array(object({
 			pr: httpsUrl,
-			reason: text$1(200).min(1)
+			reason: text$2(200).min(1)
 		})).max(500).default([]),
 		/** The area explored beyond the PRs. */
-		area: text$1(80).optional(),
-		notes: text$1(1e3).optional()
+		area: text$2(80).optional(),
+		notes: text$2(1e3).optional()
 	}).prefault({}),
-	summary: text$1(6e3).default(""),
-	error: text$1(2e3).optional(),
+	summary: text$2(6e3).default(""),
+	error: text$2(2e3).optional(),
 	/** Relative to the run folder. */
-	report: text$1(300).default("REPORT.md"),
+	report: text$2(300).default("REPORT.md"),
 	/** Run-wide media, such as recordings of the whole pass. */
 	media: array(mediaSchema$1).max(20).default([]),
 	findings: array(findingSchema).max(200).default([]),
 	verified: array(object({
 		pr: httpsUrl,
-		note: text$1(400).default("")
+		note: text$2(400).default("")
 	})).max(300).default([])
 });
 var linkSchema = object({
 	url: string().max(500).refine((value) => value.startsWith("https://") || value.startsWith("agent-host-session://"), "must be an https or agent-host-session:// URL").optional(),
 	/** An absolute local file, such as an investigation report. */
-	path: text$1(1e3).optional(),
-	label: text$1(120).min(1),
+	path: text$2(1e3).optional(),
+	label: text$2(120).min(1),
 	kind: _enum(LINK_KINDS).default("other")
 }).refine((link) => Boolean(link.url) !== Boolean(link.path), "needs exactly one of url or path");
 var itemSchema = object({
 	decision: outcomeValue.nullable().default(null),
 	/** Your note to the agent that carries out the decision. */
-	note: text$1(4e3).default(""),
+	note: text$2(4e3).default(""),
 	/** For tracked findings: the issue that already covers it. */
 	trackedUrl: httpsUrl.optional(),
 	state: _enum(ITEM_STATES$1).default("draft"),
 	updatedAt: time,
 	sentAt: time.optional(),
-	batch: text$1(40).optional(),
+	batch: text$2(40).optional(),
 	links: array(linkSchema).max(20).default([]),
-	detail: text$1(4e3).optional()
+	detail: text$2(4e3).optional()
 });
 var settingsSchema = object({
-	fixModel: text$1(80).min(1).default("claude-opus-5.5"),
+	fixModel: text$2(80).min(1).default("claude-opus-5.5"),
 	/** A microsoft/vscode checkout; fix and investigation sessions run in new worktrees of it. */
-	vscodePath: text$1(1e3).optional()
+	vscodePath: text$2(1e3).optional()
 }).prefault({});
 var triageSchema = object({
 	format: literal("agents-qa-triage"),
 	version: literal(1),
-	items: record$2(string().regex(KEY), itemSchema).default({}),
+	items: record$3(string().regex(KEY), itemSchema).default({}),
 	settings: settingsSchema
 });
 var outcomeSchema = object({
@@ -8082,7 +8082,7 @@ var outcomeSchema = object({
 		"failed"
 	]),
 	links: array(linkSchema).max(10).default([]),
-	detail: text$1(4e3).optional()
+	detail: text$2(4e3).optional()
 });
 var emptyTriage = () => ({
 	format: "agents-qa-triage",
@@ -9228,7 +9228,7 @@ function createAgentsQaCanvas(options = {}) {
 		})
 	});
 }
-var canvas_default$5 = createAgentsQaCanvas();
+var canvas_default$6 = createAgentsQaCanvas();
 // ../packages/annotate/dist/schema.js
 var coordinate = number().finite();
 var seconds = number().finite().nonnegative();
@@ -9650,7 +9650,7 @@ var exported = object({
 	format: _enum(FORMATS),
 	at: string()
 });
-var state = object({
+var state$1 = object({
 	/** The document file. */
 	path: string(),
 	document: documentSchema.nullable(),
@@ -9903,11 +9903,11 @@ var feedbackPrompt = (path, text, selected) => [
 	"",
 	"Change the document with the canvas actions (or edit the file; the canvas reloads it), then tell the user what changed."
 ].join("\n");
-var canvas_default$4 = defineCanvas({
+var canvas_default$5 = defineCanvas({
 	id: "rwoll-annotate",
 	title: "Annotate",
 	description: "Shows an annotate document (marks, zoom, captions, before/after, redaction on a screenshot or recording) for the user to play, edit, and export. Open it with a .json document or an image or video.",
-	state,
+	state: state$1,
 	input: object({ path: string().min(1).describe("A document (.json), or an image or video to start one for: it is written next to it as <name>.annotate.json.") }),
 	init: async ({ input }) => ({
 		...await open$1(input.path),
@@ -9964,7 +9964,7 @@ var canvas_default$4 = defineCanvas({
 			description: "Change fields of one annotation, by id or index. Fields set to null are removed.",
 			input: object({
 				target: union([string(), number().int().nonnegative()]),
-				changes: record$2(string(), unknown())
+				changes: record$3(string(), unknown())
 			}),
 			run: async (ctx, { target, changes }) => {
 				await edit(ctx, (document) => {
@@ -10540,7 +10540,7 @@ var emptyEntry = (variant, carried) => ({
 	marks: [],
 	carried
 });
-var canvas_default$3 = defineCanvas({
+var canvas_default$4 = defineCanvas({
 	id: "rwoll-bakeoff",
 	title: "Bakeoff",
 	description: "Lets the user compare variants you made, such as images, PR descriptions or other Markdown, HTML mocks, videos, or text, side by side or head to head: they pick a winner, keep or drop the others, and comment, with pins on images and quotes from text. Use it whenever the user asks for several options of something, or to choose between drafts: open it with a title and a brief, then add the variants with add_variants, with the models that made them and their AI credits when you know them. The user answers from the canvas with a [bakeoff:next-round] message (make new variants from their feedback) or a [bakeoff:use] message (use the winner); get_state has their votes and notes at any time.",
@@ -11319,7 +11319,7 @@ function createCanvas(deps) {
 		}
 	});
 }
-var canvas_default$2 = createCanvas({ cli: createCli() });
+var canvas_default$3 = createCanvas({ cli: createCli() });
 // canvases/copilot-spend/shared.ts
 var TASK_TYPES = [
 	"feature",
@@ -11443,7 +11443,7 @@ var CHUNK = 1 << 20;
 /** Enough of a line to see its type, which comes first. */
 var HEAD = 256;
 var TYPE = /"type":"([^"]+)"/;
-var WANTED = /* @__PURE__ */ new Set([
+var WANTED$1 = /* @__PURE__ */ new Set([
 	"session.start",
 	"user.message",
 	"tool.execution_start",
@@ -11462,7 +11462,7 @@ var MAX_PROMPT = 400;
 var MAX_NAMES = 300;
 var MAIN = "main";
 /** Calls `onEvent` for every event of a wanted type in a session's log, in order. */
-async function readEvents(file, onEvent) {
+async function readEvents(file, onEvent, wantedTypes = WANTED$1) {
 	const handle = await open(file, "r");
 	try {
 		const chunk = Buffer.allocUnsafe(CHUNK);
@@ -11492,7 +11492,7 @@ async function readEvents(file, onEvent) {
 					if (wanted === void 0 && (newline !== -1 || size >= HEAD)) {
 						const head = (parts.length === 1 ? parts[0] : Buffer.concat(parts, size)).subarray(0, HEAD).toString("latin1");
 						const type = TYPE.exec(head)?.[1];
-						wanted = type === void 0 || WANTED.has(type);
+						wanted = type === void 0 || wantedTypes.has(type);
 						if (!wanted) {
 							parts = [];
 							size = 0;
@@ -11509,11 +11509,11 @@ async function readEvents(file, onEvent) {
 		await handle.close();
 	}
 }
-var text = (value) => typeof value === "string" ? value : "";
-var count = (value) => typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
-var record = (value) => typeof value === "object" && value !== null ? value : {};
+var text$1 = (value) => typeof value === "string" ? value : "";
+var count$1 = (value) => typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
+var record$1 = (value) => typeof value === "object" && value !== null ? value : {};
 /** About four characters to a token: close enough to split what the model read, which is then fitted to the measured total. */
-var tokens = (characters) => Math.ceil(characters / 4);
+var tokens$1 = (characters) => Math.ceil(characters / 4);
 /** The flat `key: value` lines of a session's workspace.yaml. */
 function parseWorkspace(yaml) {
 	const values = {};
@@ -11707,7 +11707,7 @@ async function summarizeSession(dir, id) {
 		edited.clear();
 	};
 	const onEvent = (event) => {
-		const data = record(event.data);
+		const data = record$1(event.data);
 		const at = event.timestamp ? Date.parse(event.timestamp) : NaN;
 		if (Number.isFinite(at)) {
 			if (!summary.startedAt) summary.startedAt = at;
@@ -11717,16 +11717,16 @@ async function summarizeSession(dir, id) {
 		const key = event.agentId ?? MAIN;
 		switch (event.type) {
 			case "session.start": {
-				const context = record(data.context);
-				summary.repository ||= text(context.repository) || basename(text(context.gitRoot) || text(context.cwd));
-				summary.branch ||= text(context.branch);
-				summary.client ||= text(data.producer);
+				const context = record$1(data.context);
+				summary.repository ||= text$1(context.repository) || basename(text$1(context.gitRoot) || text$1(context.cwd));
+				summary.branch ||= text$1(context.branch);
+				summary.client ||= text$1(data.producer);
 				break;
 			}
 			case "user.message": {
-				const content = text(data.transformedContent) || text(data.content);
-				if (key === MAIN && !summary.prompt) summary.prompt = oneLine(text(data.content) || content, MAX_PROMPT);
-				add(agentFor(key), CONVERSATION, tokens(content.length));
+				const content = text$1(data.transformedContent) || text$1(data.content);
+				if (key === MAIN && !summary.prompt) summary.prompt = oneLine(text$1(data.content) || content, MAX_PROMPT);
+				add(agentFor(key), CONVERSATION, tokens$1(content.length));
 				break;
 			}
 			case "subagent.started":
@@ -11734,12 +11734,12 @@ async function summarizeSession(dir, id) {
 				break;
 			case "skill.invoked":
 			case "skill.invoked_ref": {
-				const name = text(data.name);
+				const name = text$1(data.name);
 				if (!name) break;
-				let content = text(data.content);
+				let content = text$1(data.content);
 				if (content) skillContent.set(`sha256:${createHash("sha256").update(content).digest("hex")}`, content);
-				else content = skillContent.get(text(data.contentId)) ?? "";
-				const size = tokens(content.length || count(data.contentLength));
+				else content = skillContent.get(text$1(data.contentId)) ?? "";
+				const size = tokens$1(content.length || count$1(data.contentLength));
 				let index = summary.skills.findIndex((skill) => skill.name === name);
 				if (index === -1) {
 					index = summary.skills.length;
@@ -11755,7 +11755,7 @@ async function summarizeSession(dir, id) {
 					});
 				}
 				const markers = content ? skillMarkers(content) : [];
-				const folder = skillFolder(text(data.path));
+				const folder = skillFolder(text$1(data.path));
 				summary.skills[index].loads += 1;
 				loads.push({
 					skill: index,
@@ -11769,9 +11769,9 @@ async function summarizeSession(dir, id) {
 				break;
 			}
 			case "tool.execution_start": {
-				const name = text(data.toolName);
-				const server = text(data.mcpServerName) || null;
-				const callId = text(data.toolCallId);
+				const name = text$1(data.toolName);
+				const server = text$1(data.mcpServerName) || null;
+				const callId = text$1(data.toolCallId);
 				if (callId) started.set(callId, {
 					kind: toolKind(name, server !== null),
 					server,
@@ -11780,7 +11780,7 @@ async function summarizeSession(dir, id) {
 				if (server) {
 					const use = serverFor(server);
 					use.calls += 1;
-					use.toolSet.add(text(data.mcpToolName) || name);
+					use.toolSet.add(text$1(data.mcpToolName) || name);
 				}
 				if (name === "skill") break;
 				let args;
@@ -11795,58 +11795,58 @@ async function summarizeSession(dir, id) {
 				break;
 			}
 			case "tool.execution_complete": {
-				const call = started.get(text(data.toolCallId));
-				started.delete(text(data.toolCallId));
+				const call = started.get(text$1(data.toolCallId));
+				started.delete(text$1(data.toolCallId));
 				const kind = call?.kind ?? "other";
 				const tally = summary.tools[kind] ??= {
 					calls: 0,
 					failed: 0
 				};
 				tally.calls += 1;
-				const exitCode = record(data.shellExecution).exitCode;
+				const exitCode = record$1(data.shellExecution).exitCode;
 				const failed = data.success === false || typeof exitCode === "number" && exitCode !== 0;
 				if (failed) tally.failed += 1;
 				if (call?.server && failed) serverFor(call.server).failed += 1;
 				for (const edit of Array.isArray(data.fileEdits) ? data.fileEdits : []) {
-					const path = text(record(edit).path);
+					const path = text$1(record$1(edit).path);
 					if (path) edited.add(path);
 				}
-				const size = count(record(record(data.toolTelemetry).metrics).result_token_count) || tokens(text(record(data.result).content).length || text(record(data.error).message).length);
+				const size = count$1(record$1(record$1(data.toolTelemetry).metrics).result_token_count) || tokens$1(text$1(record$1(data.result).content).length || text$1(record$1(data.error).message).length);
 				add(agentFor(call?.agent ?? key), call?.server ? `mcp:${call.server}` : OUTPUT, size);
 				break;
 			}
 			case "session.usage_checkpoint":
 				for (const conversation of Array.isArray(data.promptCacheBreakState) ? data.promptCacheBreakState : []) {
-					const entry = record(conversation);
+					const entry = record$1(conversation);
 					if (entry.conversation !== MAIN) continue;
-					const model = record(record(entry.models)[text(entry.lastActiveModel)]);
-					const tools = Array.isArray(model.tools) ? model.tools.map(record) : [];
+					const model = record$1(record$1(entry.models)[text$1(entry.lastActiveModel)]);
+					const tools = Array.isArray(model.tools) ? model.tools.map(record$1) : [];
 					const mcp = tools.filter((tool) => tool.mcp === true);
 					mcpDefShare = tools.length ? mcp.length / tools.length : 0;
-					for (const tool of mcp) if (mcpTools.size < MAX_NAMES) mcpTools.add(text(tool.name));
+					for (const tool of mcp) if (mcpTools.size < MAX_NAMES) mcpTools.add(text$1(tool.name));
 					const segments = Array.isArray(model.system_segments) ? model.system_segments : [];
-					if (segments.length) systemTokens = segments.reduce((sum, segment) => sum + count(record(segment).tokens), 0);
+					if (segments.length) systemTokens = segments.reduce((sum, segment) => sum + count$1(record$1(segment).tokens), 0);
 				}
 				break;
 			case "session.compaction_complete": {
 				if (data.success === false) break;
 				const agent = agentFor(key);
 				agent.live.clear();
-				add(agent, CONVERSATION, count(data.conversationTokens) || tokens(text(data.summaryContent).length));
-				if (count(data.systemTokens)) systemTokens = count(data.systemTokens);
+				add(agent, CONVERSATION, count$1(data.conversationTokens) || tokens$1(text$1(data.summaryContent).length));
+				if (count$1(data.systemTokens)) systemTokens = count$1(data.systemTokens);
 				break;
 			}
 			case "session.usage_record": {
-				const usage = record(data.usage);
-				const source = text(record(usage.accounting).sourceSessionId);
+				const usage = record$1(data.usage);
+				const source = text$1(record$1(usage.accounting).sourceSessionId);
 				if (key === MAIN && source && source !== id) {
 					inherited(at);
-					add(agentFor(key), CONVERSATION, count(usage.outputTokens));
+					add(agentFor(key), CONVERSATION, count$1(usage.outputTokens));
 					break;
 				}
-				const model = text(usage.model) || "unknown";
-				const nano = record(usage.copilotUsage).totalNanoAiu;
-				const spent = count(nano);
+				const model = text$1(usage.model) || "unknown";
+				const nano = record$1(usage.copilotUsage).totalNanoAiu;
+				const spent = count$1(nano);
 				const tally = summary.models[model] ??= {
 					nanoAiu: 0,
 					calls: 0
@@ -11858,9 +11858,9 @@ async function summarizeSession(dir, id) {
 				if (typeof nano !== "number") summary.callsWithoutAic += 1;
 				if (key !== MAIN) summary.subagentNanoAiu += spent;
 				if (Number.isFinite(at)) summary.endedAt = Math.max(summary.endedAt, at);
-				const input = count(usage.inputTokens);
+				const input = count$1(usage.inputTokens);
 				summary.inputTokens += input;
-				const definitions = Math.min(count(usage.toolTokenCount), input);
+				const definitions = Math.min(count$1(usage.toolTokenCount), input);
 				const mcpDefinitions = definitions * mcpDefShare;
 				summary.read.mcpDefs += mcpDefinitions;
 				summary.read.base += definitions - mcpDefinitions;
@@ -11887,7 +11887,7 @@ async function summarizeSession(dir, id) {
 						}
 					}
 				}
-				add(agent, CONVERSATION, count(usage.outputTokens));
+				add(agent, CONVERSATION, count$1(usage.outputTokens));
 				break;
 			}
 		}
@@ -12555,7 +12555,7 @@ var DAY_MS = 864e5;
 var PROGRESS_MS = 200;
 var MAX_TO_SORT = 300;
 var stateSchema = custom((value) => typeof value === "object" && value !== null && Array.isArray(value.rows));
-var sessionId = string().regex(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,100}$/, "must be a session ID");
+var sessionId$1 = string().regex(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,100}$/, "must be a session ID");
 var days = union([
 	literal(7),
 	literal(30),
@@ -12714,7 +12714,7 @@ function createCopilotSpendCanvas(options = {}) {
 			}),
 			select_session: action({
 				description: "Show one session's detail: its models, tool calls, what the model read, and the skills and MCP servers it had. Null closes it.",
-				input: object({ id: sessionId.nullable() }),
+				input: object({ id: sessionId$1.nullable() }),
 				run: async (ctx, { id }) => {
 					const state = await render(ctx, { selected: id });
 					if (id !== null && state.selected !== id) throw new CanvasKitError("not_found", `No session in this period has the ID "${id}". Use an id from get_state.`, 404);
@@ -12733,7 +12733,7 @@ function createCopilotSpendCanvas(options = {}) {
 			set_task_types: action({
 				description: `Correct the task type of sessions, which the canvas otherwise works out from each session's request: ${TASK_TYPES.map((type) => `${type} (${TASK_LABELS[type]})`).join(", ")}. A null type goes back to the one the canvas worked out. Types the user chose are kept over yours.`,
 				input: object({ types: array(object({
-					id: sessionId,
+					id: sessionId$1,
 					type: _enum(TASK_TYPES).nullable()
 				})).min(1).max(500) }),
 				run: async (ctx, { types }) => {
@@ -12787,7 +12787,7 @@ function createCopilotSpendCanvas(options = {}) {
 			ask_about_session: action({
 				description: "Ask the agent in this chat to look into why one session used as much AIC as it did.",
 				expose: "ui",
-				input: object({ id: sessionId }),
+				input: object({ id: sessionId$1 }),
 				run: async (ctx, { id }) => {
 					const state = await render(ctx, { selected: id });
 					const row = state.rows.find((entry) => entry.id === id);
@@ -12816,7 +12816,7 @@ function createCopilotSpendCanvas(options = {}) {
 		})
 	});
 }
-var canvas_default$1 = createCopilotSpendCanvas();
+var canvas_default$2 = createCopilotSpendCanvas();
 // canvases/session-summary/canvas.ts
 var STATUSES = [
 	"working",
@@ -12956,7 +12956,7 @@ function questionPrompt(passage, question) {
 	].join("\n");
 }
 var ellipsis = (text, max) => text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
-var canvas_default = defineCanvas({
+var canvas_default$1 = defineCanvas({
 	id: "session-executive-summary",
 	title: "Session summary",
 	description: "An executive summary of this chat's work that the agent keeps up to date on a schedule.",
@@ -13113,37 +13113,284 @@ var canvas_default = defineCanvas({
 		}
 	}) })
 });
+// canvases/skill-funnel/log.ts
+var WANTED = /* @__PURE__ */ new Set([
+	"system.message",
+	"skill.invoked",
+	"skill.invoked_ref",
+	"session.usage_record",
+	"session.compaction_complete"
+]);
+var MAX_SKILLS = 500;
+var MAX_NAME = 200;
+var MAX_DESCRIPTION = 1200;
+var ORDER = {
+	invoked: 0,
+	available: 1
+};
+var text = (value) => typeof value === "string" ? value : "";
+var count = (value) => typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
+var record = (value) => typeof value === "object" && value !== null ? value : {};
+/** About four characters to a token. */
+var tokens = (characters) => Math.ceil(characters / 4);
+var cut = (value, max) => value.length > max ? `${value.slice(0, max - 1).trimEnd()}…` : value;
+var ENTITIES = {
+	lt: "<",
+	gt: ">",
+	amp: "&",
+	quot: "\"",
+	apos: "'"
+};
+var unescape = (value) => value.replace(/&(?:#(\d{1,7})|#x([0-9a-f]{1,6})|(lt|gt|amp|quot|apos));/gi, (all, decimal, hex, named) => {
+	if (named) return ENTITIES[named.toLowerCase()] ?? all;
+	const code = decimal ? Number(decimal) : parseInt(hex, 16);
+	return code > 0 && code <= 1114111 ? String.fromCodePoint(code) : all;
+});
+var BLOCK = /<available_skills>([\s\S]*?)<\/available_skills>/g;
+var ENTRY = /<skill>([\s\S]*?)<\/skill>/g;
+var field = (entry, tag) => unescape(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`).exec(entry)?.[1] ?? "").trim();
+/** The skills a system prompt lists as available. */
+function listedSkills(prompt) {
+	const found = [];
+	for (const block of prompt.matchAll(BLOCK)) for (const entry of block[1].matchAll(ENTRY)) {
+		const name = field(entry[1], "name");
+		if (name) found.push({
+			name,
+			description: field(entry[1], "description")
+		});
+	}
+	return found;
+}
+/** Reads what happened to the skills of the session in `dir`. Fails when it has no log. */
+async function readSessionSkills(dir) {
+	const skills = /* @__PURE__ */ new Map();
+	const skillFor = (name) => {
+		let skill = skills.get(name);
+		if (!skill && skills.size < MAX_SKILLS) skills.set(name, skill = {
+			name: cut(name, MAX_NAME),
+			description: "",
+			stage: "available"
+		});
+		return skill;
+	};
+	/** How long each skill's instructions are, by the ID a later invocation refers to them by. */
+	const lengths = /* @__PURE__ */ new Map();
+	let listed = false;
+	let lastPrompt = "";
+	/** In the main agent's context now: the list of skills, the instructions of the skills it invoked, and all of it together. */
+	let listTokens = 0;
+	let invokedTokens = 0;
+	let total = 0;
+	const onEvent = (event) => {
+		const data = record(event.data);
+		switch (event.type) {
+			case "system.message": {
+				const prompt = text(data.content);
+				if (prompt === lastPrompt) break;
+				lastPrompt = prompt;
+				if (prompt.includes("<available_skills>")) listed = true;
+				if (!event.agentId) listTokens = [...prompt.matchAll(BLOCK)].reduce((sum, block) => sum + tokens(block[0].length), 0);
+				for (const entry of listedSkills(prompt)) {
+					const skill = skillFor(entry.name);
+					if (skill && entry.description) skill.description = cut(entry.description, MAX_DESCRIPTION);
+				}
+				break;
+			}
+			case "skill.invoked":
+			case "skill.invoked_ref": {
+				const name = text(data.name);
+				const skill = name ? skillFor(name) : void 0;
+				if (!skill) break;
+				skill.stage = "invoked";
+				skill.description ||= cut(text(data.description), MAX_DESCRIPTION);
+				const content = text(data.content);
+				if (content) lengths.set(`sha256:${createHash("sha256").update(content).digest("hex")}`, content.length);
+				if (!event.agentId) invokedTokens += tokens(content.length || lengths.get(text(data.contentId)) || count(data.contentLength));
+				break;
+			}
+			case "session.usage_record": {
+				const input = count(record(data.usage).inputTokens);
+				if (!event.agentId && input) total = input;
+				break;
+			}
+			case "session.compaction_complete": if (!event.agentId && data.success !== false) invokedTokens = 0;
+		}
+	};
+	await readEvents(join(dir, "events.jsonl"), onEvent, WANTED);
+	let title = "";
+	try {
+		title = cut(parseWorkspace(await readFile(join(dir, "workspace.yaml"), "utf8")).name ?? "", MAX_NAME);
+	} catch {}
+	let context = null;
+	if (total) {
+		const scale = Math.min(1, total / (listTokens + invokedTokens || 1));
+		context = {
+			total,
+			available: Math.round(listTokens * scale),
+			invoked: Math.round(invokedTokens * scale)
+		};
+	}
+	return {
+		title,
+		listed,
+		skills: [...skills.values()].sort((a, b) => ORDER[a.stage] - ORDER[b.stage]),
+		context
+	};
+}
+// canvases/skill-funnel/shared.ts
+/** Available: listed to the agent by name and description. Invoked: its full instructions were put in an agent's context. */
+var STAGES = ["available", "invoked"];
+var sessionId = string().regex(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,100}$/, "must be a session ID");
+var amount = number().int().min(0);
+var state = object({
+	/** The ID of the session shown, or null when the canvas was opened outside a chat with no session given. */
+	session: string().nullable(),
+	title: string(),
+	status: _enum([
+		"idle",
+		"ready",
+		"error"
+	]),
+	error: string().nullable(),
+	/** False when the session's log does not say which skills were available, so only the invoked ones are shown. */
+	listed: boolean(),
+	readAt: string().nullable(),
+	/** Invoked first, then the rest. */
+	skills: array(object({
+		name: string(),
+		description: string(),
+		stage: _enum(STAGES)
+	})).max(500),
+	/** An invoked skill was also available, so it counts in both. */
+	counts: object({
+		available: amount,
+		invoked: amount
+	}),
+	/** Tokens in the agent's context (measured), and about how many of them are the list of available skills and the instructions of invoked skills. Null before its first model call. */
+	context: object({
+		total: amount,
+		available: amount,
+		invoked: amount
+	}).nullable()
+});
+var empty = (session) => ({
+	session,
+	title: "",
+	status: "idle",
+	error: null,
+	listed: true,
+	readAt: null,
+	skills: [],
+	counts: {
+		available: 0,
+		invoked: 0
+	},
+	context: null
+});
+function createSkillFunnelCanvas(options = {}) {
+	const root = options.root ?? (() => join(process.env["COPILOT_HOME"] || join(homedir(), ".copilot"), "session-state"));
+	/** The session to show: the one asked for, or the chat the canvas is in. */
+	const sessionFor = (asked, chat) => asked ?? (sessionId.safeParse(chat).success ? chat : null);
+	async function read(ctx) {
+		const { session } = ctx.state;
+		const failed = (error) => ctx.setState({
+			...empty(session),
+			status: "error",
+			error
+		});
+		if (!session) return failed("There is no session to show. Open this canvas from a chat, or open it with the ID of a session.");
+		try {
+			const { title, listed, skills, context } = await readSessionSkills(join(root(), session));
+			return ctx.setState({
+				session,
+				title,
+				status: "ready",
+				error: null,
+				listed,
+				readAt: new Date(ctx.now()).toISOString(),
+				skills,
+				counts: {
+					available: skills.length,
+					invoked: skills.filter((skill) => skill.stage === "invoked").length
+				},
+				context
+			});
+		} catch (error) {
+			if (error.code === "ENOENT") return failed(`Session ${session} has no log in ${root()}.`);
+			const message = error instanceof Error ? error.message : String(error);
+			ctx.log(`Skill funnel could not read session ${session} in ${root()}: ${message}`, "error");
+			return failed(`The log of session ${session} could not be read: ${message}`);
+		}
+	}
+	return defineCanvas({
+		id: "rwoll-skill-funnel",
+		title: "Skill funnel",
+		description: "Shows the skills of a Copilot session, from its log on this machine: how many were available (listed to the agent by name and description) and which of them were invoked (their full instructions put in the agent's context), with a wheel of how much of the agent's context they take. It shows this chat unless opened with the ID of another session. After opening, call refresh.",
+		state,
+		input: object({ session: sessionId.optional().describe("The ID of the session to show. Defaults to the chat that opens the canvas.") }),
+		init: ({ input, sessionId: chat }) => empty(sessionFor(input.session, chat)),
+		reopen: ({ input, state: current, sessionId: chat }) => {
+			const session = sessionFor(input.session, chat);
+			return session === current.session ? void 0 : empty(session);
+		},
+		status: (current) => {
+			if (current.status === "idle") return "Not read yet: call refresh";
+			if (current.status === "error") return current.error ?? "The session could not be read";
+			const { available, invoked } = current.counts;
+			return `${available} skill${available === 1 ? "" : "s"} available, ${invoked} invoked`;
+		},
+		actions: ({ action }) => ({ refresh: action({
+			description: "Read the session's log again. Returns how many skills were available and invoked, the names of the invoked ones, and what they take of the agent's context in tokens; get_state has every skill. The page calls it when it opens and as the agent works.",
+			run: async (ctx) => {
+				const { status, error, counts, context, skills } = await read(ctx);
+				return {
+					status,
+					error,
+					counts,
+					context,
+					invoked: skills.filter((skill) => skill.stage === "invoked").map((skill) => skill.name)
+				};
+			}
+		}) })
+	});
+}
+var canvas_default = createSkillFunnelCanvas();
 // \0canvas-kit:virtual:canvas-kit/canvases/kitchensink
 /** The canvases in this plugin, by folder name, with the page each one serves. */
 var canvases = [
 	{
 		name: "agents-qa",
 		page: "agents-qa.html",
-		canvas: canvas_default$5
+		canvas: canvas_default$6
 	},
 	{
 		name: "annotate",
 		page: "annotate.html",
-		canvas: canvas_default$4
+		canvas: canvas_default$5
 	},
 	{
 		name: "bakeoff",
 		page: "bakeoff.html",
-		canvas: canvas_default$3
+		canvas: canvas_default$4
 	},
 	{
 		name: "blobby-sandbox",
 		page: "blobby-sandbox.html",
-		canvas: canvas_default$2
+		canvas: canvas_default$3
 	},
 	{
 		name: "copilot-spend",
 		page: "copilot-spend.html",
-		canvas: canvas_default$1
+		canvas: canvas_default$2
 	},
 	{
 		name: "session-summary",
 		page: "session-summary.html",
+		canvas: canvas_default$1
+	},
+	{
+		name: "skill-funnel",
+		page: "skill-funnel.html",
 		canvas: canvas_default
 	}
 ];
