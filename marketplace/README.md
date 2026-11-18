@@ -26,6 +26,7 @@ copilot plugin install kitchensink@rwoll
 | [`session-summary`](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases/session-summary) | A canvas with an executive summary of the chat that the agent keeps up to date. |
 | [`bakeoff`](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases/bakeoff) | A canvas to compare variants the agent made (images, Markdown, HTML mocks), blind or head to head, vote and comment, and send the result back for another round, and a [skill](https://github.com/rwoll/mono-oss/blob/main/marketplace/skills/bakeoff/SKILL.md) to make the variants from one brief on the models you name. |
 | [`copilot-spend`](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases/copilot-spend) | A canvas that shows which kinds of tasks your Copilot AI credits go to, the sessions behind the numbers, and the skills and MCP servers that take context without being used, with amounts hidden by default. |
+| [`skill-funnel`](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases/skill-funnel) | A canvas that pictures a session's skills: how many were available, which the agent invoked, and how much of its context they take. |
 
 Skills live in [skills/](https://github.com/rwoll/mono-oss/tree/main/marketplace/skills)
 and canvases in [canvases/](https://github.com/rwoll/mono-oss/tree/main/marketplace/canvases),

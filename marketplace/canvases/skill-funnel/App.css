@@ -1,0 +1,62 @@
+/* The Skill funnel's layout. Shared styles are in ../../ui/theme.css. */
+
+.funnel { gap: 0; padding-top: 16px; container-type: inline-size; }
+
+/* The rows, with the wheel beside them when there is room and under them when not. */
+.board { display: grid; align-items: center; gap: clamp(20px, 5cqw, 40px); }
+.rows { min-width: 0; }
+@container (min-width: 480px) {
+  .board { grid-template-columns: minmax(0, 1fr) clamp(140px, 30cqw, 300px); }
+  .board > .notice { grid-column: 1 / -1; }
+}
+
+/* Two colors that stand apart from each other and from the grey of everything else. */
+.available { --tone: var(--warn); }
+.invoked { --tone: var(--accent); }
+
+/* A row per stage: its count, then a dot for every skill. */
+.stages { display: grid; gap: clamp(18px, 4.5cqw, 40px); margin: 0; padding: 0; list-style: none; }
+.stage { display: grid; grid-template-columns: clamp(118px, 24cqw, 200px) minmax(0, 1fr); align-items: center; gap: 12px; }
+.count {
+  font-size: clamp(44px, 12cqw, 104px); line-height: 1; font-weight: var(--semibold);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.03em;
+}
+.stage .label { margin: 4px 0 0; color: var(--tone); font-size: clamp(11px, 1.6cqw, 14px); white-space: nowrap; }
+/* As large as fits --columns to a row, up to 30px. */
+.dots { display: grid; grid-template-columns: repeat(var(--columns), minmax(0, 30px)); gap: clamp(3px, 0.9cqw, 9px); }
+.dots > i { aspect-ratio: 1; border-radius: 50%; background: color-mix(in srgb, var(--ink) 11%, transparent); transition: background-color 0.3s; }
+.dots > .on { background: var(--tone); }
+
+/* The names of the invoked skills, in their row's color. */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: clamp(16px, 4cqw, 36px) 0 0; padding: 0; list-style: none; }
+.chips > li {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px;
+  border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent); border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 10%, transparent);
+  font: clamp(12px, 1.7cqw, 15px) / 1.4 var(--mono); overflow-wrap: anywhere;
+}
+.chips > li::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--tone); }
+
+/* The agent's context, with what the skills take of it in their rows' colors. */
+.wheel { display: grid; justify-items: center; gap: 8px; margin: 0; }
+.wheel > .label { margin: 0; font-size: clamp(11px, 1.6cqw, 14px); }
+.wheel > svg { width: min(100%, 260px); }
+.wheel circle { stroke: var(--tone); transition: stroke-dasharray 0.3s, stroke-dashoffset 0.3s; }
+.wheel .rest { stroke: color-mix(in srgb, var(--ink) 11%, transparent); }
+.wheel text { fill: var(--ink); font-variant-numeric: tabular-nums; }
+.wheel .share { font-size: 22px; font-weight: var(--semibold); letter-spacing: -0.02em; }
+.wheel .of { fill: var(--muted); font-size: 8px; font-weight: var(--semibold); letter-spacing: 0.06em; text-transform: uppercase; }
+.wheel > figcaption { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 12px; font-size: clamp(12px, 1.7cqw, 15px); font-variant-numeric: tabular-nums; }
+.wheel .key { display: inline-flex; align-items: center; gap: 5px; }
+.wheel .key::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--tone); }
+.board > .notice { margin-top: -8px; }
+
+@media (prefers-reduced-motion: reduce) { .dots > i, .wheel circle { transition: none; } }
+
+@media (forced-colors: active) {
+  .dots > i { border: 1px solid CanvasText; background: Canvas; }
+  .dots > .on, .chips > li::before, .wheel .key::before { background: CanvasText; forced-color-adjust: none; }
+  .chips > li { border-color: CanvasText; }
+  .wheel circle { stroke: CanvasText; }
+  .wheel .rest { stroke: GrayText; }
+}

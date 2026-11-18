@@ -141,6 +141,20 @@ and multiples, so you can share your screen.
 
 It comes in the [Copilot plugin](#copilot-plugin). Ask your agent to open the Copilot spend canvas.
 
+## skill-funnel
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/skill-funnel/canvas-dark.png">
+  <img alt="The Skill funnel canvas for an invented session. Two rows of fourteen dots: 14 skills available, and 4 skills invoked with four dots lit and the names of the four skills under them. Beside the rows, a wheel labeled Context usage: skills take 28% of the 24k tokens in the agent's context, about 6.1k for the instructions of invoked skills and 599 for the list of available ones." src="docs/skill-funnel/canvas-light.png" width="600">
+</picture>
+
+**See which skills a session invoked, and what they cost in context.** A canvas that reads the log of
+the chat it is opened in and draws one dot per available skill, lit when the agent invoked it, with a
+wheel of how much of the agent's context the skills take. It updates as the agent works, and is made
+to be shown on a slide.
+
+It comes in the [Copilot plugin](#copilot-plugin). Ask your agent to open the Skill funnel canvas.
+
 ## canvas-kit
 
 <picture>

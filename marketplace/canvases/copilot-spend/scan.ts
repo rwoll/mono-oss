@@ -93,7 +93,7 @@ export interface SessionSummary {
   mcpTools: string[]
 }
 
-interface LogEvent {
+export interface LogEvent {
   type: string
   timestamp?: string
   agentId?: string
@@ -101,7 +101,7 @@ interface LogEvent {
 }
 
 /** Calls `onEvent` for every event of a wanted type in a session's log, in order. */
-export async function readEvents(file: string, onEvent: (event: LogEvent) => void): Promise<void> {
+export async function readEvents(file: string, onEvent: (event: LogEvent) => void, wantedTypes: ReadonlySet<string> = WANTED): Promise<void> {
   const handle = await open(file, 'r')
   try {
     const chunk = Buffer.allocUnsafe(CHUNK)
@@ -137,7 +137,7 @@ export async function readEvents(file: string, onEvent: (event: LogEvent) => voi
           if (wanted === undefined && (newline !== -1 || size >= HEAD)) {
             const head = (parts.length === 1 ? (parts[0] as Buffer) : Buffer.concat(parts, size)).subarray(0, HEAD).toString('latin1')
             const type = TYPE.exec(head)?.[1]
-            wanted = type === undefined || WANTED.has(type)
+            wanted = type === undefined || wantedTypes.has(type)
             if (!wanted) {
               parts = []
               size = 0
