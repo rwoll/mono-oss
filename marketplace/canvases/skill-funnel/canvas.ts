@@ -26,8 +26,8 @@ const state = z.object({
   readAt: z.string().nullable(),
   /** Invoked first, then the rest. */
   skills: z.array(z.object({ name: z.string(), description: z.string(), stage: z.enum(STAGES) })).max(500),
-  /** An invoked skill was also available, so it counts in both. */
-  counts: z.object({ available: amount, invoked: amount }),
+  /** An invoked skill was also available, so it counts in both. `available` is null when the log does not say which skills were. */
+  counts: z.object({ available: amount.nullable(), invoked: amount }),
   /** Tokens in the agent's context (measured), and about how many of them are the list of available skills and the instructions of invoked skills. Null before its first model call. */
   context: z.object({ total: amount, available: amount, invoked: amount }).nullable(),
 })
@@ -66,7 +66,7 @@ export function createSkillFunnelCanvas(options: FunnelOptions = {}) {
         listed,
         readAt: new Date(ctx.now()).toISOString(),
         skills,
-        counts: { available: skills.length, invoked: skills.filter((skill) => skill.stage === 'invoked').length },
+        counts: { available: listed ? skills.length : null, invoked: skills.filter((skill) => skill.stage === 'invoked').length },
         context,
       })
     } catch (error) {
@@ -95,12 +95,13 @@ export function createSkillFunnelCanvas(options: FunnelOptions = {}) {
       if (current.status === 'idle') return 'Not read yet: call refresh'
       if (current.status === 'error') return current.error ?? 'The session could not be read'
       const { available, invoked } = current.counts
+      if (available === null) return `${invoked} skill${invoked === 1 ? '' : 's'} invoked; the session's log does not say which were available`
       return `${available} skill${available === 1 ? '' : 's'} available, ${invoked} invoked`
     },
     actions: ({ action }) => ({
       refresh: action({
         description:
-          "Read the session's log again. Returns how many skills were available and invoked, the names of the invoked ones, and what they take of the agent's context in tokens; get_state has every skill. The page calls it when it opens and as the agent works.",
+          "Read the session's log again. Returns how many skills were available (null when the log does not say) and invoked, the names of the invoked ones, and what they take of the agent's context in tokens; get_state has every skill. The page calls it when it opens and as the agent works.",
         run: async (ctx) => {
           const { status, error, counts, context, skills } = await read(ctx)
           return { status, error, counts, context, invoked: skills.filter((skill) => skill.stage === 'invoked').map((skill) => skill.name) }

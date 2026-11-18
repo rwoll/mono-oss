@@ -95,12 +95,12 @@ function App() {
                 {STAGES.map((stage) => (
                   <li key={stage} className={`stage ${stage}`}>
                     <div className="figure">
-                      <p className="count">{counts[stage]}</p>
+                      <p className="count">{counts[stage] ?? '?'}</p>
                       <h2 className="label">{STAGE_LABELS[stage]}</h2>
                     </div>
-                    {/* One dot per skill, in the same place in both rows, lit when the skill got this far. */}
+                    {/* One dot per skill, in the same place in both rows, lit when the skill got this far. None when the available skills are not known. */}
                     <div className="dots" aria-hidden="true">
-                      {skills.map((skill) => (
+                      {(stage === 'available' && !state.listed ? [] : skills).map((skill) => (
                         <i key={skill.name} className={stage === 'available' || skill.stage === 'invoked' ? 'on' : undefined} title={tip(skill)} />
                       ))}
                     </div>
@@ -118,7 +118,7 @@ function App() {
               )}
             </div>
             {state.context && <Wheel context={state.context} />}
-            {!state.listed && <p className="notice warn">This session’s log does not list its available skills.</p>}
+            {!state.listed && <p className="notice warn">This session’s log is missing its start, which lists the available skills. Only invoked skills are shown.</p>}
           </div>
         )}
       </main>

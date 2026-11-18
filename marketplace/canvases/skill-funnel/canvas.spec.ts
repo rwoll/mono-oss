@@ -2,9 +2,9 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { canvasTest, expect } from '@rwoll/canvas-kit/playwright'
-import { SKILLS } from '../copilot-spend/fixtures.ts'
+import { FakeSession, SKILLS } from '../copilot-spend/fixtures.ts'
 import { createSkillFunnelCanvas } from './canvas.ts'
-import { invoked, sampleSession } from './fixtures.ts'
+import { SAMPLE_START, invoked, sampleSession } from './fixtures.ts'
 
 /** The ID of the chat the test canvas runs in. */
 const CHAT = 'test-session'
@@ -27,6 +27,14 @@ test('shows which of this chat’s skills were invoked, and what they take of it
 
   await expect(page.getByRole('heading', { name: 'Context usage' })).toBeVisible()
   await expect(page.getByRole('img', { name: /^Skills take about \d+% of the 24k tokens in the agent’s context$/ })).toBeVisible()
+})
+
+test('says so when the log does not list the available skills', async ({ openCanvas }) => {
+  await new FakeSession(CHAT, SAMPLE_START).event('skill.context_delivered', { source: 'skill-monorepo-build', content: SKILLS['monorepo-build'] }).write(root)
+  const { page } = await openCanvas()
+  await expect(page.getByRole('list', { name: 'The session’s skills' }).getByRole('listitem')).toHaveText(['?Skills available', '1Skills invoked'])
+  await expect(page.getByText('This session’s log is missing its start, which lists the available skills. Only invoked skills are shown.')).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Invoked skills' }).getByRole('listitem')).toHaveText(['monorepo-build'])
 })
 
 test('follows the agent as it invokes another skill', async ({ openCanvas, agent }) => {

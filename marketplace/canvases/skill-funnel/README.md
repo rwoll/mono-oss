@@ -39,11 +39,12 @@ Copilot's home (`~/.copilot`, or `$COPILOT_HOME`), and nothing else.
 | What | How it is known |
 | --- | --- |
 | Available | The system prompt lists each skill by name and description. |
-| Invoked | The log has a `skill.invoked` event for the skill, which is when its full instructions are put in an agent's context: the agent asked for it, you did, or it came with an agent's setup. |
+| Invoked | The log has a `skill.invoked` event for the skill, which is when its full instructions are put in an agent's context: the agent asked for it, you did, or it came with an agent's setup. A skill whose instructions the log shows delivered to an agent counts too, since a log can miss its first events. |
 | Context | Each model call records the size of its request, which is the whole wheel. The slices are estimates, at about four characters to a token, of the text the log has for the list of skills and for each skill the main agent invoked. A skill a sub-agent invoked is in that sub-agent's context, and is not in the wheel. Instructions from before the conversation was compacted are no longer counted. |
 
-The log does not record whether the agent then followed an invoked skill's
-instructions, so the canvas does not say.
+When a log is missing its start, it has no system prompt, so the canvas shows `?` for
+the skills available and says so, rather than guess. The log does not record whether
+the agent then followed an invoked skill's instructions, so the canvas does not say.
 
 ## Actions
 

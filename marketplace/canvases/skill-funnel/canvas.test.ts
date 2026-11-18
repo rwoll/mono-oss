@@ -11,6 +11,7 @@ import { readSessionSkills } from './log.ts'
 
 const OPUS = 'claude-opus-5.5'
 const NOTES_TOKENS = Math.ceil(SKILLS['release-notes'].length / 4)
+const BUILD_TOKENS = Math.ceil(SKILLS['monorepo-build'].length / 4)
 
 describe('Skill funnel canvas', () => {
   let root = ''
@@ -51,6 +52,25 @@ describe('Skill funnel canvas', () => {
     expect(state.context!.available).toBeLessThan(1000)
     expect(state.skills[2]).toEqual({ name: 'pr-descriptions', description: 'Write pull request titles & descriptions a reviewer can skim in 30 seconds.', stage: 'invoked' })
     expect(state.skills[4]).toMatchObject({ name: 'release-notes', stage: 'available' })
+  })
+
+  it('counts a skill whose instructions were delivered when the log misses its start, and does not guess how many were available', async () => {
+    await new FakeSession('chat-2', SAMPLE_START)
+      // The first events were not saved: there is no system prompt, and no invocation of the first skill.
+      .event('skill.context_delivered', { source: 'skill-monorepo-build', content: SKILLS['monorepo-build'] })
+      .event('skill.invoked', invoked('release-notes', SKILLS['release-notes']))
+      // The delivery that follows an invocation is not a second one.
+      .event('skill.context_delivered_ref', { source: 'skill-release-notes', contentId: 'sha256:0', prefix: '<skill-context name="release-notes">', suffix: '</skill-context>' })
+      .call(OPUS, { input: 5000, aic: 15 })
+      .write(root)
+    const harness = await start({ sessionId: 'chat-2' })
+    await harness.open('a')
+    expect(await harness.invoke('a', 'refresh')).toMatchObject({
+      counts: { available: null, invoked: 2 },
+      invoked: ['monorepo-build', 'release-notes'],
+      context: { total: 5000, available: 0, invoked: BUILD_TOKENS + NOTES_TOKENS },
+    })
+    expect(harness.state('a')).toMatchObject({ listed: false })
   })
 
   it('shows another session when asked, and says when a session has no log', async () => {

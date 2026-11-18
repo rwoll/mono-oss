@@ -7,10 +7,15 @@ import type { Context, Skill, Stage } from './shared.ts'
 // Reads one Copilot session's event log (`<session>/events.jsonl`) for what happened to
 // its skills. Which skills were available is in the system prompt, which lists each by
 // name and description. A skill was invoked when the log has a `skill.invoked` event for
-// it: that is when its full instructions are put in an agent's context. How large the
-// main agent's context is comes from its latest model call, which records it.
+// it: that is when its full instructions are put in an agent's context. A log can miss
+// its first events, so a skill whose instructions were delivered to an agent counts as
+// invoked too. How large the main agent's context is comes from its latest model call,
+// which records it.
 
-const WANTED = new Set(['system.message', 'skill.invoked', 'skill.invoked_ref', 'session.usage_record', 'session.compaction_complete'])
+const WANTED = new Set(['system.message', 'skill.invoked', 'skill.invoked_ref', 'skill.context_delivered', 'skill.context_delivered_ref', 'session.usage_record', 'session.compaction_complete'])
+/** How a delivery of a skill's instructions names the skill. */
+const DELIVERED = /^skill-(.+)$/
+const MAIN = 'main'
 const MAX_SKILLS = 500
 const MAX_NAME = 200
 const MAX_DESCRIPTION = 1200
@@ -68,6 +73,8 @@ export async function readSessionSkills(dir: string): Promise<SessionSkills> {
   }
   /** How long each skill's instructions are, by the ID a later invocation refers to them by. */
   const lengths = new Map<string, number>()
+  /** Invocations whose delivery has not been seen yet, by agent and skill. */
+  const awaited = new Map<string, number>()
   let listed = false
   let lastPrompt = ''
   /** In the main agent's context now: the list of skills, the instructions of the skills it invoked, and all of it together. */
@@ -103,6 +110,26 @@ export async function readSessionSkills(dir: string): Promise<SessionSkills> {
         if (content) lengths.set(`sha256:${createHash('sha256').update(content).digest('hex')}`, content.length)
         // A sub-agent reads a skill it invokes in a context of its own.
         if (!event.agentId) invokedTokens += tokens(content.length || lengths.get(text(data.contentId)) || count(data.contentLength))
+        const key = `${event.agentId ?? MAIN}:${name}`
+        awaited.set(key, (awaited.get(key) ?? 0) + 1)
+        break
+      }
+      case 'skill.context_delivered':
+      case 'skill.context_delivered_ref': {
+        const name = DELIVERED.exec(text(data.source))?.[1]
+        if (!name) break
+        // The delivery that follows an invocation is the same invocation.
+        const key = `${event.agentId ?? MAIN}:${name}`
+        const waiting = awaited.get(key) ?? 0
+        if (waiting > 0) {
+          awaited.set(key, waiting - 1)
+          break
+        }
+        // A delivery with no invocation before it: the log does not have the invocation.
+        const skill = skillFor(name)
+        if (!skill) break
+        skill.stage = 'invoked'
+        if (!event.agentId) invokedTokens += tokens(text(data.content).length || text(data.prefix).length + text(data.suffix).length + (lengths.get(text(data.contentId)) ?? 0))
         break
       }
       case 'session.usage_record': {
